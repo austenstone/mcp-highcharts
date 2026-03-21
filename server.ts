@@ -81,13 +81,33 @@ export function createServer(): McpServer {
         "Uses Highcharts.stockChart() which provides navigator, range selector, scrollbar, crosshair, " +
         "compare mode, and 40+ technical indicators. " +
         "Supports OHLC, candlestick, HLC, flags, and all standard series types. " +
-        "Input is a Highcharts Stock Options object (https://api.highcharts.com/highstock/).",
+        "Input is a Highcharts Stock Options object (https://api.highcharts.com/highstock/).\n\n" +
+        "Example — OHLC with volume:\n" +
+        '{ series: [{ type: "candlestick", name: "AAPL", data: [[ts,o,h,l,c], ...] }, ' +
+        '{ type: "column", name: "Volume", data: [[ts,vol], ...], yAxis: 1 }], ' +
+        'yAxis: [{ height: "70%" }, { top: "75%", height: "25%", offset: 0 }], ' +
+        'rangeSelector: { selected: 1 } }',
       inputSchema: {
         ...inputSchema,
-        navigator: z.object({}).passthrough().optional()
+        navigator: z.object({
+          enabled: z.boolean().optional().describe("Enable/disable the navigator pane"),
+          series: z.any().optional().describe("Navigator series config (can reference main series by index)"),
+        }).passthrough().optional()
           .describe("Navigator configuration for data overview pane at bottom of chart"),
-        rangeSelector: z.object({}).passthrough().optional()
-          .describe("Range selector buttons and date input configuration (1m, 3m, 6m, YTD, 1y, All)"),
+        rangeSelector: z.object({
+          selected: z.number().optional().describe("Index of pre-selected button (0-based)"),
+          buttons: z.array(z.object({
+            type: z.string().optional().describe("Unit: millisecond, second, minute, hour, day, week, month, ytd, year, all"),
+            count: z.number().optional().describe("Number of units"),
+            text: z.string().optional().describe("Button label"),
+          }).passthrough()).optional().describe("Custom range selector buttons"),
+          inputEnabled: z.boolean().optional().describe("Show date input fields"),
+        }).passthrough().optional()
+          .describe("Range selector buttons and date input (1m, 3m, 6m, YTD, 1y, All)"),
+        scrollbar: z.object({
+          enabled: z.boolean().optional().describe("Enable/disable the scrollbar"),
+        }).passthrough().optional()
+          .describe("Scrollbar configuration"),
         stockTools: z.object({}).passthrough().optional()
           .describe("Stock tools toolbar configuration for technical analysis"),
       },
@@ -114,13 +134,49 @@ export function createServer(): McpServer {
       annotations: { readOnlyHint: true },
       description:
         "Render a Highcharts Dashboard with multiple components (charts, KPIs, data grids) in a synced layout. " +
-        "Uses @highcharts/dashboards. Pass the full Dashboards.board() config.",
+        "Uses @highcharts/dashboards. Pass the full Dashboards.board() config.\n\n" +
+        "Example — two charts side by side:\n" +
+        '{ gui: { layouts: [{ rows: [{ cells: [{ id: "left" }, { id: "right" }] }] }] }, ' +
+        'components: [{ renderTo: "left", type: "Highcharts", chartOptions: { series: [{ data: [1,2,3] }] } }, ' +
+        '{ renderTo: "right", type: "KPI", title: "Total", value: 42 }] }',
       inputSchema: {
-        gui: z.object({}).passthrough().optional()
-          .describe("Dashboard layout config with rows and cells"),
-        components: z.array(z.object({}).passthrough())
-          .describe("Array of dashboard components (Highcharts charts, KPIs, Grid, HTML)"),
-        dataPool: z.object({}).passthrough().optional()
+        gui: z.object({
+          layouts: z.array(z.object({
+            rows: z.array(z.object({
+              cells: z.array(z.object({
+                id: z.string().optional().describe("Cell ID referenced by components[].renderTo"),
+                width: z.string().optional().describe("CSS width (e.g. '1/2', '1/3')"),
+              }).passthrough()).optional(),
+            }).passthrough()).optional(),
+          }).passthrough()).optional(),
+        }).passthrough().optional()
+          .describe("Dashboard layout: layouts → rows → cells. Each cell has an id matched by component renderTo."),
+        components: z.array(z.object({
+          type: z.enum(["Highcharts", "KPI", "DataGrid", "HTML"]).optional()
+            .describe("Component type"),
+          renderTo: z.string().optional()
+            .describe("Cell id to render this component into"),
+          chartOptions: z.any().optional()
+            .describe("Highcharts options (for type: 'Highcharts')"),
+          title: z.string().optional()
+            .describe("Component title (KPI, HTML)"),
+          value: z.any().optional()
+            .describe("KPI value"),
+          subtitle: z.string().optional()
+            .describe("KPI subtitle"),
+          connector: z.object({
+            id: z.string().optional().describe("dataPool connector ID"),
+          }).passthrough().optional()
+            .describe("Data connector reference"),
+        }).passthrough())
+          .describe("Array of dashboard components (Highcharts charts, KPIs, DataGrid, HTML)"),
+        dataPool: z.object({
+          connectors: z.array(z.object({
+            id: z.string().optional().describe("Connector ID referenced by components"),
+            type: z.string().optional().describe("Connector type: JSON, CSV, GoogleSheets, HTML"),
+            options: z.any().optional().describe("Connector-specific options (data, url, etc.)"),
+          }).passthrough()).optional(),
+        }).passthrough().optional()
           .describe("Data connectors for shared data between components"),
         editMode: z.object({}).passthrough().optional()
           .describe("Edit mode configuration"),
@@ -146,7 +202,11 @@ export function createServer(): McpServer {
         "Uses Highcharts.mapChart() under the hood. Supports choropleth maps, map bubbles, " +
         "map lines, map points, and projections. Pass GeoJSON/TopoJSON inline via series[].mapData. " +
         "Key properties: title, series (with type: 'map'/'mapline'/'mappoint'/'mapbubble'), " +
-        "colorAxis (for choropleth), mapNavigation (zoom controls), mapView (projection settings).",
+        "colorAxis (for choropleth), mapNavigation (zoom controls), mapView (projection settings).\n\n" +
+        "Example — choropleth:\n" +
+        '{ title: "Population by Country", colorAxis: { min: 0 }, ' +
+        'series: [{ type: "map", mapData: geoJson, data: [{ "hc-key": "us", value: 331 }], ' +
+        'joinBy: "hc-key", name: "Population" }] }',
       inputSchema: {
         chart: z.object({}).passthrough().optional()
           .describe("Chart configuration"),
@@ -154,14 +214,31 @@ export function createServer(): McpServer {
           .describe("Map title — string shorthand or {text, align, style}"),
         subtitle: z.union([z.string(), z.object({}).passthrough()]).optional()
           .describe("Map subtitle"),
-        series: z.array(z.object({}).passthrough())
+        series: z.array(z.object({
+          type: z.string().optional().describe("Series type: map, mapline, mappoint, mapbubble"),
+          mapData: z.any().optional().describe("GeoJSON/TopoJSON FeatureCollection for map geometry"),
+          data: z.any().optional().describe("Data array: [{hc-key, value}] or [{lat, lon, name}]"),
+          joinBy: z.union([z.string(), z.array(z.string())]).optional()
+            .describe("Property to join data to mapData. String for same key on both, or [mapDataKey, dataKey] array."),
+          name: z.string().optional().describe("Series name for legend/tooltip"),
+        }).passthrough())
           .describe("Map series array. Use type:'map' with mapData (GeoJSON/TopoJSON FeatureCollection). " +
             "Also supports mapline, mappoint, mapbubble series types."),
         colorAxis: z.any().optional()
           .describe("Color axis for choropleth maps (min, max, minColor, maxColor, stops)"),
-        mapNavigation: z.object({}).passthrough().optional()
+        mapNavigation: z.object({
+          enabled: z.boolean().optional().describe("Enable map navigation (zoom buttons + mouse wheel)"),
+        }).passthrough().optional()
           .describe("Map navigation: zoom buttons, mouse wheel zoom, etc."),
-        mapView: z.object({}).passthrough().optional()
+        mapView: z.object({
+          projection: z.object({
+            name: z.string().optional()
+              .describe("Projection: WebMercator, Miller, Orthographic, LambertConformalConic, EqualEarth"),
+            rotation: z.array(z.number()).optional().describe("[lambda, phi, gamma] rotation angles"),
+          }).passthrough().optional().describe("Map projection settings"),
+          center: z.array(z.number()).optional().describe("[longitude, latitude] center point"),
+          zoom: z.number().optional().describe("Initial zoom level"),
+        }).passthrough().optional()
           .describe("Map view: projection (name, rotation), center, zoom"),
         legend: z.object({}).passthrough().optional()
           .describe("Legend configuration"),
@@ -351,6 +428,83 @@ export function createServer(): McpServer {
         ],
       };
     },
+  );
+
+  // ── MCP Prompts ──────────────────────────────────────────────────────
+
+  server.prompt(
+    "chart_from_data",
+    "Paste your data and I'll suggest the best chart type",
+    { data: z.string().describe("Your data (CSV, JSON, or plain text)") },
+    async ({ data }) => ({
+      messages: [{
+        role: "assistant",
+        content: {
+          type: "text",
+          text: `Analyze this data and create the most appropriate chart:\n\n\`\`\`\n${data}\n\`\`\`\n\nInstructions:\n1. Identify the data structure (time-series, categorical, hierarchical, geographic, relational)\n2. Count dimensions and measures\n3. Pick the best chart type:\n   - Time-series → line/area/spline (or render_stock_chart for financial data)\n   - Categories with values → bar/column\n   - Parts of a whole → pie/treemap/sunburst\n   - Correlation → scatter/bubble\n   - Distribution → boxplot/histogram\n   - Flow → sankey/networkgraph\n   - Geographic → render_map\n4. Use the appropriate render_* tool with well-formatted Highcharts options\n5. Add a clear title, axis labels, and tooltip formatting`,
+        },
+      }],
+    }),
+  );
+
+  server.prompt(
+    "dashboard_layout",
+    "Create a dashboard with KPIs and charts",
+    { topic: z.string().describe("Dashboard topic (e.g. 'sales performance', 'server monitoring')") },
+    async ({ topic }) => ({
+      messages: [{
+        role: "assistant",
+        content: {
+          type: "text",
+          text: `Create a Highcharts Dashboard for: "${topic}"\n\nUse render_dashboard with this structure:\n\n1. **Layout (gui):** Define rows and cells. Typical pattern:\n   - Row 1: 3-4 KPI cells across the top\n   - Row 2: 1 large chart (full width or 2/3) + 1 smaller chart or grid\n   - Row 3: Data grid with details\n\n2. **KPI components:** Use type:'KPI' with value, subtitle, and threshold colors\n\n3. **Chart components:** Use type:'Highcharts' with chartOptions containing full Highcharts config\n\n4. **Data Grid:** Use type:'DataGrid' for tabular drill-down\n\n5. **DataPool:** Define shared connectors so components sync (filtering one updates others)\n\nExample component structure:\n\`\`\`json\n{\n  "components": [\n    { "type": "KPI", "cell": "kpi-1", "value": 1234, "title": "Total", "subtitle": "This month" },\n    { "type": "Highcharts", "cell": "chart-1", "chartOptions": { "series": [...] } },\n    { "type": "DataGrid", "cell": "grid-1", "dataGridOptions": { "columns": [...] } }\n  ]\n}\n\`\`\`\n\nGenerate realistic sample data relevant to "${topic}" and call render_dashboard.`,
+        },
+      }],
+    }),
+  );
+
+  server.prompt(
+    "stock_analysis",
+    "Analyze a stock with technical indicators",
+    { ticker: z.string().describe("Stock ticker symbol (e.g. AAPL, MSFT)") },
+    async ({ ticker }) => ({
+      messages: [{
+        role: "assistant",
+        content: {
+          type: "text",
+          text: `Create a technical analysis chart for ${ticker.toUpperCase()} using render_stock_chart.\n\nInclude:\n1. **Main series:** Candlestick (OHLC) data as the primary series\n2. **Volume:** Column series on a secondary yAxis (bottom pane, ~20% height)\n3. **Technical indicators** (add as separate series with linkedTo):\n   - SMA (20-day and 50-day moving averages)\n   - Bollinger Bands (or MACD in a separate pane)\n4. **Range selector:** Buttons for 1m, 3m, 6m, YTD, 1y, All\n5. **Navigator:** Enabled with area overview\n6. **Tooltip:** Shared crosshair showing OHLC + volume + indicator values\n\nFetch or generate realistic OHLC data for ${ticker.toUpperCase()}. Format each data point as [timestamp, open, high, low, close] and volume as [timestamp, volume].\n\nUse yAxis array with multiple panes:\n- yAxis[0]: Price (75% height)\n- yAxis[1]: Volume (25% height)\n\nSet chart.height to at least 600 for readability.`,
+        },
+      }],
+    }),
+  );
+
+  server.prompt(
+    "comparison_chart",
+    "Compare multiple datasets side by side",
+    { datasets: z.string().describe("Description of what to compare (e.g. 'Q1 vs Q2 revenue by region')") },
+    async ({ datasets }) => ({
+      messages: [{
+        role: "assistant",
+        content: {
+          type: "text",
+          text: `Create a comparison chart for: "${datasets}"\n\nChoose the best comparison pattern:\n\n**Grouped/Clustered columns** — Best for discrete categories:\n- Multiple series with the same xAxis categories\n- plotOptions.column.grouping: true (default)\n\n**Stacked columns/bars** — Best for part-to-whole + total comparison:\n- plotOptions.column.stacking: 'normal' or 'percent'\n\n**Multi-series line/spline** — Best for trends over time:\n- Each dataset as a separate series\n- Different colors, shared tooltip\n\n**Dual Y-axes** — When comparing different units:\n- yAxis array with two axes (opposite: true for right axis)\n- Each series linked to its yAxis index\n\n**Mirror/Butterfly chart** — For demographic or opposing comparisons:\n- Negative values for one side\n\nUse render_chart with:\n- Clear, descriptive title\n- Legend identifying each dataset\n- Shared tooltip with proper formatting\n- Contrasting colors for easy distinction\n- Axis labels with units\n\nGenerate realistic sample data for "${datasets}" and render the chart.`,
+        },
+      }],
+    }),
+  );
+
+  server.prompt(
+    "project_timeline",
+    "Create a Gantt chart for project planning",
+    { project: z.string().describe("Project description (e.g. 'website redesign', 'product launch')") },
+    async ({ project }) => ({
+      messages: [{
+        role: "assistant",
+        content: {
+          type: "text",
+          text: `Create a Gantt chart for: "${project}" using render_gantt.\n\nStructure the project with:\n\n1. **Phases** (parent tasks): Group related tasks under phase headers\n   - e.g., Planning, Design, Development, Testing, Launch\n\n2. **Tasks** with realistic durations:\n   - Each task: { name, start (timestamp ms), end (timestamp ms), id, parent (phase id) }\n   - Use Date.UTC(year, month-1, day) for timestamps\n\n3. **Dependencies:** Link tasks with dependency field\n   - e.g., dependency: "task-1" (finish-to-start)\n\n4. **Milestones:** Key decision points\n   - milestone: true, start === end\n\n5. **Progress:** completed: { amount: 0.0-1.0 } for in-progress tasks\n\nGantt options:\n- title: descriptive project name\n- xAxis: datetime with proper date labels\n- yAxis: categories auto-generated from task names\n- navigator: enabled for long timelines\n- tooltip: show task name, dates, duration, progress\n\nGenerate 12-20 realistic tasks across 3-5 phases for "${project}", with logical dependencies and a timeline spanning weeks or months.`,
+        },
+      }],
+    }),
   );
 
   return server;
