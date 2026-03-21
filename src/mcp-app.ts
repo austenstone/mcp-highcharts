@@ -136,7 +136,7 @@ async function init() {
 
   app.onerror = console.error;
 
-  await app.connect(new PostMessageTransport(window.parent, window));
+  await app.connect(new PostMessageTransport(window.parent, window.parent));
 
   // Apply initial host theme
   applyThemeAndRedraw(app.getHostContext());
