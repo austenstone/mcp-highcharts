@@ -336,12 +336,13 @@ async function renderDashboard(config: Record<string, unknown>) {
   }
 }
 
-// Module-scoped app reference for use by Highcharts download override and updateModelContext
-let mcpApp: InstanceType<typeof App> | null = null;
+// Module-scoped app reference for use by Highcharts download override, updateModelContext, and openLink
+let appInstance: InstanceType<typeof App> | null = null;
+let streamDebounce: ReturnType<typeof setTimeout>;
 
 function sendChartContext(description: string) {
-  if (!mcpApp || typeof mcpApp.updateModelContext !== "function") return;
-  mcpApp.updateModelContext({
+  if (!appInstance || typeof appInstance.updateModelContext !== "function") return;
+  appInstance.updateModelContext({
     content: [{ type: "text", text: description }],
   }).catch(() => {}); // Silently fail if host doesn't support it
 }
@@ -353,7 +354,7 @@ async function init() {
     { name: "Highcharts MCP App", version: "2.0.0" },
     {},
   );
-  mcpApp = app;
+  appInstance = app;
 
   app.ontoolresult = async (result) => {
     const textContent = result.content?.find((c: any) => c.type === "text") as { text: string } | undefined;
@@ -363,23 +364,39 @@ async function init() {
       const opts = JSON.parse(text) as Record<string, unknown>;
 
       if (opts.__chartType === "stock") {
-        // Stock chart mode (from render_stock_chart)
         await renderStockChart(opts);
+        const series = (opts.series as Array<Record<string, unknown>>) || [];
+        const types = [...new Set(series.map(s => (s.type as string) || "line"))].join(", ");
+        const title = typeof opts.title === "string" ? opts.title : (opts.title as any)?.text || "";
+        sendChartContext(`Rendered stock chart "${title}" with ${series.length} series (${types}).`);
       } else if (opts.__chartType === "map") {
-        // Map chart mode (from render_map)
         await renderMapChart(opts);
+        const series = (opts.series as Array<Record<string, unknown>>) || [];
+        const mapKey = (opts.chart as any)?.map && typeof (opts.chart as any).map === "string" ? (opts.chart as any).map : "custom/world";
+        const dataPoints = series.reduce((n, s) => n + (Array.isArray(s.data) ? s.data.length : 0), 0);
+        sendChartContext(`Rendered map chart (map: ${mapKey}) with ${dataPoints} data points across ${series.length} series.`);
       } else if (opts.__chartType === "gantt") {
-        // Gantt chart mode (from render_gantt)
         await renderGanttChart(opts);
+        const series = (opts.series as Array<Record<string, unknown>>) || [];
+        const tasks = series.reduce((n, s) => n + (Array.isArray(s.data) ? s.data.length : 0), 0);
+        sendChartContext(`Rendered Gantt chart with ${tasks} tasks across ${series.length} series.`);
       } else if (opts.__chartType === "grid") {
-        // Grid mode (from render_grid)
         await renderGrid(opts);
+        const cols = Array.isArray((opts as any).columns) ? (opts as any).columns.length : 0;
+        const rows = Array.isArray((opts as any).data) ? (opts as any).data.length : 0;
+        sendChartContext(`Rendered data grid with ${rows} rows and ${cols} columns.`);
       } else if (opts.components && Array.isArray(opts.components)) {
-        // Dashboard mode (from render_dashboard)
         await renderDashboard(opts);
+        const components = opts.components as Array<Record<string, unknown>>;
+        const types = [...new Set(components.map(c => (c.type as string) || "unknown"))].join(", ");
+        sendChartContext(`Rendered dashboard with ${components.length} components (${types}).`);
       } else {
-        // Single chart mode (from render_chart)
         await renderSingleChart(opts as Options & Record<string, unknown>);
+        const processed = opts as Options & Record<string, unknown>;
+        const chartType = (processed.chart as any)?.type || ((processed.series as any)?.[0]?.type) || "line";
+        const seriesCount = Array.isArray(processed.series) ? processed.series.length : 0;
+        const title = typeof processed.title === "string" ? processed.title : (processed.title as any)?.text || "";
+        sendChartContext(`Rendered ${chartType} chart "${title}" with ${seriesCount} series.`);
       }
     } catch (e) {
       const container = document.getElementById("root")!;
@@ -394,13 +411,13 @@ async function init() {
   app.onerror = console.error;
 
   await app.connect(new PostMessageTransport(window.parent, window.parent));
-  mcpApp = app;
+  appInstance = app;
 
   // Override Highcharts download to use MCP SDK's downloadFile()
   const origDownloadURL = (Highcharts as any).downloadURL;
   if (typeof origDownloadURL === "function") {
     (Highcharts as any).downloadURL = function (dataURL: string, filename: string) {
-      if (!mcpApp) {
+      if (!appInstance) {
         origDownloadURL(dataURL, filename);
         return;
       }
@@ -409,7 +426,7 @@ async function init() {
         const mimeType = mimeMatch?.[1] || "application/octet-stream";
         const base64 = dataURL.split(",")[1];
 
-        mcpApp
+        appInstance
           .downloadFile({
             contents: [
               {
