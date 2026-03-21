@@ -32,11 +32,16 @@ export function createServer(): McpServer {
     {
       title: "Render Chart",
       description:
-        "Render an interactive Highcharts chart. Pass series data, chart type, title, and optional Highcharts configuration. " +
-        "Supports: line, bar, column, area, pie, spline, areaspline, scatter, heatmap. " +
-        "The `highchartsOptions` field accepts any valid Highcharts chart options for full customization.",
+        "Render an interactive Highcharts chart inline. Supports all major chart types and full Highcharts customization. " +
+        "Chart types: line, bar, column, area, pie, spline, areaspline, scatter, heatmap, " +
+        "gauge, solidgauge, treemap, sunburst, sankey, funnel, networkgraph. " +
+        "Use `stacking` for stacked charts, `height` for sizing, `yAxisFormat` for label formatting, " +
+        "`drilldown` for drill-down data, and `highchartsOptions` as an escape hatch for any Highcharts config.",
       inputSchema: {
-        chartType: z.string().optional().describe("Chart type: line, bar, column, area, pie, spline, areaspline, scatter, heatmap"),
+        chartType: z.string().optional().describe(
+          "Chart type: line, bar, column, area, pie, spline, areaspline, scatter, heatmap, " +
+          "gauge, solidgauge, treemap, sunburst, sankey, funnel, networkgraph"
+        ),
         title: z.string().optional().describe("Chart title"),
         subtitle: z.string().optional().describe("Chart subtitle"),
         series: z.array(z.object({
@@ -47,7 +52,11 @@ export function createServer(): McpServer {
         xAxisCategories: z.array(z.string()).optional().describe("Category labels for the X axis"),
         xAxisTitle: z.string().optional().describe("X axis title"),
         yAxisTitle: z.string().optional().describe("Y axis title"),
-        highchartsOptions: z.record(z.string(), z.any()).optional().describe("Additional Highcharts options to deep-merge"),
+        yAxisFormat: z.string().optional().describe("Y axis label format string, e.g. '${value}', '{value}%', '{value}K'"),
+        stacking: z.string().optional().describe("Stacking mode: 'normal' for stacked totals, 'percentage' for 100% stacked"),
+        height: z.string().optional().describe("Chart height preset: 'small' (128px), 'medium' (256px), 'large' (320px), 'xl' (432px), or a number in px"),
+        drilldown: z.record(z.string(), z.any()).optional().describe("Highcharts drilldown config object with series array"),
+        highchartsOptions: z.record(z.string(), z.any()).optional().describe("Any additional Highcharts options to deep-merge — the escape hatch for full customization"),
       },
       _meta: { ui: { resourceUri } },
     },

@@ -2,8 +2,21 @@ import type { App } from "@modelcontextprotocol/ext-apps";
 import { useApp } from "@modelcontextprotocol/ext-apps/react";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import Highcharts from "highcharts";
-import "highcharts/modules/heatmap";
+// Chart modules — the ultimate collection
 import "highcharts/highcharts-more";
+import "highcharts/modules/heatmap";
+import "highcharts/modules/sankey";
+import "highcharts/modules/funnel";
+import "highcharts/modules/treemap";
+import "highcharts/modules/sunburst";
+import "highcharts/modules/networkgraph";
+import "highcharts/modules/solid-gauge";
+import "highcharts/modules/drilldown";
+import "highcharts/modules/boost";
+import "highcharts/modules/accessibility";
+import "highcharts/modules/exporting";
+import "highcharts/modules/export-data";
+import "highcharts/modules/offline-exporting";
 import HighchartsReact from "highcharts-react-official";
 
 import { StrictMode, useEffect, useRef, useState } from "react";

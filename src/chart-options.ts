@@ -13,6 +13,10 @@ export interface ChartToolParams {
   xAxisCategories?: string[];
   xAxisTitle?: string;
   yAxisTitle?: string;
+  yAxisFormat?: string;
+  stacking?: string;
+  height?: string;
+  drilldown?: Record<string, unknown>;
   highchartsOptions?: Record<string, unknown>;
 }
 
@@ -43,15 +47,34 @@ function deepMerge(target: any, source: any): any {
 const DASH_STYLES = ["Solid", "ShortDash", "Dot", "DashDot", "LongDash"] as const;
 const MARKER_SYMBOLS = ["circle", "diamond", "square", "triangle", "triangle-down"] as const;
 
+// Height presets matching github-ui chart-card sizes
+const HEIGHT_PRESETS: Record<string, string> = {
+  small: "128px",
+  medium: "256px",
+  large: "320px",
+  xl: "432px",
+  sparkline: "128px",
+};
+
+/** Resolve height from preset name or raw value */
+function resolveHeight(height?: string): string | number | undefined {
+  if (!height) return undefined;
+  if (height in HEIGHT_PRESETS) return HEIGHT_PRESETS[height];
+  const num = Number(height);
+  return Number.isFinite(num) ? num : height;
+}
+
 /** Build Highcharts Options from tool params */
 export function buildChartOptions(params: ChartToolParams): Options {
   const chartType = params.chartType ?? "line";
   const isLineType = chartType === "line" || chartType === "spline";
   const hasMultipleSeries = params.series.length > 1;
+  const resolvedHeight = resolveHeight(params.height);
 
   const base: Options = {
     chart: {
       type: chartType,
+      ...(resolvedHeight ? { height: resolvedHeight } : {}),
     },
     title: {
       text: params.title ?? "",
@@ -65,7 +88,20 @@ export function buildChartOptions(params: ChartToolParams): Options {
     },
     yAxis: {
       title: { text: params.yAxisTitle ?? "" },
+      ...(params.yAxisFormat
+        ? { labels: { format: params.yAxisFormat } }
+        : {}),
     },
+    ...(params.stacking
+      ? {
+          plotOptions: {
+            series: {
+              stacking: params.stacking as "normal" | "percent",
+            },
+          },
+        }
+      : {}),
+    ...(params.drilldown ? { drilldown: params.drilldown } : {}),
     series: params.series.map((s, i) => ({
       ...s,
       type: (s.type ?? undefined) as never,
