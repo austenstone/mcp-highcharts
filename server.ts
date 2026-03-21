@@ -535,6 +535,8 @@ export function createServer(): McpServer {
       // HIGHCHARTS_OPTIONS: inline JSON string or path to a .json file
       const themeName = process.env.HIGHCHARTS_THEME?.trim();
       const rawOptions = (process.env.HIGHCHARTS_OPTIONS ?? "").trim();
+      if (rawOptions) console.error(`[mcp-highcharts] HIGHCHARTS_OPTIONS="${rawOptions}"`);
+      if (themeName) console.error(`[mcp-highcharts] HIGHCHARTS_THEME="${themeName}"`);
 
       let optionsJson: string | undefined;
       if (rawOptions.startsWith("{")) {
@@ -566,9 +568,11 @@ export function createServer(): McpServer {
       }
 
       if (optionsJson) {
+        console.error(`[mcp-highcharts] Injecting HIGHCHARTS_OPTIONS (${optionsJson.length} chars)`);
         const injection = `<script>window.__HIGHCHARTS_OPTIONS__=${optionsJson};</script>`;
         html = html.replace("<head>", `<head>${injection}`);
       } else if (themeName) {
+        console.error(`[mcp-highcharts] Injecting theme: ${themeName}`);
         const injection = `<script>window.__HIGHCHARTS_THEME_NAME__="${themeName}";</script>`;
         html = html.replace("<head>", `<head>${injection}`);
       }
