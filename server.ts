@@ -24,10 +24,13 @@ export function createServer(): McpServer {
       version: "2.0.0",
     },
     {
-      instructions: "This server renders interactive Highcharts charts inline. " +
-        "Use the render_chart tool with any valid Highcharts Options object. " +
-        "The input schema accepts chart, title, subtitle, series, xAxis, yAxis, tooltip, plotOptions, legend, colors, and more. " +
-        "title and subtitle accept string shorthand. All chart types are supported.",
+      instructions: "This server renders interactive Highcharts charts inline in AI chat. " +
+        "Two tools available: render_chart (single chart) and render_charts (multiple charts with layout). " +
+        "Input is any valid Highcharts Options object (https://api.highcharts.com/highcharts/). " +
+        "All 119 chart types supported with automatic module loading. " +
+        "title and subtitle accept string shorthand. " +
+        "Combine chart types via per-series type for overlays (e.g., column + spline). " +
+        "Use multiple yAxis for dual-axis charts.",
     },
   );
 

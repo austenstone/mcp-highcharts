@@ -11,12 +11,19 @@
   },
   "keywords": [
     "mcp",
+    "mcp-app",
     "highcharts",
     "charts",
+    "visualization",
     "model-context-protocol",
     "copilot",
-    "vscode"
+    "vscode",
+    "claude",
+    "ai"
   ],
+  "engines": {
+    "node": ">=18"
+  },
   "main": "dist/server.js",
   "bin": {
     "mcp-highcharts": "dist/main.js"

@@ -112,13 +112,25 @@ function processOptions(opts: Record<string, unknown>): Options & Record<string,
   return processed;
 }
 
+function showError(container: HTMLElement, e: unknown) {
+  const msg = e instanceof Error ? e.message : String(e);
+  container.innerHTML = `<div style="padding:24px;color:#f85149;font-family:system-ui;font-size:14px;">
+    <strong>Chart rendering failed</strong><br><code style="color:#8b949e;font-size:12px;">${msg}</code>
+  </div>`;
+  console.error("Chart rendering failed:", e);
+}
+
 async function renderSingleChart(opts: Options & Record<string, unknown>) {
   const processed = processOptions(opts as Record<string, unknown>);
   const container = document.getElementById("root")!;
   container.innerHTML = "";
   container.style.display = "";
-  await loadModulesForOptions(processed as Record<string, unknown>);
-  Highcharts.chart(container, processed);
+  try {
+    await loadModulesForOptions(processed as Record<string, unknown>);
+    Highcharts.chart(container, processed);
+  } catch (e) {
+    showError(container, e);
+  }
 }
 
 async function renderMultipleCharts(
@@ -148,8 +160,12 @@ async function renderMultipleCharts(
     root.appendChild(container);
 
     const processed = processOptions(chartOpts);
-    await loadModulesForOptions(processed as Record<string, unknown>);
-    Highcharts.chart(container, processed as Options);
+    try {
+      await loadModulesForOptions(processed as Record<string, unknown>);
+      Highcharts.chart(container, processed as Options);
+    } catch (e) {
+      showError(container, e);
+    }
   }
 }
 
@@ -157,7 +173,7 @@ async function init() {
   await themeReady;
 
   const app = new App(
-    { name: "Highcharts MCP App", version: "1.0.0" },
+    { name: "Highcharts MCP App", version: "2.0.0" },
     {},
   );
 

@@ -34,9 +34,6 @@ export default defineConfig({
       highcharts: hcEsm("highcharts.src.js"),
     },
   },
-  legacy: {
-    inconsistentCjsInterop: true,
-  },
   build: {
     sourcemap: isDevelopment ? "inline" : undefined,
     cssMinify: !isDevelopment,

@@ -157,4 +157,55 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
     expect((content.text as string).length).toBeGreaterThan(100);
     expect(content.text).toContain("<!DOCTYPE html>");
   });
+
+  // ── render_charts (multi-chart) ──
+
+  it("lists render_charts tool", async () => {
+    const { tools } = await client.listTools();
+    const renderCharts = tools.find((t) => t.name === "render_charts");
+    expect(renderCharts).toBeDefined();
+    expect(renderCharts!.description).toContain("multiple");
+  });
+
+  it("renders multiple charts with layout", async () => {
+    const result = await client.callTool({
+      name: "render_charts",
+      arguments: {
+        charts: [
+          { chart: { type: "bar" }, title: "Chart 1", series: [{ data: [1, 2, 3] }] },
+          { chart: { type: "pie" }, title: "Chart 2", series: [{ data: [{ name: "A", y: 60 }, { name: "B", y: 40 }] }] },
+        ],
+        layout: "grid",
+        columns: 2,
+      },
+    });
+
+    const parsed = JSON.parse(
+      (result.content as { type: string; text: string }[])[0].text,
+    );
+    expect(parsed.charts).toHaveLength(2);
+    expect(parsed.layout).toBe("grid");
+    expect(parsed.columns).toBe(2);
+  });
+
+  it("rejects render_charts without charts array", async () => {
+    const result = await client.callTool({
+      name: "render_charts",
+      arguments: { layout: "vertical" },
+    });
+    expect(result.isError).toBe(true);
+  });
+
+  // ── Validation ──
+
+  it("rejects render_chart without series", async () => {
+    const result = await client.callTool({
+      name: TOOL_NAME,
+      arguments: {
+        chart: { type: "line" },
+        title: "No Series",
+      },
+    });
+    expect(result.isError).toBe(true);
+  });
 });
