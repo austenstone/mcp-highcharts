@@ -23,6 +23,12 @@ function buildAliases(subdir: string, prefix: string): Record<string, string> {
     }, {});
 }
 
+// Resolve @highcharts packages to their ESM entry points
+const dashboardsEsm = (p: string) =>
+  path.resolve("node_modules/@highcharts/dashboards/es-modules/masters", p);
+const gridLiteEsm = (p: string) =>
+  path.resolve("node_modules/@highcharts/grid-lite/es-modules/masters", p);
+
 export default defineConfig({
   plugins: [viteSingleFile()],
   resolve: {
@@ -32,6 +38,13 @@ export default defineConfig({
       ...buildAliases("modules", "highcharts/modules"),
       ...buildAliases("themes", "highcharts/themes"),
       highcharts: hcEsm("highcharts.src.js"),
+      // Use ESM for Dashboards and Grid Lite (tree-shakable, modern)
+      // CSS imports must come before the main package alias to avoid mis-resolution
+      "@highcharts/dashboards/css/dashboards.css": path.resolve("node_modules/@highcharts/dashboards/css/dashboards.css"),
+      "@highcharts/dashboards/modules/layout": dashboardsEsm("modules/layout.src.js"),
+      "@highcharts/dashboards": dashboardsEsm("dashboards.src.js"),
+      "@highcharts/grid-lite/css/grid-lite.css": path.resolve("node_modules/@highcharts/grid-lite/css/grid-lite.css"),
+      "@highcharts/grid-lite": gridLiteEsm("grid-lite.src.js"),
     },
   },
   build: {
