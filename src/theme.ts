@@ -9,40 +9,34 @@ import type { Options } from "highcharts";
  * Any property here can be overridden per-chart via the tool's `highchartsOptions`.
  */
 export const theme: Options = {
-  // Primer data-visualization emphasis colors (ordered for max contrast between adjacent series)
+  // github/github-ui chart-card color order (Primer data-visualization tokens)
   colors: [
     "#006edb", // data-blue
-    "#d43511", // data-coral
     "#30a147", // data-green
-    "#894ceb", // data-purple
     "#eb670f", // data-orange
-    "#179b9b", // data-teal
     "#ce2c85", // data-pink
     "#b88700", // data-yellow
-    "#527a29", // data-lime
-    "#a830e8", // data-plum
-    "#9d615c", // data-auburn
-    "#167e53", // data-pine
-    "#866e04", // data-lemon
-    "#808fa3", // data-gray
-    "#856d4c", // data-brown
-    "#64762d", // data-olive
     "#df0c24", // data-red
+    "#894ceb", // data-purple
+    "#9d615c", // data-auburn
+    "#179b9b", // data-teal
+    "#808fa3", // data-gray
   ],
 
   chart: {
-    backgroundColor: "transparent",
+    backgroundColor: "var(--bgColor-default, transparent)",
+    animation: false,
     style: {
-      fontFamily:
-        'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontFamily: "var(--fontStack-sansSerif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif)",
+      fontSize: "var(--text-body-size-small, 12px)",
+      color: "var(--fgColor-default, #e5e7eb)",
     },
-    spacingTop: 20,
-    spacingBottom: 20,
+    spacing: [4, 0, 4, 0],
   },
 
   title: {
     style: {
-      color: "var(--vscode-foreground, #e5e7eb)",
+      color: "var(--fgColor-default, #e5e7eb)",
       fontSize: "16px",
       fontWeight: "600",
     },
@@ -50,74 +44,99 @@ export const theme: Options = {
 
   subtitle: {
     style: {
-      color: "var(--vscode-descriptionForeground, #9ca3af)",
+      color: "var(--fgColor-muted, #9ca3af)",
       fontSize: "12px",
     },
   },
 
   xAxis: {
+    tickWidth: 0,
+    lineWidth: 1,
+    gridLineColor: "var(--borderColor-muted, #374151)",
+    gridLineDashStyle: "Dash",
+    lineColor: "var(--borderColor-default, #4b5563)",
     labels: {
       style: {
-        color: "var(--vscode-foreground, #d1d5db)",
-        fontSize: "11px",
+        color: "var(--fgColor-muted, #d1d5db)",
+        fontSize: "var(--text-body-size-small, 11px)",
       },
     },
     title: {
       style: {
-        color: "var(--vscode-descriptionForeground, #9ca3af)",
+        color: "var(--fgColor-muted, #9ca3af)",
+        fontSize: "var(--text-body-size-small, 11px)",
       },
     },
-    gridLineColor: "var(--vscode-editorWidget-border, #374151)",
-    lineColor: "var(--vscode-editorWidget-border, #4b5563)",
-    tickColor: "var(--vscode-editorWidget-border, #4b5563)",
   },
 
   yAxis: {
+    tickWidth: 0,
+    lineWidth: 0,
+    gridLineColor: "var(--borderColor-muted, #374151)",
+    gridLineDashStyle: "Dash",
     labels: {
       style: {
-        color: "var(--vscode-foreground, #d1d5db)",
-        fontSize: "11px",
+        color: "var(--fgColor-muted, #d1d5db)",
+        fontSize: "var(--text-body-size-small, 11px)",
       },
     },
     title: {
       style: {
-        color: "var(--vscode-descriptionForeground, #9ca3af)",
+        color: "var(--fgColor-muted, #9ca3af)",
+        fontSize: "var(--text-body-size-small, 11px)",
       },
     },
-    gridLineColor: "var(--vscode-editorWidget-border, #374151)",
   },
 
   legend: {
     itemStyle: {
-      color: "var(--vscode-foreground, #d1d5db)",
-      fontWeight: "400",
-      fontSize: "12px",
+      fontSize: "var(--text-body-size-small, 12px)",
+      font: "var(--fontStack-sansSerif, system-ui)",
+      color: "var(--fgColor-default, #d1d5db)",
     },
+    align: "left",
+    verticalAlign: "top",
+    x: -8,
+    y: -12,
     itemHoverStyle: {
-      color: "var(--vscode-focusBorder, #60a5fa)",
+      color: "var(--fgColor-default, #60a5fa)",
     },
   },
 
   tooltip: {
-    backgroundColor: "var(--vscode-editorWidget-background, #1f2937)",
-    borderColor: "var(--vscode-editorWidget-border, #374151)",
-    style: {
-      color: "var(--vscode-foreground, #e5e7eb)",
-      fontSize: "12px",
-    },
+    backgroundColor: "var(--bgColor-default, #1f2937)",
+    borderColor: "var(--borderColor-muted, #374151)",
+    borderWidth: 1,
     borderRadius: 6,
     shadow: false,
+    useHTML: true,
+    style: {
+      color: "var(--fgColor-default, #e5e7eb)",
+      fontFamily: "var(--fontStack-sansSerif, system-ui)",
+      fontSize: "var(--text-body-size-small, 12px)",
+    },
+  },
+
+  navigation: {
+    buttonOptions: {
+      enabled: false,
+    },
+  },
+
+  exporting: {
+    fallbackToExportServer: false,
   },
 
   plotOptions: {
     series: {
-      animation: {
-        duration: 600,
-      },
+      animation: false,
     },
     line: {
       lineWidth: 2,
       marker: { radius: 3 },
+    },
+    spline: {
+      animation: false,
     },
     area: {
       fillOpacity: 0.15,
@@ -125,17 +144,17 @@ export const theme: Options = {
       marker: { radius: 3 },
     },
     column: {
-      borderWidth: 0,
-      borderRadius: 3,
+      borderColor: "var(--bgColor-default, transparent)",
+      borderWidth: 1.5,
     },
     bar: {
-      borderWidth: 0,
-      borderRadius: 3,
+      borderColor: "var(--bgColor-default, transparent)",
+      borderWidth: 1.5,
     },
     pie: {
       borderWidth: 0,
       dataLabels: {
-        color: "var(--vscode-foreground, #e5e7eb)",
+        color: "var(--fgColor-default, #e5e7eb)",
         style: { fontSize: "11px", textOutline: "none" },
       },
     },
