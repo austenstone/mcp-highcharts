@@ -1,17 +1,10 @@
 {
   "typeToModule": {
-    "arcdiagram": [
-      "modules/sankey",
-      "modules/arc-diagram"
-    ],
     "arearange": [
       "highcharts-more"
     ],
     "areasplinerange": [
       "highcharts-more"
-    ],
-    "bellcurve": [
-      "modules/histogram-bellcurve"
     ],
     "boxplot": [
       "highcharts-more"
@@ -19,19 +12,42 @@
     "bubble": [
       "highcharts-more"
     ],
-    "bullet": [
-      "modules/bullet"
-    ],
-    "candlestick": [
-      "modules/stock"
+    "columnrange": [
+      "highcharts-more"
     ],
     "columnpyramid": [
       "highcharts-more"
     ],
-    "columnrange": [
+    "errorbar": [
       "highcharts-more"
     ],
+    "gauge": [
+      "highcharts-more"
+    ],
+    "packedbubble": [
+      "highcharts-more"
+    ],
+    "polygon": [
+      "highcharts-more"
+    ],
+    "waterfall": [
+      "highcharts-more"
+    ],
+    "scatter3d": [
+      "highcharts-3d"
+    ],
+    "sankey": [
+      "modules/sankey"
+    ],
+    "arcdiagram": [
+      "modules/sankey",
+      "modules/arc-diagram"
+    ],
+    "bullet": [
+      "modules/bullet"
+    ],
     "cylinder": [
+      "highcharts-3d",
       "modules/cylinder"
     ],
     "dependencywheel": [
@@ -42,65 +58,42 @@
       "modules/dotplot"
     ],
     "dumbbell": [
-      "highcharts-more",
       "modules/dumbbell"
-    ],
-    "errorbar": [
-      "highcharts-more"
-    ],
-    "flags": [
-      "modules/stock"
-    ],
-    "flowmap": [
-      "modules/map",
-      "modules/flowmap"
     ],
     "funnel": [
       "modules/funnel"
     ],
+    "pyramid": [
+      "modules/funnel"
+    ],
     "funnel3d": [
+      "highcharts-3d",
+      "modules/cylinder",
       "modules/funnel3d"
     ],
-    "gantt": [
-      "modules/xrange",
+    "xrange": [
       "modules/gantt"
     ],
-    "gauge": [
-      "highcharts-more"
-    ],
-    "geoheatmap": [
-      "modules/map",
-      "modules/geoheatmap"
+    "gantt": [
+      "modules/gantt"
     ],
     "heatmap": [
       "modules/heatmap"
     ],
-    "heikinashi": [
-      "modules/stock",
-      "modules/heikinashi"
-    ],
     "histogram": [
       "modules/histogram-bellcurve"
     ],
-    "hlc": [
-      "modules/stock"
-    ],
-    "hollowcandlestick": [
-      "modules/stock",
-      "modules/hollowcandlestick"
+    "bellcurve": [
+      "modules/histogram-bellcurve"
     ],
     "item": [
       "modules/item-series"
     ],
     "lollipop": [
-      "highcharts-more",
       "modules/dumbbell",
       "modules/lollipop"
     ],
     "map": [
-      "modules/map"
-    ],
-    "mapbubble": [
       "modules/map"
     ],
     "mapline": [
@@ -109,18 +102,15 @@
     "mappoint": [
       "modules/map"
     ],
+    "mapbubble": [
+      "modules/map"
+    ],
     "networkgraph": [
       "modules/networkgraph"
-    ],
-    "ohlc": [
-      "modules/stock"
     ],
     "organization": [
       "modules/sankey",
       "modules/organization"
-    ],
-    "packedbubble": [
-      "highcharts-more"
     ],
     "pareto": [
       "modules/pareto"
@@ -131,37 +121,41 @@
     "pointandfigure": [
       "modules/pointandfigure"
     ],
-    "polygon": [
-      "highcharts-more"
-    ],
-    "pyramid": [
-      "modules/funnel"
-    ],
     "pyramid3d": [
+      "highcharts-3d",
+      "modules/cylinder",
       "modules/funnel3d",
       "modules/pyramid3d"
     ],
     "renko": [
       "modules/renko"
     ],
-    "sankey": [
-      "modules/sankey"
-    ],
-    "scatter3d": [
-      "highcharts-3d"
-    ],
     "solidgauge": [
       "highcharts-more",
       "modules/solid-gauge"
     ],
+    "hlc": [
+      "modules/stock"
+    ],
+    "ohlc": [
+      "modules/stock"
+    ],
+    "candlestick": [
+      "modules/stock"
+    ],
+    "flags": [
+      "modules/stock"
+    ],
     "streamgraph": [
       "modules/streamgraph"
+    ],
+    "treemap": [
+      "modules/sunburst"
     ],
     "sunburst": [
       "modules/sunburst"
     ],
     "tiledwebmap": [
-      "modules/map",
       "modules/tiledwebmap"
     ],
     "tilemap": [
@@ -172,11 +166,7 @@
       "modules/timeline"
     ],
     "treegraph": [
-      "modules/treemap",
       "modules/treegraph"
-    ],
-    "treemap": [
-      "modules/treemap"
     ],
     "variablepie": [
       "modules/variable-pie"
@@ -190,20 +180,16 @@
     "venn": [
       "modules/venn"
     ],
-    "waterfall": [
-      "highcharts-more"
-    ],
     "windbarb": [
       "modules/windbarb"
     ],
     "wordcloud": [
       "modules/wordcloud"
-    ],
-    "xrange": [
-      "modules/xrange"
     ]
   },
   "availableModules": [
+    "highcharts-3d",
+    "highcharts-more",
     "modules/accessibility",
     "modules/annotations",
     "modules/annotations-advanced",
@@ -302,124 +288,81 @@
     "sunset"
   ],
   "chartTypes": [
-    "abands",
-    "ad",
-    "ao",
-    "apo",
     "arcdiagram",
     "area",
     "arearange",
     "areaspline",
     "areasplinerange",
-    "aroon",
-    "aroonoscillator",
-    "atr",
     "bar",
-    "bb",
     "bellcurve",
     "boxplot",
     "bubble",
     "bullet",
     "candlestick",
-    "cci",
-    "chaikin",
-    "cmf",
-    "cmo",
     "column",
     "columnpyramid",
     "columnrange",
     "cylinder",
-    "dema",
     "dependencywheel",
-    "disparityindex",
-    "dmi",
     "dotplot",
-    "dpo",
     "dumbbell",
-    "ema",
     "errorbar",
     "flags",
-    "flowmap",
     "funnel",
     "funnel3d",
     "gantt",
     "gauge",
-    "geoheatmap",
     "heatmap",
-    "heikinashi",
     "histogram",
     "hlc",
-    "hollowcandlestick",
-    "ikh",
     "item",
-    "keltnerchannels",
-    "klinger",
     "line",
-    "linearregression",
-    "linearregressionangle",
-    "linearregressionintercept",
-    "linearregressionslope",
     "lollipop",
-    "macd",
     "map",
     "mapbubble",
     "mapline",
     "mappoint",
-    "mfi",
-    "momentum",
-    "natr",
     "networkgraph",
-    "obv",
     "ohlc",
     "organization",
     "packedbubble",
     "pareto",
-    "pc",
     "pictorial",
     "pie",
-    "pivotpoints",
     "pointandfigure",
     "polygon",
-    "ppo",
-    "priceenvelopes",
-    "psar",
     "pyramid",
     "pyramid3d",
     "renko",
-    "roc",
-    "rsi",
     "sankey",
     "scatter",
     "scatter3d",
-    "series",
-    "slowstochastic",
-    "sma",
     "solidgauge",
     "spline",
-    "stochastic",
     "streamgraph",
     "sunburst",
-    "supertrend",
-    "tema",
     "tiledwebmap",
     "tilemap",
     "timeline",
     "treegraph",
     "treemap",
-    "trendline",
-    "trix",
     "variablepie",
     "variwide",
-    "vbp",
     "vector",
     "venn",
-    "vwap",
     "waterfall",
-    "williamsr",
     "windbarb",
-    "wma",
     "wordcloud",
-    "xrange",
-    "zigzag"
+    "xrange"
+  ],
+  "coreTypes": [
+    "area",
+    "areaspline",
+    "bar",
+    "column",
+    "line",
+    "pie",
+    "scatter",
+    "spline"
   ]
 }
