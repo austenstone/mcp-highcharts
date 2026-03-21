@@ -424,6 +424,10 @@ async function init() {
   app.onerror = console.error;
 
   await app.connect(new PostMessageTransport(window.parent, window.parent));
+
+  // Log host capabilities for debugging
+  const caps = app.getHostCapabilities?.();
+  console.log("[mcp-highcharts] Host capabilities:", JSON.stringify(caps, null, 2));
   appInstance = app;
 
   // Intercept link clicks to open in host browser
@@ -469,7 +473,9 @@ async function init() {
   const origDownloadURL = hc.downloadURL;
 
   function mcpDownload(dataURL: string, filename: string) {
+    console.log("[mcp-highcharts] downloadURL called:", { filename, hasApp: !!appInstance, dataURLLen: dataURL?.length });
     if (!appInstance) {
+      console.log("[mcp-highcharts] no appInstance, falling back");
       _downloadURL?.(dataURL, filename);
       return;
     }
