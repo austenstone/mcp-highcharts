@@ -34,7 +34,6 @@ export function createServer(): McpServer {
       // JSON → parse and merge as series data
       const jsonData = JSON.parse(content);
       if (Array.isArray(jsonData) && !args.series) {
-        // Array of objects → let Highcharts data module handle via columns/rows
         args.data = { ...(args.data as object || {}), columns: jsonData };
       } else if (!args.series) {
         args.series = jsonData;
@@ -42,6 +41,17 @@ export function createServer(): McpServer {
     } else {
       // CSV/TSV → inject as data.csv for Highcharts' built-in data module
       args.data = { ...(args.data as object || {}), csv: content };
+
+      // Strip empty data arrays from series — LLMs often send data:[] placeholders
+      // which would override the CSV data module
+      const series = args.series as any[] | undefined;
+      if (Array.isArray(series)) {
+        for (const s of series) {
+          if (Array.isArray(s.data) && s.data.length === 0) {
+            delete s.data;
+          }
+        }
+      }
     }
 
     return args;
