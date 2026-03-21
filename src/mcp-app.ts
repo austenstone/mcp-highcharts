@@ -27,7 +27,37 @@ const themeReady = (userOverrides
     credits: { enabled: false },
     exporting: {
       enabled: true,
-      fallbackToExportServer: false, // Client-side only — don't send data to Highcharts servers
+      fallbackToExportServer: false,
+      buttons: {
+        contextButton: {
+          symbolStroke: "var(--highcharts-neutral-color-80, #999)",
+          theme: {
+            fill: "transparent",
+            states: {
+              hover: { fill: "var(--highcharts-neutral-color-10, #333)" },
+              select: { fill: "var(--highcharts-neutral-color-10, #333)" },
+            },
+          },
+        },
+      },
+    },
+    navigation: {
+      buttonOptions: {
+        symbolStroke: "var(--highcharts-neutral-color-80, #999)",
+        theme: {
+          fill: "transparent",
+        },
+      },
+      menuStyle: {
+        background: "var(--highcharts-background-color, #1a1a2e)",
+        color: "var(--highcharts-neutral-color-80, #ccc)",
+      },
+      menuItemStyle: {
+        color: "var(--highcharts-neutral-color-80, #ccc)",
+      },
+      menuItemHoverStyle: {
+        background: "var(--highcharts-neutral-color-10, #333)",
+      },
     },
   });
   if (userOverrides) {
