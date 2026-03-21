@@ -6,9 +6,10 @@ import type { Options } from "highcharts";
  * https://primer.style/foundations/color/overview
  *
  * Applied via `Highcharts.setOptions(theme)` before any chart renders.
- * Any property here can be overridden per-chart via the tool's `highchartsOptions`.
+ * Any property here can be overridden per-chart via the tool's `highchartsOptions`,
+ * or globally via the HIGHCHARTS_THEME env var in your MCP server config.
  */
-export const theme: Options = {
+export const defaultTheme: Options = {
   // Primer data-visualization token color order
   colors: [
     "#006edb", // data-blue
@@ -223,3 +224,40 @@ export const theme: Options = {
     enabled: false,
   },
 };
+
+/** Deep merge two objects. Arrays are replaced, not concatenated. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function deepMerge(target: any, source: any): any {
+  const result = { ...target };
+  for (const key of Object.keys(source)) {
+    const srcVal = source[key];
+    const tgtVal = result[key];
+    if (
+      srcVal &&
+      typeof srcVal === "object" &&
+      !Array.isArray(srcVal) &&
+      tgtVal &&
+      typeof tgtVal === "object" &&
+      !Array.isArray(tgtVal)
+    ) {
+      result[key] = deepMerge(tgtVal, srcVal);
+    } else {
+      result[key] = srcVal;
+    }
+  }
+  return result;
+}
+
+/**
+ * Resolve the final theme by merging any user overrides from
+ * `window.__HIGHCHARTS_THEME__` (injected by the server) on top of defaults.
+ */
+export function getTheme(): Options {
+  const userOverrides =
+    typeof window !== "undefined" &&
+    (window as Record<string, unknown>).__HIGHCHARTS_THEME__;
+  if (userOverrides && typeof userOverrides === "object") {
+    return deepMerge(defaultTheme, userOverrides);
+  }
+  return defaultTheme;
+}

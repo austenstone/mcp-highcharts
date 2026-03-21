@@ -2,15 +2,41 @@ import type { App } from "@modelcontextprotocol/ext-apps";
 import { useApp } from "@modelcontextprotocol/ext-apps/react";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import Highcharts from "highcharts";
-// Chart modules — the ultimate collection
+// Chart modules — load all Highcharts modules for full series type support
 import "highcharts/highcharts-more";
+import "highcharts/highcharts-3d";
 import "highcharts/modules/heatmap";
+import "highcharts/modules/tilemap";
 import "highcharts/modules/sankey";
+import "highcharts/modules/organization";
+import "highcharts/modules/dependency-wheel";
+import "highcharts/modules/arc-diagram";
 import "highcharts/modules/funnel";
+import "highcharts/modules/funnel3d";
+import "highcharts/modules/pyramid3d";
+import "highcharts/modules/cylinder";
 import "highcharts/modules/treemap";
+import "highcharts/modules/treegraph";
 import "highcharts/modules/sunburst";
 import "highcharts/modules/networkgraph";
 import "highcharts/modules/solid-gauge";
+import "highcharts/modules/bullet";
+import "highcharts/modules/timeline";
+import "highcharts/modules/wordcloud";
+import "highcharts/modules/venn";
+import "highcharts/modules/item-series";
+import "highcharts/modules/histogram-bellcurve";
+import "highcharts/modules/pareto";
+import "highcharts/modules/streamgraph";
+import "highcharts/modules/vector";
+import "highcharts/modules/windbarb";
+import "highcharts/modules/xrange";
+import "highcharts/modules/lollipop";
+import "highcharts/modules/dumbbell";
+import "highcharts/modules/variwide";
+import "highcharts/modules/variable-pie";
+import "highcharts/modules/waterfall";
+import "highcharts/modules/packed-bubble";
 import "highcharts/modules/drilldown";
 import "highcharts/modules/boost";
 import "highcharts/modules/accessibility";
@@ -22,10 +48,10 @@ import HighchartsReact from "highcharts-react-official";
 import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { buildChartOptions, type ChartToolParams } from "./chart-options";
-import { theme } from "./theme";
+import { getTheme } from "./theme";
 
-// Apply global theme + number formatting
-Highcharts.setOptions(theme);
+// Apply resolved theme (default + any user overrides from env)
+Highcharts.setOptions(getTheme());
 Highcharts.setOptions({
   lang: {
     decimalPoint: ".",

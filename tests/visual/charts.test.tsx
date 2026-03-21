@@ -11,9 +11,9 @@ import HighchartsReact from "highcharts-react-official";
 import { createRoot } from "react-dom/client";
 import { describe, it, expect, afterEach } from "vitest";
 import { buildChartOptions, type ChartToolParams } from "../../src/chart-options";
-import { theme } from "../../src/theme";
+import { getTheme } from "../../src/theme";
 
-Highcharts.setOptions(theme);
+Highcharts.setOptions(getTheme());
 Highcharts.setOptions({ lang: { decimalPoint: ".", thousandsSep: "," } });
 
 function renderChart(params: ChartToolParams): Promise<HTMLElement> {

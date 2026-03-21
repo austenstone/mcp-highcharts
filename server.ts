@@ -16,6 +16,27 @@ const DIST_DIR = import.meta.filename.endsWith(".ts")
   ? path.join(import.meta.dirname, "dist")
   : import.meta.dirname;
 
+/**
+ * Parse the HIGHCHARTS_THEME env var.
+ * Supports inline JSON or a path to a .json file.
+ */
+async function loadUserTheme(): Promise<string | null> {
+  const raw = process.env.HIGHCHARTS_THEME;
+  if (!raw) return null;
+
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("{")) {
+    // Validate it's parseable JSON
+    JSON.parse(trimmed);
+    return trimmed;
+  }
+
+  // Treat as file path
+  const content = await fs.readFile(trimmed, "utf-8");
+  JSON.parse(content); // validate
+  return content;
+}
+
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "Highcharts MCP App Server",
@@ -32,17 +53,23 @@ export function createServer(): McpServer {
     {
       title: "Render Chart",
       description:
-        "Render an interactive Highcharts chart inline. Supports all major chart types and full Highcharts customization. " +
-        "Chart types: line, bar, column, area, pie, spline, areaspline, scatter, heatmap, " +
-        "gauge, solidgauge, treemap, sunburst, sankey, funnel, networkgraph. " +
+        "Render an interactive Highcharts chart inline. Supports ALL Highcharts series types and full customization via the highchartsOptions escape hatch (any valid Highcharts API option: https://api.highcharts.com/highcharts/). " +
+        "Common types: line, bar, column, area, pie, spline, areaspline, scatter, heatmap, gauge, solidgauge, treemap, sunburst, sankey, funnel, networkgraph. " +
+        "All types: arcdiagram, area, arearange, areaspline, areasplinerange, bar, bellcurve, boxplot, bubble, bullet, column, columnpyramid, columnrange, " +
+        "cylinder, dependencywheel, dumbbell, errorbar, funnel, funnel3d, gauge, heatmap, histogram, item, line, lollipop, networkgraph, organization, " +
+        "packedbubble, pareto, pictorial, pie, polygon, pyramid, pyramid3d, sankey, scatter, scatter3d, solidgauge, spline, streamgraph, sunburst, " +
+        "tilemap, timeline, treegraph, treemap, variablepie, variwide, vector, venn, waterfall, windbarb, wordcloud, xrange. " +
         "You can combine chart types by setting `type` on individual series (e.g. line + column on one chart). " +
         "Use `stacking` for stacked charts, `height` for sizing, `yAxisFormat` for label formatting, " +
         "`tooltipValueSuffix`/`tooltipValuePrefix` for units, `drilldown` for drill-down data, " +
-        "and `highchartsOptions` as an escape hatch for any Highcharts config.",
+        "and `highchartsOptions` as an escape hatch for any Highcharts config (see https://api.highcharts.com/highcharts/).",
       inputSchema: {
         chartType: z.string().optional().describe(
-          "Chart type: line, bar, column, area, pie, spline, areaspline, scatter, heatmap, " +
-          "gauge, solidgauge, treemap, sunburst, sankey, funnel, networkgraph"
+          "Default chart type applied to all series. Common: line, bar, column, area, pie, spline, scatter, heatmap, gauge, solidgauge. " +
+          "Advanced: arcdiagram, arearange, areasplinerange, bellcurve, boxplot, bubble, bullet, columnpyramid, columnrange, cylinder, " +
+          "dependencywheel, dumbbell, errorbar, funnel, funnel3d, histogram, item, lollipop, networkgraph, organization, packedbubble, " +
+          "pareto, pictorial, polygon, pyramid, pyramid3d, sankey, scatter3d, streamgraph, sunburst, tilemap, timeline, treegraph, " +
+          "treemap, variablepie, variwide, vector, venn, waterfall, windbarb, wordcloud, xrange"
         ),
         title: z.string().optional().describe("Chart title"),
         subtitle: z.string().optional().describe("Chart subtitle"),
@@ -69,7 +96,10 @@ export function createServer(): McpServer {
         tooltipValueSuffix: z.string().optional().describe("Suffix appended to values in tooltip, e.g. ' USD', '%', ' users'"),
         tooltipValuePrefix: z.string().optional().describe("Prefix prepended to values in tooltip, e.g. '$', '~'"),
         drilldown: z.record(z.string(), z.any()).optional().describe("Highcharts drilldown config object with series array"),
-        highchartsOptions: z.record(z.string(), z.any()).optional().describe("Any additional Highcharts options to deep-merge — the escape hatch for full customization"),
+        highchartsOptions: z.record(z.string(), z.any()).optional().describe(
+          "Any additional Highcharts options to deep-merge (see https://api.highcharts.com/highcharts/). " +
+          "Use this for chart, xAxis, yAxis, plotOptions, colorAxis, pane, or any other top-level Highcharts config."
+        ),
       },
       _meta: { ui: { resourceUri } },
     },
@@ -91,10 +121,22 @@ export function createServer(): McpServer {
     resourceUri,
     { mimeType: RESOURCE_MIME_TYPE },
     async (): Promise<ReadResourceResult> => {
-      const html = await fs.readFile(
+      let html = await fs.readFile(
         path.join(DIST_DIR, "mcp-app.html"),
         "utf-8",
       );
+
+      // Inject user theme overrides if HIGHCHARTS_THEME is set
+      try {
+        const userTheme = await loadUserTheme();
+        if (userTheme) {
+          const injection = `<script>window.__HIGHCHARTS_THEME__=${userTheme};</script>`;
+          html = html.replace("<head>", `<head>${injection}`);
+        }
+      } catch (e) {
+        console.error("Failed to load HIGHCHARTS_THEME:", e);
+      }
+
       return {
         contents: [
           { uri: resourceUri, mimeType: RESOURCE_MIME_TYPE, text: html },

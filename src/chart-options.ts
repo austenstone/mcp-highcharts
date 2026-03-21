@@ -74,6 +74,9 @@ export function buildChartOptions(params: ChartToolParams): Options {
   const resolvedHeight = resolveHeight(params.height);
 
   const isScatter = chartType === "scatter";
+  // Types that need markers explicitly enabled since the global theme disables them
+  const MARKER_TYPES = new Set(["scatter", "scatter3d", "bubble", "packedbubble", "networkgraph"]);
+  const needsMarkers = MARKER_TYPES.has(chartType);
 
   const base: Options = {
     chart: {
@@ -121,8 +124,8 @@ export function buildChartOptions(params: ChartToolParams): Options {
     series: params.series.map((s, i) => ({
       ...s,
       type: (s.type ?? undefined) as never,
-      // Scatter/networkgraph need markers explicitly enabled since the global theme disables them
-      ...(isScatter || s.type === "scatter" || chartType === "networkgraph" || s.type === "networkgraph"
+      // Types that need markers explicitly enabled since the global theme disables them
+      ...(needsMarkers || MARKER_TYPES.has(s.type ?? "")
         ? { marker: { enabled: true } }
         : {}),
       // Primer: cycle dash styles and marker shapes for multi-line differentiation
