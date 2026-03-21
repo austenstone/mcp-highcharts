@@ -50,6 +50,7 @@
     "test:e2e": "vitest run --config vitest.config.ts tests/e2e",
     "test:visual": "vitest --config vitest.browser.config.ts --ui",
     "generate:schema": "tsx scripts/generate-schema.ts",
+    "generate:tree": "tsx scripts/generate-schema-from-tree.ts",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
