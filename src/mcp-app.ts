@@ -156,12 +156,25 @@ function ensureMinHeight(opts: Record<string, unknown>, minHeight: number) {
 }
 
 /**
+ * Apply a color palette by setting Highcharts CSS variables (--highcharts-color-0 through -9).
+ * This is the correct way to theme Highcharts — CSS variables are picked up everywhere
+ * (chart, legend, data labels, tooltips, styled mode, etc.)
+ */
+function applyColorPalette(colors: string[]) {
+  const el = document.documentElement;
+  for (let i = 0; i < 10; i++) {
+    if (i < colors.length) {
+      el.style.setProperty(`--highcharts-color-${i}`, colors[i]);
+    }
+  }
+}
+
+/**
  * Generate a monochrome color palette from a base color using Highcharts color utilities.
  * Produces evenly-spaced brightness variants of a single hue.
  */
 function generateMonochromePalette(baseColor: string, count = 10): string[] {
   const colors: string[] = [];
-  // Spread from darkened (-0.3) to lightened (+0.3)
   const range = 0.6;
   const start = -(range / 2);
   for (let i = 0; i < count; i++) {
@@ -172,7 +185,7 @@ function generateMonochromePalette(baseColor: string, count = 10): string[] {
 }
 
 const MONOCHROME_PRESETS: Record<string, string> = {
-  monochrome: "#7cb5ec",      // Highcharts default blue
+  monochrome: "#7cb5ec",
   "monochrome-blue": "#4572A7",
   "monochrome-green": "#2b8c5a",
   "monochrome-purple": "#7b68ee",
@@ -186,17 +199,22 @@ function processOptions(opts: Record<string, unknown>): Options & Record<string,
   if (typeof processed.title === "string") processed.title = { text: processed.title };
   if (typeof processed.subtitle === "string") processed.subtitle = { text: processed.subtitle };
 
-  // Color mode: generate palette from Highcharts color utilities
+  // Color mode: generate palette via CSS variables using Highcharts color utilities
   const colorMode = processed.colorMode as string | undefined;
   if (colorMode) {
     delete processed.colorMode;
     const preset = MONOCHROME_PRESETS[colorMode];
     if (preset) {
-      processed.colors = generateMonochromePalette(preset);
+      applyColorPalette(generateMonochromePalette(preset));
     } else if (colorMode.startsWith("#") || colorMode.startsWith("rgb")) {
-      // Custom color: "colorMode": "#ff6600"
-      processed.colors = generateMonochromePalette(colorMode);
+      applyColorPalette(generateMonochromePalette(colorMode));
     }
+  }
+
+  // If explicit colors array provided, also apply via CSS variables
+  if (Array.isArray(processed.colors) && processed.colors.length > 0) {
+    applyColorPalette(processed.colors as string[]);
+    delete processed.colors; // Don't double-set via options AND CSS vars
   }
 
   return processed;
