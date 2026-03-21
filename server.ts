@@ -556,27 +556,12 @@ export function createServer(): McpServer {
         } catch (e) {
           console.error("Failed to load HIGHCHARTS_OPTIONS file:", e);
         }
-      } else if (/\.(ts|js|mjs)$/.test(rawOptions)) {
-        // JS/TS module
+      } else if (/\.(js|mjs)$/.test(rawOptions)) {
+        // JS module — must export default options object
         try {
-          const filePath = path.resolve(rawOptions);
-          if (rawOptions.endsWith(".ts")) {
-            // TypeScript: read file, strip export/type syntax, parse as JSON
-            let content = await fs.readFile(filePath, "utf-8");
-            content = content
-              .replace(/\/\/.*$/gm, "")               // strip line comments
-              .replace(/\/\*[\s\S]*?\*\//g, "")        // strip block comments
-              .replace(/export\s+default\s+/, "")      // strip export default
-              .replace(/as\s+const\s*;?\s*$/, "")      // strip "as const"
-              .replace(/;\s*$/, "")                     // strip trailing semicolons
-              .trim();
-            JSON.parse(content); // validate
-            optionsJson = content;
-          } else {
-            const mod = await import(pathToFileURL(filePath).href);
-            const obj = mod.default ?? mod;
-            optionsJson = JSON.stringify(obj);
-          }
+          const mod = await import(pathToFileURL(path.resolve(rawOptions)).href);
+          const obj = mod.default ?? mod;
+          optionsJson = JSON.stringify(obj);
         } catch (e) {
           console.error("Failed to load HIGHCHARTS_OPTIONS module:", e);
         }
