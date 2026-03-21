@@ -566,8 +566,9 @@ export function createServer(): McpServer {
         } catch {
           try {
             const { execFileSync } = await import("node:child_process");
-            const script = `import(${JSON.stringify(absPath)}).then(m=>console.log(JSON.stringify(m.default??m)))`;
-            const out = execFileSync("npx", ["tsx", "-e", script], { encoding: "utf-8" }).trim();
+            const script = `import(${JSON.stringify(pathToFileURL(absPath).href)}).then(m=>console.log(JSON.stringify(m.default??m)))`;
+            const cmd = process.platform === "win32" ? "npx.cmd" : "npx";
+            const out = execFileSync(cmd, ["tsx", "-e", script], { encoding: "utf-8" }).trim();
             JSON.parse(out); // validate
             optionsJson = out;
           } catch (e) {
