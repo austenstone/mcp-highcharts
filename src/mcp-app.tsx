@@ -2,7 +2,10 @@ import type { App } from "@modelcontextprotocol/ext-apps";
 import { useApp } from "@modelcontextprotocol/ext-apps/react";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import Highcharts from "highcharts";
+import "highcharts/modules/heatmap";
+import "highcharts/highcharts-more";
 import HighchartsReact from "highcharts-react-official";
+
 import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { buildChartOptions, type ChartToolParams } from "./chart-options";

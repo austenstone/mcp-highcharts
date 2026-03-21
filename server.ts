@@ -33,10 +33,10 @@ export function createServer(): McpServer {
       title: "Render Chart",
       description:
         "Render an interactive Highcharts chart. Pass series data, chart type, title, and optional Highcharts configuration. " +
-        "Supports: line, bar, column, area, pie, spline, areaspline, scatter. " +
+        "Supports: line, bar, column, area, pie, spline, areaspline, scatter, heatmap. " +
         "The `highchartsOptions` field accepts any valid Highcharts chart options for full customization.",
       inputSchema: {
-        chartType: z.string().optional().describe("Chart type: line, bar, column, area, pie, spline, areaspline, scatter"),
+        chartType: z.string().optional().describe("Chart type: line, bar, column, area, pie, spline, areaspline, scatter, heatmap"),
         title: z.string().optional().describe("Chart title"),
         subtitle: z.string().optional().describe("Chart subtitle"),
         series: z.array(z.object({

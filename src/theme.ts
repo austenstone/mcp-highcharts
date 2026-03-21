@@ -1,24 +1,33 @@
 import type { Options } from "highcharts";
 
 /**
- * Global Highcharts theme. Edit this file to change the look and feel
- * of every chart rendered by the MCP App.
+ * Global Highcharts theme using GitHub Primer data visualization tokens.
+ * Colors sourced from Primer's `data-*-color-emphasis` palette.
+ * https://primer.style/foundations/color/overview
  *
  * Applied via `Highcharts.setOptions(theme)` before any chart renders.
  * Any property here can be overridden per-chart via the tool's `highchartsOptions`.
  */
 export const theme: Options = {
+  // Primer data-visualization emphasis colors (ordered for max contrast between adjacent series)
   colors: [
-    "#2563eb", // blue-600
-    "#16a34a", // green-600
-    "#ea580c", // orange-600
-    "#9333ea", // purple-600
-    "#dc2626", // red-600
-    "#0891b2", // cyan-600
-    "#ca8a04", // yellow-600
-    "#db2777", // pink-600
-    "#4f46e5", // indigo-600
-    "#0d9488", // teal-600
+    "#006edb", // data-blue
+    "#d43511", // data-coral
+    "#30a147", // data-green
+    "#894ceb", // data-purple
+    "#eb670f", // data-orange
+    "#179b9b", // data-teal
+    "#ce2c85", // data-pink
+    "#b88700", // data-yellow
+    "#527a29", // data-lime
+    "#a830e8", // data-plum
+    "#9d615c", // data-auburn
+    "#167e53", // data-pine
+    "#866e04", // data-lemon
+    "#808fa3", // data-gray
+    "#856d4c", // data-brown
+    "#64762d", // data-olive
+    "#df0c24", // data-red
   ],
 
   chart: {
