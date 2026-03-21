@@ -98,12 +98,14 @@ function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
   // only when the host provides values.
   const structuralMappings: [string, string | undefined][] = [
     ["--highcharts-background-color", vars["--color-background-primary"]],
+    ["--highcharts-neutral-color-0", vars["--color-background-primary"]], // Dashboard container bg
     ["--highcharts-neutral-color-100", vars["--color-text-primary"]],
     ["--highcharts-neutral-color-80", vars["--color-text-secondary"]],
     ["--highcharts-neutral-color-60", vars["--color-text-tertiary"]],
     ["--highcharts-neutral-color-20", vars["--color-border-secondary"]],
     ["--highcharts-neutral-color-10", vars["--color-border-tertiary"]],
     ["--highcharts-neutral-color-5", vars["--color-background-secondary"]],
+    ["--highcharts-dashboards-content-background-color", vars["--color-background-secondary"]],
   ];
 
   // Series palette: map host semantic colors to chart series colors
