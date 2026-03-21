@@ -1,5 +1,4 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import path from "node:path";
 import fs from "node:fs";
@@ -93,7 +92,7 @@ function highchartsModulesPlugin(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), viteSingleFile(), highchartsModulesPlugin()],
+  plugins: [viteSingleFile(), highchartsModulesPlugin()],
   resolve: {
     alias: {
       "highcharts/highcharts-more": hcEsm("highcharts-more.src.js"),

@@ -5,8 +5,7 @@
     "moduleResolution": "NodeNext",
     "outDir": "dist",
     "declaration": true,
-    "noEmit": false,
-    "jsx": "react-jsx"
+    "noEmit": false
   },
   "include": ["server.ts", "main.ts"],
   "exclude": ["node_modules", "dist", "src"]
