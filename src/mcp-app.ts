@@ -141,7 +141,9 @@ async function renderMultipleCharts(
 
   root.style.display = layout === "horizontal" || layout === "grid" ? "grid" : "flex";
   root.style.flexDirection = "column";
-  root.style.gap = "16px";
+  root.style.gap = "8px";
+  root.style.padding = "0";
+  root.style.overflow = "hidden";
 
   if (layout === "grid") {
     root.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
@@ -154,10 +156,16 @@ async function renderMultipleCharts(
   for (const chartOpts of charts) {
     const container = document.createElement("div");
     container.style.width = "100%";
-    container.style.minHeight = "300px";
+    container.style.minHeight = "0";
+    container.style.overflow = "hidden";
     root.appendChild(container);
 
     const processed = processOptions(chartOpts);
+    // Auto-size charts in multi-chart layouts if no explicit height set
+    if (!processed.chart) processed.chart = {};
+    if (!(processed.chart as any).height) {
+      (processed.chart as any).height = layout === "vertical" ? 300 : 250;
+    }
     try {
       await loadModulesForOptions(processed as Record<string, unknown>);
       Highcharts.chart(container, processed as Options);
