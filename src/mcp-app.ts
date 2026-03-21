@@ -68,18 +68,23 @@ const themeReady = (userOverrides
 function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
   if (!ctx) return;
 
+  console.log("[mcp-highcharts] applyHostTheme:", ctx.theme, "bg:", ctx.styles?.variables?.["--color-background-primary"]);
+
   // Apply MCP SDK theme helpers — sets all --color-* and font CSS vars on document
   if (ctx.theme) applyDocumentTheme(ctx.theme);
   if (ctx.styles?.variables) applyHostStyleVariables(ctx.styles.variables);
   if (ctx.styles?.css?.fonts) applyHostFonts(ctx.styles.css.fonts);
 
   // Toggle Highcharts adaptive theme light/dark
+  // Also set color-scheme so @media (prefers-color-scheme) matches correctly
   if (ctx.theme === "dark") {
     document.documentElement.classList.add("highcharts-dark");
     document.documentElement.classList.remove("highcharts-light");
+    document.documentElement.style.colorScheme = "dark";
   } else {
     document.documentElement.classList.add("highcharts-light");
     document.documentElement.classList.remove("highcharts-dark");
+    document.documentElement.style.colorScheme = "light";
   }
 
   const vars = ctx.styles?.variables;
