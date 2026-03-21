@@ -48,10 +48,18 @@ async function loadUserTheme(): Promise<{ name?: string; json?: string } | null>
 }
 
 export function createServer(): McpServer {
-  const server = new McpServer({
-    name: "Highcharts MCP App Server",
-    version: "1.0.0",
-  });
+  const server = new McpServer(
+    {
+      name: "Highcharts MCP App Server",
+      version: "1.0.0",
+    },
+    {
+      instructions: "This server renders interactive Highcharts charts inline. " +
+        "Use the render_chart tool with any valid Highcharts Options object. " +
+        "The input schema accepts chart, title, subtitle, series, xAxis, yAxis, tooltip, plotOptions, legend, colors, and more. " +
+        "title and subtitle accept string shorthand. All 50+ Highcharts series types are supported.",
+    },
+  );
 
   const resourceUri = "ui://highcharts/mcp-app.html";
 
@@ -59,9 +67,12 @@ export function createServer(): McpServer {
   // The view receives the tool result and renders it with Highcharts.
   registerAppTool(
     server,
-    "render-chart",
+    "render_chart",
     {
       title: "Render Chart",
+      annotations: {
+        readOnlyHint: true,
+      },
       description:
         "Render an interactive Highcharts chart inline. Input is a Highcharts Options object " +
         "(https://api.highcharts.com/highcharts/) — pass any valid config directly. " +
@@ -69,15 +80,7 @@ export function createServer(): McpServer {
         "xAxis, yAxis, tooltip, plotOptions, legend, colors, colorAxis, pane, drilldown. " +
         "50+ series types: line, bar, column, area, pie, spline, scatter, heatmap, gauge, " +
         "treemap, sankey, funnel, networkgraph, waterfall, boxplot, timeline, wordcloud, and more. " +
-        "title/subtitle accept string shorthand. The theme auto-applies; override via plotOptions or series config. " +
-        "All Highcharts modules are loaded: " +
-        "Core (line, area, spline, areaspline, column, bar, scatter, pie), " +
-        "Highcharts More (arearange, areasplinerange, boxplot, bubble, columnrange, columnpyramid, errorbar, gauge, packedbubble, polygon, waterfall), " +
-        "and all extension modules including maps (map, mapbubble, mapline, mappoint, flowmap, geoheatmap, tiledwebmap), " +
-        "sankey-family (sankey, dependency-wheel, arc-diagram, organization), " +
-        "and specialized types (wordcloud, timeline, treegraph, treemap, sunburst, networkgraph, funnel, " +
-        "solid-gauge, venn, variwide, variable-pie, vector, windbarb, xrange, pictorial, bullet, dumbbell, " +
-        "lollipop, streamgraph, tilemap, histogram-bellcurve, item-series, pareto).",
+        "title/subtitle accept string shorthand.",
       inputSchema,
       _meta: { ui: { resourceUri } },
     },

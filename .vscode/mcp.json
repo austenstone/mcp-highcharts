@@ -2,7 +2,10 @@
   "servers": {
     "highcharts": {
       "command": "node",
-      "args": ["dist/main.js", "--stdio"]
+      "args": ["dist/main.js", "--stdio"],
+      "dev": {
+        "watch": "dist/**"
+      }
     }
   }
 }

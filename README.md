@@ -4,6 +4,8 @@ Render interactive [Highcharts](https://www.highcharts.com/) charts inline in AI
 
 Just ask your AI to make a chart. It does the rest.
 
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_MCP_Server-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=mcp-highcharts&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-highcharts%40latest%22%2C%22--stdio%22%5D%7D)
+
 <!-- TODO: add screenshot/gif here -->
 
 ## Quick Start
@@ -33,7 +35,7 @@ Ask your AI agent to render a chart in natural language:
 - *"Render a sankey diagram of our deployment pipeline"*
 - *"Heatmap of commits by day of week and hour"*
 
-The LLM calls the `render-chart` tool with Highcharts options, and the chart renders inline in chat.
+The LLM calls the `render_chart` tool with Highcharts options, and the chart renders inline in chat.
 
 ### 50+ Chart Types
 
@@ -74,7 +76,7 @@ Set `type` per-series to combine different visualizations:
 
 ## Tool Schema
 
-The `render-chart` tool accepts any valid [Highcharts Options](https://api.highcharts.com/highcharts/) object. Key properties:
+The `render_chart` tool accepts any valid [Highcharts Options](https://api.highcharts.com/highcharts/) object. Key properties:
 
 | Property | Type | Description |
 |----------|------|-------------|

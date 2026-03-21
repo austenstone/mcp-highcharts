@@ -2,7 +2,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-const TOOL_NAME = "render-chart";
+const TOOL_NAME = "render_chart";
 const RESOURCE_URI = "ui://highcharts/mcp-app.html";
 
 describe("MCP Highcharts Server (stdio e2e)", () => {
@@ -24,14 +24,14 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
 
   // ── Tool discovery ──
 
-  it("lists render-chart tool", async () => {
+  it("lists render_chart tool", async () => {
     const { tools } = await client.listTools();
     const renderChart = tools.find((t) => t.name === TOOL_NAME);
     expect(renderChart).toBeDefined();
     expect(renderChart!.description).toContain("Highcharts");
   });
 
-  it("render-chart has the expected input properties", async () => {
+  it("render_chart has the expected input properties", async () => {
     const { tools } = await client.listTools();
     const schema = tools.find((t) => t.name === TOOL_NAME)!.inputSchema;
     const props = Object.keys(schema.properties ?? {});
