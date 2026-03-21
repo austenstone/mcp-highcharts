@@ -1,13 +1,21 @@
 import Highcharts from "highcharts";
+import type { Options } from "highcharts";
 import "virtual:highcharts-modules";
 import HighchartsReact from "highcharts-react-official";
 import { createRoot } from "react-dom/client";
-import { describe, it, expect, afterEach } from "vitest";
-import { buildChartOptions } from "../../src/chart-options";
-import { getTheme } from "../../src/theme";
+import { describe, it, expect, afterEach, beforeEach } from "vitest";
 
-Highcharts.setOptions(getTheme());
-Highcharts.setOptions({ lang: { decimalPoint: ".", thousandsSep: "," } });
+function buildChartOptions(params: Record<string, unknown>): Options {
+  const opts = { ...params } as Options & Record<string, unknown>;
+  if (typeof opts.title === "string") opts.title = { text: opts.title };
+  if (typeof opts.subtitle === "string") opts.subtitle = { text: opts.subtitle };
+  return opts as Options;
+}
+
+Highcharts.setOptions({
+  credits: { enabled: false },
+  exporting: { enabled: false },
+});
 
 function renderChart(params: Record<string, unknown>): Promise<HTMLElement> {
   return new Promise((resolve) => {
@@ -1033,5 +1041,54 @@ describe("Chart Features", () => {
     expect(el.querySelector(".highcharts-root")).toBeTruthy();
     const svg = el.querySelector(".highcharts-root")!;
     expect(svg.innerHTML).toContain("Concurrency");
+  });
+});
+
+describe("GitHub Theme", () => {
+  let savedDefaults: Options;
+
+  beforeEach(() => {
+    savedDefaults = Highcharts.merge(Highcharts.defaultOptions) as Options;
+  });
+
+  afterEach(() => {
+    // Reset Highcharts global options to pre-test state.
+    // setOptions is additive with no built-in reset, so we overwrite the internal object.
+    (Highcharts as unknown as Record<string, unknown>).defaultOptions = savedDefaults;
+  });
+
+  const chartConfig = {
+    chart: { type: "column" },
+    title: "GitHub Actions Revenue Growth",
+    subtitle: "FY2024 - FY2026",
+    series: [
+      { name: "GitHub-Hosted Runners", data: [2.1, 2.8, 3.5, 4.2, 5.1, 6.3] },
+      { name: "Self-Hosted Runners", data: [1.8, 1.9, 2, 2, 1.9, 1.8] },
+      { name: "Actions Minutes", data: [3.2, 3.5, 3.9, 4.3, 4.8, 5.4] },
+    ],
+    xAxis: { categories: ["Q1 FY24", "Q2 FY24", "Q3 FY24", "Q4 FY24", "Q1 FY25", "Q2 FY25"] },
+    yAxis: { title: { text: "ARR ($M)" } },
+    tooltip: { valuePrefix: "$", valueSuffix: "M" },
+  } as const;
+
+  function assertThemeDOM(el: HTMLElement) {
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+    expect(el.querySelector(".highcharts-background")?.getAttribute("fill")).toBe("transparent");
+    expect(el.querySelector(".highcharts-series-0 rect")?.getAttribute("fill")).toBe("#006edb");
+    expect(el.querySelector(".highcharts-yaxis-grid .highcharts-grid-line")?.getAttribute("stroke-dasharray")).toBeTruthy();
+  }
+
+  it("applies theme from JSON file", async () => {
+    const theme = await import("../../.vscode/github-theme.json");
+    Highcharts.setOptions(theme as unknown as Options);
+    const el = await renderChart({ ...chartConfig });
+    assertThemeDOM(el);
+  });
+
+  it("applies theme from TypeScript file", async () => {
+    const { default: theme } = await import("../../.vscode/github-theme.ts");
+    Highcharts.setOptions(theme);
+    const el = await renderChart({ ...chartConfig });
+    assertThemeDOM(el);
   });
 });

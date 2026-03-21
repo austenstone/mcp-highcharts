@@ -5,7 +5,10 @@
       "args": ["dist/main.js", "--stdio"],
       "dev": {
         "watch": "dist/**"
-      }
+      },
+			"env": {
+    		// "HIGHCHARTS_OPTIONS": ".vscode/github-theme.ts"
+			}
     }
   }
 }

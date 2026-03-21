@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<meta name="color-scheme" content="dark">
+<style>body { margin: 0; padding: 16px; background: #0d1117; font-family: system-ui; color: #e6edf3; }</style>
+</head><body>
+<h3>GitHub Theme Test</h3>
+<div id="chart1" style="width:800px;height:400px;margin-bottom:24px;"></div>
+<div id="chart2" style="width:800px;height:400px;"></div>
+<script src="/node_modules/highcharts/highcharts.js"></script>
+<script src="/.vscode/github-theme.json" id="theme-json"></script>
+<script>
+  // Load JSON theme via fetch since script tag won't work for JSON
+  fetch('/.vscode/github-theme.json')
+    .then(r => r.json())
+    .then(theme => {
+      Highcharts.setOptions({ credits: { enabled: false }, exporting: { enabled: false } });
+      Highcharts.setOptions(theme);
+
+      Highcharts.chart('chart1', {
+        chart: { type: 'column' },
+        title: { text: 'GitHub Actions Revenue Growth' },
+        subtitle: { text: 'FY2024 - FY2026 (JSON theme)' },
+        xAxis: { categories: ['Q1', 'Q2', 'Q3', 'Q4'] },
+        yAxis: { title: { text: 'ARR ($M)' } },
+        series: [
+          { name: 'FY2024', data: [12, 18, 24, 32] },
+          { name: 'FY2025', data: [28, 38, 45, 58] },
+          { name: 'FY2026', data: [52, 68, null, null] }
+        ]
+      });
+
+      Highcharts.chart('chart2', {
+        chart: { type: 'pie' },
+        title: { text: 'CI/CD Market Share' },
+        subtitle: { text: 'Theme colors test' },
+        series: [{
+          name: 'Share',
+          data: [
+            { name: 'GitHub Actions', y: 45 },
+            { name: 'Jenkins', y: 25 },
+            { name: 'GitLab CI', y: 15 },
+            { name: 'CircleCI', y: 10 },
+            { name: 'Other', y: 5 }
+          ]
+        }]
+      });
+    });
+</script>
+</body></html>

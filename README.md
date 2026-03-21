@@ -99,15 +99,13 @@ Any valid Highcharts config property works — the schema is intentionally open 
 ## Features
 
 - **Adaptive theme** — Automatically matches your VS Code color scheme (light/dark) using Highcharts' built-in [adaptive theme](https://www.highcharts.com/docs/chart-design-and-style/themes)
-- **15 built-in themes** — Set `HIGHCHARTS_THEME` to any Highcharts theme name
+- **15 built-in themes** — Set `HIGHCHARTS_OPTIONS` to any theme name
 - **Dark/light mode** — Syncs with VS Code's theme via the MCP Apps host context
-- **Export** — PNG, SVG, CSV, data table via Highcharts exporting module
-- **Boost** — WebGL rendering for 100K+ data points
-- **Custom themes** — Override via `HIGHCHARTS_THEME` env var (theme name, inline JSON, or file path)
+- **Global options** — Customize any [Highcharts.setOptions()](https://api.highcharts.com/class-reference/Highcharts#.setOptions) via `HIGHCHARTS_OPTIONS` env var
 
-## Themes
+## Configuration
 
-Set `HIGHCHARTS_THEME` to a built-in theme name, inline JSON, or a file path:
+Set `HIGHCHARTS_OPTIONS` to customize the chart defaults. Accepts a built-in theme name, inline JSON, or a file path:
 
 ```json
 {
@@ -116,14 +114,14 @@ Set `HIGHCHARTS_THEME` to a built-in theme name, inline JSON, or a file path:
       "command": "npx",
       "args": ["-y", "mcp-highcharts@latest", "--stdio"],
       "env": {
-        "HIGHCHARTS_THEME": "dark-unica"
+        "HIGHCHARTS_OPTIONS": "dark-unica"
       }
     }
   }
 }
 ```
 
-Available built-in themes:
+### Built-in Themes
 
 | Theme | Description |
 |-------|-------------|
@@ -143,17 +141,25 @@ Available built-in themes:
 | `skies` | Sky blue gradient |
 | `sunset` | Warm sunset colors |
 
-For fully custom themes, pass inline JSON or a file path:
+### Custom Options
+
+Pass any valid [Highcharts.setOptions()](https://api.highcharts.com/class-reference/Highcharts#.setOptions) config as inline JSON or a file path:
 
 ```json
 {
   "env": {
-    "HIGHCHARTS_THEME": "{\"colors\":[\"#ff6384\",\"#36a2eb\",\"#ffce56\"]}"
+    "HIGHCHARTS_OPTIONS": "{\"colors\":[\"#ff6384\",\"#36a2eb\",\"#ffce56\"],\"chart\":{\"backgroundColor\":\"#1a1a2e\"},\"plotOptions\":{\"series\":{\"animation\":true}}}"
   }
 }
 ```
 
-The theme object is any valid [Highcharts.setOptions()](https://api.highcharts.com/class-reference/Highcharts#.setOptions) config.
+```json
+{
+  "env": {
+    "HIGHCHARTS_OPTIONS": "/path/to/my-options.json"
+  }
+}
+```
 
 ## Transports
 

@@ -17,12 +17,14 @@ const DIST_DIR = import.meta.filename.endsWith(".ts")
   : import.meta.dirname;
 
 /**
- * Parse the HIGHCHARTS_THEME env var.
- * A bare word (no braces, no path separators) is treated as a built-in theme name.
- * A string starting with "{" is inline JSON. Anything else is a file path.
+ * Parse HIGHCHARTS_OPTIONS (or HIGHCHARTS_THEME) env var.
+ * A bare word is treated as a built-in theme name.
+ * A string starting with "{" is inline JSON passed to setOptions().
+ * A path ending in .ts/.mts is dynamically imported (default export).
+ * Anything else is a file path to a JSON file.
  */
-async function loadUserTheme(): Promise<{ name?: string; json?: string } | null> {
-  const raw = process.env.HIGHCHARTS_THEME?.trim();
+async function loadUserOptions(): Promise<{ name?: string; json?: string } | null> {
+  const raw = (process.env.HIGHCHARTS_OPTIONS ?? process.env.HIGHCHARTS_THEME)?.trim();
   if (!raw) return null;
 
   if (raw.startsWith("{")) {
@@ -32,6 +34,23 @@ async function loadUserTheme(): Promise<{ name?: string; json?: string } | null>
 
   if (!raw.includes("/") && !raw.includes("\\") && !raw.includes(".")) {
     return { name: raw };
+  }
+
+  // TypeScript/JS module: dynamic import and serialize the default export
+  if (/\.[mc]?[tj]s$/.test(raw)) {
+    const absPath = path.resolve(raw);
+    try {
+      const mod = await import(absPath);
+      const theme = mod.default ?? mod;
+      return { json: JSON.stringify(theme) };
+    } catch {
+      // Fallback: run with tsx to handle TypeScript
+      const { execFileSync } = await import("node:child_process");
+      const script = `import(${JSON.stringify(absPath)}).then(m=>console.log(JSON.stringify(m.default??m)))`;
+      const out = execFileSync("npx", ["tsx", "-e", script], { encoding: "utf-8" }).trim();
+      JSON.parse(out);
+      return { json: out };
+    }
   }
 
   const content = await fs.readFile(raw, "utf-8");
@@ -100,16 +119,16 @@ export function createServer(): McpServer {
       );
 
       try {
-        const userTheme = await loadUserTheme();
-        if (userTheme?.name) {
-          const injection = `<script>window.__HIGHCHARTS_THEME_NAME__="${userTheme.name}";</script>`;
+        const userOpts = await loadUserOptions();
+        if (userOpts?.name) {
+          const injection = `<script>window.__HIGHCHARTS_THEME_NAME__="${userOpts.name}";</script>`;
           html = html.replace("<head>", `<head>${injection}`);
-        } else if (userTheme?.json) {
-          const injection = `<script>window.__HIGHCHARTS_THEME__=${userTheme.json};</script>`;
+        } else if (userOpts?.json) {
+          const injection = `<script>window.__HIGHCHARTS_OPTIONS__=${userOpts.json};</script>`;
           html = html.replace("<head>", `<head>${injection}`);
         }
       } catch (e) {
-        console.error("Failed to inject theme:", e);
+        console.error("Failed to inject options:", e);
       }
 
       return {
