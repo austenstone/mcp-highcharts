@@ -24,7 +24,7 @@ export const theme: Options = {
   ],
 
   chart: {
-    backgroundColor: "var(--bgColor-default, transparent)",
+    backgroundColor: "transparent",
     animation: false,
     style: {
       fontFamily: "var(--fontStack-sansSerif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif)",
