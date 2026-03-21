@@ -413,6 +413,41 @@ async function init() {
   await app.connect(new PostMessageTransport(window.parent, window.parent));
   appInstance = app;
 
+  // Intercept link clicks to open in host browser
+  document.addEventListener('click', (e) => {
+    const anchor = (e.target as HTMLElement).closest('a[href]');
+    if (anchor) {
+      const href = anchor.getAttribute('href');
+      if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+        e.preventDefault();
+        appInstance?.openLink({ url: href }).catch(() => {
+          // Fallback: do nothing (can't navigate in sandbox anyway)
+        });
+      }
+    }
+  });
+
+  // Streaming preview: render partial chart config as LLM streams
+  app.ontoolinputpartial = (partialArgs) => {
+    try {
+      const partial = partialArgs.arguments;
+      if (!partial) return;
+
+      // Only attempt streaming render for single charts (render_chart)
+      const opts = partial as Record<string, unknown>;
+      if (opts.__chartType || opts.components) return; // skip stock/map/gantt/dashboard/grid
+
+      if (opts.series && Array.isArray(opts.series)) {
+        clearTimeout(streamDebounce);
+        streamDebounce = setTimeout(() => {
+          renderSingleChart(opts as any).catch(() => {});
+        }, 300);
+      }
+    } catch {
+      // Partial args may be incomplete — expected, just wait
+    }
+  };
+
   // Override Highcharts download to use MCP SDK's downloadFile()
   const origDownloadURL = (Highcharts as any).downloadURL;
   if (typeof origDownloadURL === "function") {
