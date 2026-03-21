@@ -12,12 +12,51 @@ import { z } from "zod";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { inputSchema } from "./src/input-schema.js";
+import { loadDataSource, autoGenerateSeries } from "./src/data-source.js";
 
 const DIST_DIR = import.meta.filename.endsWith(".ts")
   ? path.join(import.meta.dirname, "dist")
   : import.meta.dirname;
 
 export function createServer(): McpServer {
+  /**
+   * Process dataSource: read file, auto-generate series if needed, merge into args.
+   * Returns the processed args (mutated in place).
+   */
+  async function resolveDataSource(args: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const dataSource = args.dataSource as string | undefined;
+    if (!dataSource) return args;
+    delete args.dataSource;
+
+    const parsed = await loadDataSource(dataSource);
+    const series = args.series as any[] | undefined;
+    const hasInlineData = series?.some((s: any) => s.data != null);
+
+    if (!hasInlineData) {
+      const generated = autoGenerateSeries(parsed, series);
+      args.series = generated.series;
+      if (generated.xAxis && !args.xAxis) {
+        args.xAxis = generated.xAxis;
+      } else if (generated.xAxis && args.xAxis) {
+        // Merge categories into existing xAxis
+        const existing = args.xAxis as Record<string, unknown>;
+        if (!existing.categories) existing.categories = generated.xAxis.categories;
+      }
+    }
+
+    return args;
+  }
+
+  /** Build a text summary for the content field */
+  function chartSummary(args: Record<string, unknown>, chartType?: string): string {
+    const series = args.series as any[] | undefined;
+    const seriesCount = Array.isArray(series) ? series.length : 0;
+    const type = chartType || (args.chart as any)?.type || series?.[0]?.type || "line";
+    const title = typeof args.title === "string" ? args.title : (args.title as any)?.text || "";
+    const titleStr = title ? ` "${title}"` : "";
+    return `Rendered ${type} chart${titleStr} with ${seriesCount} series`;
+  }
+
   const server = new McpServer(
     {
       name: "Highcharts MCP App Server",
@@ -63,14 +102,16 @@ export function createServer(): McpServer {
       _meta: { ui: { resourceUri } },
     },
     async (args): Promise<CallToolResult> => {
-      if (!args.series || !Array.isArray(args.series)) {
+      const processed = await resolveDataSource(args as Record<string, unknown>);
+      if (!processed.series || !Array.isArray(processed.series)) {
         return {
           isError: true,
           content: [{ type: "text", text: "series is required and must be an array" }],
         };
       }
       return {
-        content: [{ type: "text", text: JSON.stringify(args) }],
+        content: [{ type: "text", text: chartSummary(processed) }],
+        structuredContent: processed as any,
       };
     },
   );
@@ -119,14 +160,17 @@ export function createServer(): McpServer {
       _meta: { ui: { resourceUri } },
     },
     async (args): Promise<CallToolResult> => {
-      if (!args.series || !Array.isArray(args.series)) {
+      const processed = await resolveDataSource(args as Record<string, unknown>);
+      if (!processed.series || !Array.isArray(processed.series)) {
         return {
           isError: true,
           content: [{ type: "text", text: "series is required and must be an array" }],
         };
       }
+      const full = { ...processed, __chartType: "stock" };
       return {
-        content: [{ type: "text", text: JSON.stringify({ ...args, __chartType: "stock" }) }],
+        content: [{ type: "text", text: chartSummary(processed, "stock") }],
+        structuredContent: full as any,
       };
     },
   );
@@ -192,7 +236,12 @@ export function createServer(): McpServer {
       if (!args.components || !Array.isArray(args.components)) {
         return { isError: true, content: [{ type: "text", text: "components is required and must be an array" }] };
       }
-      return { content: [{ type: "text", text: JSON.stringify(args) }] };
+      const components = args.components as Array<Record<string, unknown>>;
+      const types = [...new Set(components.map(c => (c.type as string) || "unknown"))].join(", ");
+      return {
+        content: [{ type: "text", text: `Rendered dashboard with ${components.length} components (${types})` }],
+        structuredContent: args as any,
+      };
     },
   );
 
@@ -283,8 +332,11 @@ export function createServer(): McpServer {
           content: [{ type: "text", text: "series is required and must be an array" }],
         };
       }
+      const full = { ...args, __chartType: "map" };
+      const mapKey = (args.chart as any)?.map || "custom/world";
       return {
-        content: [{ type: "text", text: JSON.stringify({ ...args, __chartType: "map" }) }],
+        content: [{ type: "text", text: `Rendered map chart (${mapKey}) with ${(args.series as any[]).length} series` }],
+        structuredContent: full as any,
       };
     },
   );
@@ -354,8 +406,11 @@ export function createServer(): McpServer {
           content: [{ type: "text", text: "series is required and must be an array" }],
         };
       }
+      const full = { ...args, __chartType: "gantt" };
+      const tasks = (args.series as any[]).reduce((n, s) => n + (Array.isArray(s.data) ? s.data.length : 0), 0);
       return {
-        content: [{ type: "text", text: JSON.stringify({ ...args, __chartType: "gantt" }) }],
+        content: [{ type: "text", text: `Rendered Gantt chart with ${tasks} tasks` }],
+        structuredContent: full as any,
       };
     },
   );
@@ -445,7 +500,8 @@ export function createServer(): McpServer {
       }
 
       return {
-        content: [{ type: "text", text: JSON.stringify({ ...a, __chartType: "grid" }) }],
+        content: [{ type: "text", text: `Rendered data grid` }],
+        structuredContent: { ...a, __chartType: "grid" } as any,
       };
     },
   );

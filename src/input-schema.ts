@@ -204,8 +204,16 @@ function buildRemainingFields(): Record<string, z.ZodTypeAny> {
   return fields;
 }
 
+// ── Data source ──
+const dataSourceSchema = z.string().optional().describe(
+  "Path to a data file (CSV, JSON, TSV) relative to the workspace, or a URL. " +
+  "The server reads and parses the file, injecting data into the chart config. " +
+  "If series[].data is also provided inline, inline data takes precedence."
+);
+
 // ── Export the complete input schema ──
 export const inputSchema = {
+  dataSource: dataSourceSchema,
   chart: chartSchema,
   title: titleSchema,
   subtitle: subtitleSchema,

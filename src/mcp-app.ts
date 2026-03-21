@@ -373,11 +373,28 @@ async function init() {
   appInstance = app;
 
   app.ontoolresult = async (result) => {
-    const textContent = result.content?.find((c: any) => c.type === "text") as { text: string } | undefined;
-    const text = textContent?.text;
-    if (!text) return;
+    let opts: Record<string, unknown> | undefined;
+
+    // Prefer structuredContent (full processed config from server)
+    if (result.structuredContent && typeof result.structuredContent === "object") {
+      opts = result.structuredContent as Record<string, unknown>;
+    } else {
+      // Fall back to parsing text content (legacy behavior)
+      const textContent = result.content?.find((c: any) => c.type === "text") as { text: string } | undefined;
+      const text = textContent?.text;
+      if (!text) return;
+      try {
+        opts = JSON.parse(text) as Record<string, unknown>;
+      } catch (e) {
+        const container = document.getElementById("root")!;
+        showError(container, e instanceof Error ? e : new Error("Failed to parse chart data"));
+        return;
+      }
+    }
+
+    if (!opts) return;
+
     try {
-      const opts = JSON.parse(text) as Record<string, unknown>;
 
       if (opts.__chartType === "stock") {
         await renderStockChart(opts);
