@@ -16,6 +16,8 @@ export interface ChartToolParams {
   yAxisFormat?: string;
   stacking?: string;
   height?: string;
+  tooltipValueSuffix?: string;
+  tooltipValuePrefix?: string;
   drilldown?: Record<string, unknown>;
   highchartsOptions?: Record<string, unknown>;
 }
@@ -92,6 +94,18 @@ export function buildChartOptions(params: ChartToolParams): Options {
         ? { labels: { format: params.yAxisFormat } }
         : {}),
     },
+    ...(params.tooltipValueSuffix || params.tooltipValuePrefix
+      ? {
+          tooltip: {
+            ...(params.tooltipValueSuffix
+              ? { valueSuffix: params.tooltipValueSuffix }
+              : {}),
+            ...(params.tooltipValuePrefix
+              ? { valuePrefix: params.tooltipValuePrefix }
+              : {}),
+          },
+        }
+      : {}),
     ...(params.stacking
       ? {
           plotOptions: {

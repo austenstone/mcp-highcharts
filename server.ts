@@ -55,6 +55,8 @@ export function createServer(): McpServer {
         yAxisFormat: z.string().optional().describe("Y axis label format string, e.g. '${value}', '{value}%', '{value}K'"),
         stacking: z.string().optional().describe("Stacking mode: 'normal' for stacked totals, 'percentage' for 100% stacked"),
         height: z.string().optional().describe("Chart height preset: 'small' (128px), 'medium' (256px), 'large' (320px), 'xl' (432px), or a number in px"),
+        tooltipValueSuffix: z.string().optional().describe("Suffix appended to values in tooltip, e.g. ' USD', '%', ' users'"),
+        tooltipValuePrefix: z.string().optional().describe("Prefix prepended to values in tooltip, e.g. '$', '~'"),
         drilldown: z.record(z.string(), z.any()).optional().describe("Highcharts drilldown config object with series array"),
         highchartsOptions: z.record(z.string(), z.any()).optional().describe("Any additional Highcharts options to deep-merge — the escape hatch for full customization"),
       },

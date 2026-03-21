@@ -24,8 +24,14 @@ import { createRoot } from "react-dom/client";
 import { buildChartOptions, type ChartToolParams } from "./chart-options";
 import { theme } from "./theme";
 
-// Apply global theme once
+// Apply global theme + number formatting
 Highcharts.setOptions(theme);
+Highcharts.setOptions({
+  lang: {
+    decimalPoint: ".",
+    thousandsSep: ",",
+  },
+});
 
 function ChartApp() {
   const [toolResult, setToolResult] = useState<CallToolResult | null>(null);

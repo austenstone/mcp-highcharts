@@ -52,6 +52,7 @@ export const theme: Options = {
   xAxis: {
     tickWidth: 0,
     lineWidth: 1,
+    crosshair: true,
     gridLineColor: "var(--borderColor-muted, #374151)",
     gridLineDashStyle: "Dash",
     lineColor: "var(--borderColor-default, #4b5563)",
@@ -109,12 +110,37 @@ export const theme: Options = {
     borderWidth: 1,
     borderRadius: 6,
     shadow: false,
+    shared: true,
     useHTML: true,
     style: {
       color: "var(--fgColor-default, #e5e7eb)",
       fontFamily: "var(--fontStack-sansSerif, system-ui)",
       fontSize: "var(--text-body-size-small, 12px)",
     },
+  },
+
+  // Heatmap colorAxis defaults
+  colorAxis: {
+    minColor: "#161b22",
+    maxColor: "#006edb",
+    labels: {
+      style: {
+        color: "var(--fgColor-muted, #d1d5db)",
+      },
+    },
+  },
+
+  // Responsive: hide legend in narrow MCP App iframes
+  responsive: {
+    rules: [
+      {
+        condition: { maxWidth: 400 },
+        chartOptions: {
+          legend: { enabled: false },
+          yAxis: { title: { text: "" } },
+        },
+      },
+    ],
   },
 
   navigation: {
