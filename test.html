@@ -96,20 +96,26 @@
       },
       map: {
         name: "Map Chart",
-        render: (el) => Highcharts.mapChart(el, {
-          chart: { map: undefined },
-          title: { text: "Map Chart Test" },
-          mapNavigation: { enabled: true },
-          series: [{
-            type: "mappoint",
-            name: "Cities",
-            data: [
-              { name: "New York", lat: 40.7, lon: -74.0 },
-              { name: "London", lat: 51.5, lon: -0.1 },
-              { name: "Tokyo", lat: 35.7, lon: 139.7 }
-            ]
-          }]
-        })
+        render: async (el) => {
+          const topology = await fetch("/node_modules/@highcharts/map-collection/custom/world.topo.json").then(r => r.json());
+          return Highcharts.mapChart(el, {
+            chart: { map: topology },
+            title: { text: "World Population Density" },
+            mapNavigation: { enabled: true, buttonOptions: { verticalAlign: "bottom" } },
+            colorAxis: { min: 1, max: 1000, type: "logarithmic" },
+            series: [{
+              type: "map",
+              name: "Population",
+              data: [
+                ["us", 334], ["cn", 1412], ["in", 1408], ["br", 214],
+                ["ru", 144], ["jp", 125], ["de", 84], ["gb", 67],
+                ["fr", 65], ["au", 26], ["ca", 38], ["mx", 129]
+              ],
+              joinBy: ["hc-key", 0],
+              states: { hover: { color: "#a4edba" } }
+            }]
+          });
+        }
       },
       gantt: {
         name: "Gantt Chart",
