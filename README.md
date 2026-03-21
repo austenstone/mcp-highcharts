@@ -1,20 +1,52 @@
 # mcp-highcharts
 
-Render interactive [Highcharts](https://www.highcharts.com/) charts inline in AI chat — right inside VS Code, GitHub Copilot, Claude Desktop, or any MCP client that supports [MCP Apps](https://github.com/modelcontextprotocol/ext-apps).
+Render interactive [Highcharts](https://www.highcharts.com/) charts inline in AI chat — right inside VS Code, GitHub Copilot, Claude Desktop, or any MCP client that supports [MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview).
 
 Just ask your AI to make a chart. It does the rest.
 
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_MCP_Server-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=mcp-highcharts&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-highcharts%40latest%22%2C%22--stdio%22%5D%7D)
+[![npm](https://img.shields.io/npm/v/mcp-highcharts?style=flat-square)](https://www.npmjs.com/package/mcp-highcharts)
 
-<!-- TODO: add screenshot/gif here -->
+## Features
+
+- **119 chart types** — line, bar, column, pie, scatter, heatmap, sankey, gauge, treemap, wordcloud, network graph, timeline, and [many more](https://www.highcharts.com/demo)
+- **Multiple charts** — render dashboards with vertical, horizontal, or grid layouts
+- **Mixed/overlay charts** — combine column + line, dual Y-axes, any combination
+- **Full Highcharts API** — every option from [api.highcharts.com](https://api.highcharts.com/highcharts/) is supported
+- **Lazy module loading** — only loads the Highcharts modules needed for your chart type
+- **Auto-generated schema** — chart types and module map regenerated from Highcharts on every build
+- **Adaptive theming** — respects host dark/light mode via CSS variables
+- **Custom themes** — JSON file or inline options via environment variable
+- **Accessibility** — built-in screen reader support
+- **Export** — PNG, SVG, PDF download
+- **Zero config** — `npx mcp-highcharts@latest --stdio` just works
 
 ## Quick Start
 
-Add to your MCP config (`.vscode/mcp.json`, Claude Desktop, etc.):
+### VS Code / GitHub Copilot
+
+Click the badge above, or add to your MCP config:
 
 ```json
 {
-  "servers": {
+  "mcp": {
+    "servers": {
+      "highcharts": {
+        "command": "npx",
+        "args": ["-y", "mcp-highcharts@latest", "--stdio"]
+      }
+    }
+  }
+}
+```
+
+### Claude Desktop
+
+Add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
     "highcharts": {
       "command": "npx",
       "args": ["-y", "mcp-highcharts@latest", "--stdio"]
@@ -23,162 +55,139 @@ Add to your MCP config (`.vscode/mcp.json`, Claude Desktop, etc.):
 }
 ```
 
-That's it. No API keys, no build steps, no config.
+## Tools
 
-## Usage
+### `render_chart`
 
-Ask your AI agent to render a chart in natural language:
+Render a single interactive chart. Input is any valid [Highcharts Options](https://api.highcharts.com/highcharts/) object.
 
-- *"Show a bar chart of Q1-Q4 revenue"*
-- *"Pie chart of browser market share"*
-- *"Line chart comparing 2025 vs 2026 sales with a trend line"*
-- *"Render a sankey diagram of our deployment pipeline"*
-- *"Heatmap of commits by day of week and hour"*
+**Key properties:** `chart` (type, height), `title`, `subtitle`, `series`, `xAxis`, `yAxis`, `tooltip`, `plotOptions`, `legend`, `colors`, `colorAxis`, `pane`, `drilldown`
 
-The LLM calls the `render_chart` tool with Highcharts options, and the chart renders inline in chat.
+**String shorthand:** `title` and `subtitle` accept plain strings — `"Revenue"` becomes `{ text: "Revenue" }`.
 
-### 50+ Chart Types
-
-All Highcharts modules are bundled into a single self-contained HTML file at build time via a [custom Vite plugin](vite-plugin-highcharts-modules.ts). Every extension module is loaded in the correct dependency order — no extra config needed. The LLM just sets `chart.type` or `series[].type` and it works.
-
-| Category | Types |
-|----------|-------|
-| **Core** | line, area, spline, areaspline, column, bar, scatter, pie |
-| **More** | arearange, areasplinerange, boxplot, bubble, columnrange, columnpyramid, errorbar, gauge, packedbubble, polygon, waterfall |
-| **Maps** | map, mapbubble, mapline, mappoint, flowmap, geoheatmap, tiledwebmap |
-| **Flow** | sankey, dependency-wheel, arc-diagram, organization |
-| **Specialized** | wordcloud, timeline, treegraph, treemap, sunburst, networkgraph, funnel, solid-gauge, venn, variwide, heatmap, histogram, bellcurve, bullet, dumbbell, lollipop, streamgraph, tilemap, xrange, pictorial, pareto, item-series, windbarb, vector |
-
-Modules with dependencies (e.g., `funnel3d` → `highcharts-3d` → `cylinder`) are auto-resolved. You can also limit which modules are included by setting `HIGHCHARTS_MODULES` at build time:
-
-```bash
-# Only include what you need (dependencies are auto-added)
-HIGHCHARTS_MODULES=sankey,heatmap,funnel npm run build
+```
+Show me a bar chart of Q1-Q4 revenue: 100, 200, 300, 400
 ```
 
-By default, all modules are included (~1.5 MB inlined HTML).
+### `render_charts`
 
-### Mix Chart Types
+Render multiple charts in a single view.
 
-Set `type` per-series to combine different visualizations:
+```
+Show me a dashboard with:
+1. A pie chart of market share (Chrome 65%, Firefox 20%, Safari 15%)
+2. A line chart of monthly growth (Jan-Jun: 10, 15, 20, 28, 35, 42)
+3. A gauge showing 95% uptime
+Use a 2-column grid layout.
+```
 
-```jsonc
-// The LLM generates this — you just ask for it
+**Layout options:**
+- `vertical` — stacked (default)
+- `horizontal` — side by side
+- `grid` — auto-grid with configurable columns
+
+### Mixed / Overlay Charts
+
+Combine chart types by setting `type` per series:
+
+```json
 {
-  "chart": { "type": "column" },
-  "title": "Revenue vs Trend",
   "series": [
-    { "name": "Revenue", "data": [10, 20, 30], "type": "column" },
-    { "name": "Trend", "data": [12, 18, 28], "type": "spline" }
+    { "type": "column", "name": "Revenue", "data": [100, 200, 300] },
+    { "type": "spline", "name": "Trend", "data": [150, 200, 250] }
   ]
 }
 ```
 
-## Tool Schema
-
-The `render_chart` tool accepts any valid [Highcharts Options](https://api.highcharts.com/highcharts/) object. Key properties:
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `chart` | object | `{ type, height }` — chart type and dimensions |
-| `title` | string \| object | Chart title (string shorthand or `{ text, style }`) |
-| `subtitle` | string \| object | Chart subtitle |
-| `series` | array | `[{ type?, name, data, color? }]` — the data |
-| `xAxis` | object | Categories, datetime, labels, title |
-| `yAxis` | object | Title, format (`{value}%`, `${value}`), min/max |
-| `tooltip` | object | `{ valueSuffix, valuePrefix, shared }` |
-| `plotOptions` | object | Stacking (`normal`, `percentage`), data labels |
-| `legend` | object | Position, layout, enabled |
-| `colors` | string[] | Custom color palette |
-| `colorAxis` | object | For heatmaps, choropleth |
-| `pane` | object | For gauges, polar charts |
-| `drilldown` | object | Click-to-drill sub-category data |
-
-Any valid Highcharts config property works — the schema is intentionally open to give the LLM full access to the Highcharts API.
-
-## Features
-
-- **Adaptive theme** — Automatically matches your VS Code color scheme (light/dark) using Highcharts' built-in [adaptive theme](https://www.highcharts.com/docs/chart-design-and-style/themes)
-- **15 built-in themes** — Set `HIGHCHARTS_OPTIONS` to any theme name
-- **Dark/light mode** — Syncs with VS Code's theme via the MCP Apps host context
-- **Global options** — Customize any [Highcharts.setOptions()](https://api.highcharts.com/class-reference/Highcharts#.setOptions) via `HIGHCHARTS_OPTIONS` env var
-
-## Configuration
-
-Set `HIGHCHARTS_OPTIONS` to customize the chart defaults. Accepts a built-in theme name, inline JSON, or a file path:
+Dual Y-axis:
 
 ```json
 {
-  "servers": {
-    "highcharts": {
-      "command": "npx",
-      "args": ["-y", "mcp-highcharts@latest", "--stdio"],
-      "env": {
-        "HIGHCHARTS_OPTIONS": "dark-unica"
+  "yAxis": [
+    { "title": { "text": "Revenue ($)" } },
+    { "title": { "text": "Growth (%)" }, "opposite": true }
+  ],
+  "series": [
+    { "name": "Revenue", "data": [100, 200, 300], "yAxis": 0 },
+    { "name": "Growth", "data": [10, 15, 20], "yAxis": 1 }
+  ]
+}
+```
+
+## Theming
+
+Charts automatically adapt to your host's light/dark mode.
+
+### Custom theme via environment variable
+
+**JSON file:**
+```json
+{
+  "mcp": {
+    "servers": {
+      "highcharts": {
+        "command": "npx",
+        "args": ["-y", "mcp-highcharts@latest", "--stdio"],
+        "env": {
+          "HIGHCHARTS_OPTIONS": "./my-theme.json"
+        }
       }
     }
   }
 }
 ```
 
-### Built-in Themes
-
-| Theme | Description |
-|-------|-------------|
-| `adaptive` | **(default)** Auto light/dark based on OS/VS Code preference |
-| `dark-unica` | Dark theme with blue accents |
-| `dark-blue` | Dark blue background |
-| `dark-green` | Dark green background |
-| `brand-dark` | Highcharts brand colors on dark |
-| `brand-light` | Highcharts brand colors on light |
-| `high-contrast-dark` | High contrast dark mode |
-| `high-contrast-light` | High contrast light mode |
-| `avocado` | Green-toned light theme |
-| `gray` | Neutral gray theme |
-| `grid` | Grid-focused layout |
-| `grid-light` | Light grid theme |
-| `sand-signika` | Warm sand tones |
-| `skies` | Sky blue gradient |
-| `sunset` | Warm sunset colors |
-
-### Custom Options
-
-Pass any valid [Highcharts.setOptions()](https://api.highcharts.com/class-reference/Highcharts#.setOptions) config as inline JSON or a file path:
-
-```json
-{
-  "env": {
-    "HIGHCHARTS_OPTIONS": "{\"colors\":[\"#ff6384\",\"#36a2eb\",\"#ffce56\"],\"chart\":{\"backgroundColor\":\"#1a1a2e\"},\"plotOptions\":{\"series\":{\"animation\":true}}}"
-  }
-}
+**Inline JSON:**
+```
+HIGHCHARTS_OPTIONS='{"chart":{"backgroundColor":"#0d1117"},"colors":["#006edb","#30a147"]}'
 ```
 
-```json
-{
-  "env": {
-    "HIGHCHARTS_OPTIONS": "/path/to/my-options.json"
-  }
-}
+**Built-in themes** (15 available):
+```
+HIGHCHARTS_THEME=dark-unica
 ```
 
-## Transports
+Available: `adaptive`, `avocado`, `brand-dark`, `brand-light`, `dark-blue`, `dark-green`, `dark-unica`, `gray`, `grid`, `grid-light`, `high-contrast-dark`, `high-contrast-light`, `sand-signika`, `skies`, `sunset`
 
-| Transport | Usage |
-|-----------|-------|
-| **stdio** (default) | `npx mcp-highcharts --stdio` |
-| **Streamable HTTP** | `npx mcp-highcharts` → listens on `http://localhost:3001/mcp` |
+## HTTP Mode
 
-Set the HTTP port with `PORT` env var.
+For non-stdio transports:
+
+```bash
+npx mcp-highcharts@latest          # starts HTTP server on port 3001
+PORT=8080 npx mcp-highcharts@latest  # custom port
+```
+
+MCP endpoint: `http://localhost:3001/mcp`
 
 ## Development
 
 ```bash
+git clone https://github.com/austenstone/mcp-highcharts.git
+cd mcp-highcharts
 npm install
-npm run dev       # watch + HTTP server
-npm run build     # production build
-npm run test      # run tests
-npm run test:e2e  # e2e tests
+npm run build    # prebuild auto-generates schema + module map
+npm test         # e2e tests via MCP SDK client
+npm run dev      # watch mode
 ```
+
+### Architecture
+
+- **`server.ts`** — MCP server with `render_chart` and `render_charts` tools
+- **`src/mcp-app.ts`** — Client-side app: receives tool results, lazy-loads Highcharts modules, renders charts
+- **`src/module-loader.ts`** — Dynamic module loading using `import.meta.glob` + auto-generated type→module map
+- **`src/input-schema.ts`** — Rich Zod 4 schema with typed fields, examples, and passthrough for full API access
+- **`scripts/generate-schema.ts`** — Scans Highcharts package to generate chart types, module map, and Options fields
+- **`vite.config.ts`** — Builds self-contained HTML for the MCP App
+
+### Updating Highcharts
+
+```bash
+npm update highcharts
+npm run build  # regenerates everything automatically
+```
+
+Zero manual maintenance — chart types, module mappings, and schema are all derived from the installed Highcharts version.
 
 ## License
 

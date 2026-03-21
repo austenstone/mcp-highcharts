@@ -105,6 +105,54 @@ function applyThemeAndRedraw(ctx: McpUiHostContext | null | undefined) {
   }
 }
 
+function processOptions(opts: Record<string, unknown>): Options & Record<string, unknown> {
+  const processed = opts as Options & Record<string, unknown>;
+  if (typeof processed.title === "string") processed.title = { text: processed.title };
+  if (typeof processed.subtitle === "string") processed.subtitle = { text: processed.subtitle };
+  return processed;
+}
+
+async function renderSingleChart(opts: Options & Record<string, unknown>) {
+  const processed = processOptions(opts as Record<string, unknown>);
+  const container = document.getElementById("root")!;
+  container.innerHTML = "";
+  container.style.display = "";
+  await loadModulesForOptions(processed as Record<string, unknown>);
+  Highcharts.chart(container, processed);
+}
+
+async function renderMultipleCharts(
+  charts: Record<string, unknown>[],
+  layout: string,
+  columns: number
+) {
+  const root = document.getElementById("root")!;
+  root.innerHTML = "";
+
+  root.style.display = layout === "horizontal" || layout === "grid" ? "grid" : "flex";
+  root.style.flexDirection = "column";
+  root.style.gap = "16px";
+
+  if (layout === "grid") {
+    root.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+  } else if (layout === "horizontal") {
+    root.style.gridTemplateColumns = `repeat(${charts.length}, 1fr)`;
+  } else {
+    root.style.gridTemplateColumns = "";
+  }
+
+  for (const chartOpts of charts) {
+    const container = document.createElement("div");
+    container.style.width = "100%";
+    container.style.minHeight = "300px";
+    root.appendChild(container);
+
+    const processed = processOptions(chartOpts);
+    await loadModulesForOptions(processed as Record<string, unknown>);
+    Highcharts.chart(container, processed as Options);
+  }
+}
+
 async function init() {
   await themeReady;
 
@@ -118,14 +166,17 @@ async function init() {
     const text = textContent?.text;
     if (!text) return;
     try {
-      const opts = JSON.parse(text) as Options & Record<string, unknown>;
-      if (typeof opts.title === "string") opts.title = { text: opts.title };
-      if (typeof opts.subtitle === "string") opts.subtitle = { text: opts.subtitle };
+      const opts = JSON.parse(text) as Record<string, unknown>;
 
-      const container = document.getElementById("root")!;
-      container.innerHTML = "";
-      await loadModulesForOptions(opts as Record<string, unknown>);
-      Highcharts.chart(container, opts);
+      if (opts.charts && Array.isArray(opts.charts)) {
+        // Multi-chart mode (from render_charts)
+        const layout = (opts.layout as string) || "vertical";
+        const columns = (opts.columns as number) || 2;
+        await renderMultipleCharts(opts.charts, layout, columns);
+      } else {
+        // Single chart mode (from render_chart)
+        await renderSingleChart(opts as Options & Record<string, unknown>);
+      }
     } catch (e) {
       console.error("Failed to parse chart data:", e);
     }

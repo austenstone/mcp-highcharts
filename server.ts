@@ -8,6 +8,7 @@ import type {
   CallToolResult,
   ReadResourceResult,
 } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { inputSchema } from "./src/input-schema.js";
@@ -20,7 +21,7 @@ export function createServer(): McpServer {
   const server = new McpServer(
     {
       name: "Highcharts MCP App Server",
-      version: "1.0.0",
+      version: "2.0.0",
     },
     {
       instructions: "This server renders interactive Highcharts charts inline. " +
@@ -61,6 +62,35 @@ export function createServer(): McpServer {
       return {
         content: [{ type: "text", text: JSON.stringify(args) }],
       };
+    },
+  );
+
+  registerAppTool(
+    server,
+    "render_charts",
+    {
+      title: "Render Multiple Charts",
+      annotations: { readOnlyHint: true },
+      description:
+        "Render multiple Highcharts charts in a single view. " +
+        "Input is an array of Highcharts Options objects. Charts are laid out vertically by default. " +
+        "Use layout option to control arrangement (vertical, horizontal, grid). " +
+        "Each chart in the array is a full Highcharts Options object.",
+      inputSchema: {
+        charts: z.array(z.any()).describe("Array of Highcharts Options objects — each one is a complete chart config"),
+        layout: z.enum(["vertical", "horizontal", "grid"]).optional()
+          .describe("Layout arrangement: vertical (stacked), horizontal (side by side), grid (auto-grid)")
+          .meta({ examples: ["vertical", "grid"] }),
+        columns: z.number().optional()
+          .describe("Number of columns for grid layout (default: 2)"),
+      },
+      _meta: { ui: { resourceUri } },
+    },
+    async (args): Promise<CallToolResult> => {
+      if (!args.charts || !Array.isArray(args.charts)) {
+        return { isError: true, content: [{ type: "text", text: "charts is required and must be an array" }] };
+      }
+      return { content: [{ type: "text", text: JSON.stringify(args) }] };
     },
   );
 
