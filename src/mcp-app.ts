@@ -10,7 +10,9 @@ import GridLite from "@highcharts/grid-lite";
 import "@highcharts/grid-lite/css/grid-lite.css";
 import { loadModulesForOptions } from "./module-loader";
 
-// Dashboards auto-connects Highcharts plugin via window.Highcharts (set in highcharts-init).
+// Official ESM plugin connection (per Highcharts docs)
+Dashboards.HighchartsPlugin.custom.connectHighcharts(Highcharts);
+Dashboards.PluginHandler.addPlugin(Dashboards.HighchartsPlugin);
 
 // Theme name is a runtime value (from env var), so we use import.meta.glob for dynamic loading.
 // Highcharts themes self-register via Highcharts.setOptions() when imported — no manual setup needed.
