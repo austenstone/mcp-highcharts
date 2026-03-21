@@ -30,6 +30,7 @@ export function setMcpApp(app: any, canDownload: boolean) {
 }
 
 export function downloadURL(dataURL: string | URL, filename: string): void {
+  console.debug("[mcp-highcharts] downloadURL called:", { filename, canDownload: _canDownload, hasApp: !!_appInstance });
   if (!_canDownload || !_appInstance) {
     origDownloadURL(dataURL, filename);
     return;
@@ -43,10 +44,12 @@ export function downloadURL(dataURL: string | URL, filename: string): void {
     const base64 = dataStr.split(",")[1];
 
     if (!base64) {
+      console.debug("[mcp-highcharts] no base64 data, falling back");
       origDownloadURL(dataURL, filename);
       return;
     }
 
+    console.debug("[mcp-highcharts] calling app.downloadFile", { filename, mimeType, blobLen: base64.length });
     _appInstance
       .downloadFile({
         contents: [
@@ -60,10 +63,13 @@ export function downloadURL(dataURL: string | URL, filename: string): void {
           },
         ],
       })
-      .catch(() => {
+      .then(() => console.debug("[mcp-highcharts] downloadFile succeeded"))
+      .catch((err: any) => {
+        console.warn("[mcp-highcharts] downloadFile failed:", err);
         origDownloadURL(dataURL, filename);
       });
-  } catch {
+  } catch (err) {
+    console.warn("[mcp-highcharts] downloadURL error:", err);
     origDownloadURL(dataURL, filename);
   }
 }
