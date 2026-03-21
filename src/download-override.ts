@@ -21,18 +21,24 @@ export { default } from "/node_modules/highcharts/es-modules/Shared/DownloadURL.
 import { downloadURL as origDownloadURL } from "/node_modules/highcharts/es-modules/Shared/DownloadURL.js";
 
 // Lazy reference to the MCP app instance — set by mcp-app.ts
-let _appInstance: { downloadFile: (params: any) => Promise<any> } | null = null;
+let _appInstance: { downloadFile: (params: any) => Promise<any>; sendLog?: (params: any) => void } | null = null;
 let _canDownload = false;
+
+function log(level: string, msg: string) {
+  console.log(msg);
+  try { _appInstance?.sendLog?.({ level, data: msg }); } catch {}
+}
 
 export function setMcpApp(app: any, canDownload: boolean) {
   _appInstance = app;
   _canDownload = canDownload;
+  log("info", `[download] setMcpApp called, canDownload=${canDownload}`);
 }
 
 export function downloadURL(dataURL: string | URL, filename: string): void {
-  console.log("[mcp-highcharts] downloadURL called:", filename, "canDownload:", _canDownload, "hasApp:", !!_appInstance);
+  log("info", `[download] downloadURL called: ${filename}, canDownload=${_canDownload}, hasApp=${!!_appInstance}`);
   if (!_canDownload || !_appInstance) {
-    console.log("[mcp-highcharts] falling back to original downloadURL");
+    log("info", "[download] falling back to original");
     origDownloadURL(dataURL, filename);
     return;
   }
@@ -43,12 +49,12 @@ export function downloadURL(dataURL: string | URL, filename: string): void {
   const base64 = dataStr.split(",")[1];
 
   if (!base64) {
-    console.log("[mcp-highcharts] no base64 in dataURL, falling back");
+    log("warning", "[download] no base64 in dataURL, falling back");
     origDownloadURL(dataURL, filename);
     return;
   }
 
-  console.log("[mcp-highcharts] calling app.downloadFile:", filename, mimeType, "blob length:", base64.length);
+  log("info", `[download] calling app.downloadFile: ${filename} ${mimeType} blob=${base64.length} chars`);
   _appInstance
     .downloadFile({
       contents: [
@@ -62,9 +68,9 @@ export function downloadURL(dataURL: string | URL, filename: string): void {
         },
       ],
     })
-    .then((result: any) => console.log("[mcp-highcharts] downloadFile result:", JSON.stringify(result)))
+    .then((result: any) => log("info", `[download] result: ${JSON.stringify(result)}`))
     .catch((err: any) => {
-      console.error("[mcp-highcharts] downloadFile error:", err);
+      log("error", `[download] error: ${err?.message || err}`);
       origDownloadURL(dataURL, filename);
     });
 }
