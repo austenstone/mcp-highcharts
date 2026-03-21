@@ -9,15 +9,17 @@ const allModules = import.meta.glob([
   "/node_modules/highcharts/esm/highcharts-more.src.js",
   "/node_modules/highcharts/esm/highcharts-3d.src.js",
   "/node_modules/highcharts/esm/modules/*.src.js",
+  "/node_modules/highcharts/esm/indicators/*.src.js",
 ]);
 
 /** Build a name→loader map from the glob results */
 function buildLoaderMap(): Record<string, () => Promise<unknown>> {
   const loaders: Record<string, () => Promise<unknown>> = {};
   for (const [path, loader] of Object.entries(allModules)) {
+    // Match modules/, indicators/, and top-level highcharts-*.src.js
     const match = path.match(/\/highcharts\/esm\/(.+)\.src\.js$/);
     if (match) {
-      loaders[match[1]] = loader; // e.g. "modules/heatmap" or "highcharts-more"
+      loaders[match[1]] = loader; // e.g. "modules/stock", "indicators/rsi", "highcharts-more"
     }
   }
   return loaders;
@@ -65,6 +67,33 @@ export async function loadModulesForOptions(options: Record<string, unknown>): P
   // Feature-based module detection
   if (options.colorAxis) await loadModule("modules/coloraxis");
   if (options.drilldown) await loadModule("modules/drilldown");
+
+  // Stock chart detection — load stock module for stock-specific options or chart type
+  if (options.__chartType === "stock" || options.navigator || options.rangeSelector || options.stockTools) {
+    await loadModule("modules/stock");
+  }
+
+  // Map chart detection — load map module for map-specific options or chart type
+  if (options.__chartType === "map" || options.mapNavigation || options.mapView) {
+    await loadModule("modules/map");
+  }
+
+  // Gantt chart detection
+  if (options.__chartType === "gantt") {
+    await loadModule("modules/gantt");
+  }
+
+  // Load indicator modules if any series reference them
+  if (Array.isArray(series)) {
+    for (const s of series) {
+      const t = s.type as string | undefined;
+      if (t && loaders[`indicators/${t}`]) {
+        // Load base indicators module first (required dependency)
+        await loadModule("indicators/indicators");
+        await loadModule(`indicators/${t}`);
+      }
+    }
+  }
 
   // Load modules for each type (in dependency order from generated map)
   for (const type of types) {

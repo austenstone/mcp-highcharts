@@ -54,6 +54,7 @@
   },
   "dependencies": {
     "@highcharts/dashboards": "^4.1.0",
+    "@highcharts/grid-lite": "^2.3.0",
     "@modelcontextprotocol/ext-apps": "^1.2.2",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "cors": "^2.8.6",

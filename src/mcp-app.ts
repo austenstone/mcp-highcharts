@@ -140,12 +140,58 @@ function processOptions(opts: Record<string, unknown>): Options & Record<string,
   return processed;
 }
 
+async function renderMapChart(opts: Record<string, unknown>) {
+  const container = document.getElementById("root")!;
+  container.innerHTML = "";
+  container.style.display = "";
+
+  const processed = processOptions(opts);
+  delete (processed as any).__chartType;
+
+  try {
+    await loadModulesForOptions(processed as Record<string, unknown>);
+    (Highcharts as any).mapChart(container, processed as any);
+  } catch (e) {
+    showError(container, e);
+  }
+}
+
 function showError(container: HTMLElement, e: unknown) {
   const msg = e instanceof Error ? e.message : String(e);
   container.innerHTML = `<div style="padding:24px;color:#f85149;font-family:system-ui;font-size:14px;">
     <strong>Chart rendering failed</strong><br><code style="color:#8b949e;font-size:12px;">${msg}</code>
   </div>`;
   console.error("Chart rendering failed:", e);
+}
+
+async function renderStockChart(opts: Record<string, unknown>) {
+  const root = document.getElementById("root")!;
+  root.innerHTML = "";
+  root.style.display = "";
+
+  const { __chartType, ...rest } = opts;
+  const processed = processOptions(rest);
+  await loadModulesForOptions({ ...processed as Record<string, unknown>, __chartType: "stock" });
+
+  try {
+    (Highcharts as any).stockChart(root, processed as Options);
+  } catch (e) {
+    showError(root, e);
+  }
+}
+
+async function renderGanttChart(opts: Record<string, unknown>) {
+  const container = document.getElementById("root")!;
+  container.innerHTML = "";
+  container.style.display = "";
+  const processed = processOptions(opts as Record<string, unknown>);
+  delete processed.__chartType;
+  try {
+    await loadModulesForOptions({ ...opts }); // pass original with __chartType for module detection
+    (Highcharts as any).ganttChart(container, processed as any);
+  } catch (e) {
+    showError(container, e);
+  }
 }
 
 async function renderSingleChart(opts: Options & Record<string, unknown>) {
@@ -214,7 +260,16 @@ async function init() {
     try {
       const opts = JSON.parse(text) as Record<string, unknown>;
 
-      if (opts.components && Array.isArray(opts.components)) {
+      if (opts.__chartType === "stock") {
+        // Stock chart mode (from render_stock_chart)
+        await renderStockChart(opts);
+      } else if (opts.__chartType === "map") {
+        // Map chart mode (from render_map)
+        await renderMapChart(opts);
+      } else if (opts.__chartType === "gantt") {
+        // Gantt chart mode (from render_gantt)
+        await renderGanttChart(opts);
+      } else if (opts.components && Array.isArray(opts.components)) {
         // Dashboard mode (from render_dashboard)
         await renderDashboard(opts);
       } else {

@@ -158,6 +158,53 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
     expect(content.text).toContain("<!DOCTYPE html>");
   });
 
+  // ── render_stock_chart (Highcharts Stock) ──
+
+  it("lists render_stock_chart tool", async () => {
+    const { tools } = await client.listTools();
+    const renderStock = tools.find((t) => t.name === "render_stock_chart");
+    expect(renderStock).toBeDefined();
+    expect(renderStock!.description).toContain("Stock");
+  });
+
+  it("renders a stock chart with candlestick data", async () => {
+    const result = await client.callTool({
+      name: "render_stock_chart",
+      arguments: {
+        title: { text: "Stock Price" },
+        series: [{
+          type: "candlestick",
+          name: "AAPL",
+          data: [
+            [1617235200000, 100, 110, 95, 105],
+            [1617321600000, 105, 115, 100, 112],
+            [1617408000000, 112, 120, 108, 118],
+          ]
+        }],
+        rangeSelector: { selected: 1 },
+      },
+    });
+
+    expect(result.isError).toBeFalsy();
+    const parsed = JSON.parse(
+      (result.content as { type: string; text: string }[])[0].text,
+    );
+    expect(parsed.__chartType).toBe("stock");
+    expect(parsed.series[0].type).toBe("candlestick");
+    expect(parsed.rangeSelector.selected).toBe(1);
+  });
+
+  it("rejects render_stock_chart without series", async () => {
+    const result = await client.callTool({
+      name: "render_stock_chart",
+      arguments: {
+        title: "No Series Stock",
+        rangeSelector: { selected: 0 },
+      },
+    });
+    expect(result.isError).toBe(true);
+  });
+
   // ── render_dashboard (dashboards) ──
 
   it("lists render_dashboard tool", async () => {
@@ -208,6 +255,93 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
     const result = await client.callTool({
       name: "render_dashboard",
       arguments: { gui: { layouts: [] } },
+    });
+    expect(result.isError).toBe(true);
+  });
+
+  // ── render_map (maps) ──
+
+  it("lists render_map tool", async () => {
+    const { tools } = await client.listTools();
+    const renderMap = tools.find((t) => t.name === "render_map");
+    expect(renderMap).toBeDefined();
+    expect(renderMap!.description).toContain("Map");
+  });
+
+  it("renders a basic map chart", async () => {
+    const result = await client.callTool({
+      name: "render_map",
+      arguments: {
+        title: "Simple Map",
+        series: [{
+          type: "map",
+          data: [
+            { "hc-key": "us-ca", value: 1 },
+            { "hc-key": "us-tx", value: 2 },
+          ],
+          mapData: { type: "FeatureCollection", features: [] },
+        }],
+        colorAxis: { min: 0, minColor: "#FFFFFF", maxColor: "#006edb" },
+      },
+    });
+    expect(result.isError).toBeFalsy();
+    const parsed = JSON.parse(
+      (result.content as { type: string; text: string }[])[0].text,
+    );
+    expect(parsed.__chartType).toBe("map");
+    expect(parsed.series).toHaveLength(1);
+  });
+
+  it("rejects render_map without series", async () => {
+    const result = await client.callTool({
+      name: "render_map",
+      arguments: { title: "No Series" },
+    });
+    expect(result.isError).toBe(true);
+  });
+
+  // ── render_gantt (Gantt charts) ──
+
+  it("lists render_gantt tool", async () => {
+    const { tools } = await client.listTools();
+    const renderGantt = tools.find((t) => t.name === "render_gantt");
+    expect(renderGantt).toBeDefined();
+    expect(renderGantt!.description).toContain("Gantt");
+  });
+
+  it("renders a project timeline gantt chart", async () => {
+    const result = await client.callTool({
+      name: "render_gantt",
+      arguments: {
+        title: { text: "Project Plan" },
+        series: [{
+          data: [{
+            name: "Design",
+            start: Date.UTC(2026, 0, 1),
+            end: Date.UTC(2026, 0, 15),
+          }, {
+            name: "Development",
+            start: Date.UTC(2026, 0, 16),
+            end: Date.UTC(2026, 1, 28),
+            dependency: "Design"
+          }]
+        }]
+      },
+    });
+
+    expect(result.content).toHaveLength(1);
+    const parsed = JSON.parse(
+      (result.content as { type: string; text: string }[])[0].text,
+    );
+    expect(parsed.__chartType).toBe("gantt");
+    expect(parsed.series).toHaveLength(1);
+    expect(parsed.series[0].data).toHaveLength(2);
+  });
+
+  it("rejects render_gantt without series", async () => {
+    const result = await client.callTool({
+      name: "render_gantt",
+      arguments: { title: "No Series" },
     });
     expect(result.isError).toBe(true);
   });

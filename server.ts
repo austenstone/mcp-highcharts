@@ -25,7 +25,8 @@ export function createServer(): McpServer {
     },
     {
       instructions: "This server renders interactive Highcharts charts inline in AI chat. " +
-        "Two tools available: render_chart (single chart) and render_dashboard (multiple components with layout). " +
+        "Three tools available: render_chart (single chart), render_stock_chart (financial/time-series with navigator, range selector, indicators), " +
+        "and render_dashboard (multiple components with layout). " +
         "Input is any valid Highcharts Options object (https://api.highcharts.com/highcharts/). " +
         "All 119 chart types supported with automatic module loading. " +
         "title and subtitle accept string shorthand. " +
@@ -70,6 +71,42 @@ export function createServer(): McpServer {
 
   registerAppTool(
     server,
+    "render_stock_chart",
+    {
+      title: "Render Stock Chart",
+      annotations: { readOnlyHint: true },
+      description:
+        "Render a Highcharts Stock chart for financial/time-series data. " +
+        "Uses Highcharts.stockChart() which provides navigator, range selector, scrollbar, crosshair, " +
+        "compare mode, and 40+ technical indicators. " +
+        "Supports OHLC, candlestick, HLC, flags, and all standard series types. " +
+        "Input is a Highcharts Stock Options object (https://api.highcharts.com/highstock/).",
+      inputSchema: {
+        ...inputSchema,
+        navigator: z.object({}).passthrough().optional()
+          .describe("Navigator configuration for data overview pane at bottom of chart"),
+        rangeSelector: z.object({}).passthrough().optional()
+          .describe("Range selector buttons and date input configuration (1m, 3m, 6m, YTD, 1y, All)"),
+        stockTools: z.object({}).passthrough().optional()
+          .describe("Stock tools toolbar configuration for technical analysis"),
+      },
+      _meta: { ui: { resourceUri } },
+    },
+    async (args): Promise<CallToolResult> => {
+      if (!args.series || !Array.isArray(args.series)) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: "series is required and must be an array" }],
+        };
+      }
+      return {
+        content: [{ type: "text", text: JSON.stringify({ ...args, __chartType: "stock" }) }],
+      };
+    },
+  );
+
+  registerAppTool(
+    server,
     "render_dashboard",
     {
       title: "Render Dashboard",
@@ -94,6 +131,105 @@ export function createServer(): McpServer {
         return { isError: true, content: [{ type: "text", text: "components is required and must be an array" }] };
       }
       return { content: [{ type: "text", text: JSON.stringify(args) }] };
+    },
+  );
+
+  registerAppTool(
+    server,
+    "render_map",
+    {
+      title: "Render Map",
+      annotations: { readOnlyHint: true },
+      description:
+        "Render an interactive Highcharts Map for geographic data visualization. " +
+        "Uses Highcharts.mapChart() under the hood. Supports choropleth maps, map bubbles, " +
+        "map lines, map points, and projections. Pass GeoJSON/TopoJSON inline via series[].mapData. " +
+        "Key properties: title, series (with type: 'map'/'mapline'/'mappoint'/'mapbubble'), " +
+        "colorAxis (for choropleth), mapNavigation (zoom controls), mapView (projection settings).",
+      inputSchema: {
+        chart: z.object({}).passthrough().optional()
+          .describe("Chart configuration"),
+        title: z.union([z.string(), z.object({}).passthrough()]).optional()
+          .describe("Map title — string shorthand or {text, align, style}"),
+        subtitle: z.union([z.string(), z.object({}).passthrough()]).optional()
+          .describe("Map subtitle"),
+        series: z.array(z.object({}).passthrough())
+          .describe("Map series array. Use type:'map' with mapData (GeoJSON/TopoJSON FeatureCollection). " +
+            "Also supports mapline, mappoint, mapbubble series types."),
+        colorAxis: z.any().optional()
+          .describe("Color axis for choropleth maps (min, max, minColor, maxColor, stops)"),
+        mapNavigation: z.object({}).passthrough().optional()
+          .describe("Map navigation: zoom buttons, mouse wheel zoom, etc."),
+        mapView: z.object({}).passthrough().optional()
+          .describe("Map view: projection (name, rotation), center, zoom"),
+        legend: z.object({}).passthrough().optional()
+          .describe("Legend configuration"),
+        tooltip: z.object({}).passthrough().optional()
+          .describe("Tooltip configuration"),
+        plotOptions: z.record(z.string(), z.any()).optional()
+          .describe("Per-series-type default options"),
+        colors: z.array(z.string()).optional()
+          .describe("Color palette"),
+      },
+      _meta: { ui: { resourceUri } },
+    },
+    async (args): Promise<CallToolResult> => {
+      if (!args.series || !Array.isArray(args.series)) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: "series is required and must be an array" }],
+        };
+      }
+      return {
+        content: [{ type: "text", text: JSON.stringify({ ...args, __chartType: "map" }) }],
+      };
+    },
+  );
+
+  registerAppTool(
+    server,
+    "render_gantt",
+    {
+      title: "Render Gantt Chart",
+      annotations: { readOnlyHint: true },
+      description:
+        "Render a Highcharts Gantt chart for project timelines, task scheduling, and resource allocation. " +
+        "Supports milestones, dependencies, percent-complete, and drag-and-drop. " +
+        "Uses Highcharts.ganttChart() — pass any valid Gantt options.",
+      inputSchema: {
+        title: z.union([z.string(), z.object({}).passthrough()]).optional()
+          .describe("Chart title — string shorthand or {text, align, style}"),
+        subtitle: z.union([z.string(), z.object({}).passthrough()]).optional()
+          .describe("Chart subtitle"),
+        series: z.array(z.object({}).passthrough())
+          .describe("Gantt series with task data (start, end, name, dependency, milestone, completed)"),
+        xAxis: z.any().optional()
+          .describe("X-axis (datetime) configuration"),
+        yAxis: z.any().optional()
+          .describe("Y-axis configuration"),
+        navigator: z.object({}).passthrough().optional()
+          .describe("Navigator for timeline overview"),
+        rangeSelector: z.object({}).passthrough().optional()
+          .describe("Range selector for time filtering"),
+        tooltip: z.object({}).passthrough().optional()
+          .describe("Tooltip configuration"),
+        plotOptions: z.record(z.string(), z.any()).optional()
+          .describe("Per-series-type default options"),
+        connectors: z.object({}).passthrough().optional()
+          .describe("Dependency connector styling"),
+      },
+      _meta: { ui: { resourceUri } },
+    },
+    async (args): Promise<CallToolResult> => {
+      if (!args.series || !Array.isArray(args.series)) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: "series is required and must be an array" }],
+        };
+      }
+      return {
+        content: [{ type: "text", text: JSON.stringify({ ...args, __chartType: "gantt" }) }],
+      };
     },
   );
 
