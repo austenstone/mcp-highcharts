@@ -53,7 +53,12 @@ export function createServer(): McpServer {
         "xAxis, yAxis, tooltip, plotOptions, legend, colors, colorAxis, pane, drilldown. " +
         "Series types: line, bar, column, area, pie, spline, scatter, heatmap, gauge, " +
         "treemap, sankey, funnel, networkgraph, waterfall, boxplot, timeline, wordcloud, and more. " +
-        "title/subtitle accept string shorthand.",
+        "title/subtitle accept string shorthand.\n\n" +
+        "Example — line chart:\n" +
+        '{ title: "Monthly Revenue", xAxis: { categories: ["Jan","Feb","Mar"] }, ' +
+        'series: [{ name: "2026", data: [100, 200, 150] }] }\n\n' +
+        "Example — pie chart:\n" +
+        '{ title: "Market Share", series: [{ type: "pie", data: [{ name: "A", y: 60 }, { name: "B", y: 40 }] }] }',
       inputSchema,
       _meta: { ui: { resourceUri } },
     },
@@ -273,18 +278,42 @@ export function createServer(): McpServer {
       description:
         "Render a Highcharts Gantt chart for project timelines, task scheduling, and resource allocation. " +
         "Supports milestones, dependencies, percent-complete, and drag-and-drop. " +
-        "Uses Highcharts.ganttChart() — pass any valid Gantt options.",
+        "Uses Highcharts.ganttChart() — pass any valid Gantt options.\n\n" +
+        "Example:\n" +
+        '{ title: "Project Plan", series: [{ name: "Tasks", data: [' +
+        '{ name: "Design", start: 1711929600000, end: 1712534400000 }, ' +
+        '{ name: "Develop", start: 1712534400000, end: 1713744000000, dependency: "Design" }, ' +
+        '{ name: "Launch", start: 1713744000000, milestone: true }] }] }',
       inputSchema: {
         title: z.union([z.string(), z.object({}).passthrough()]).optional()
           .describe("Chart title — string shorthand or {text, align, style}"),
         subtitle: z.union([z.string(), z.object({}).passthrough()]).optional()
           .describe("Chart subtitle"),
-        series: z.array(z.object({}).passthrough())
-          .describe("Gantt series with task data (start, end, name, dependency, milestone, completed)"),
+        series: z.array(z.object({
+          name: z.string().optional().describe("Series name"),
+          data: z.array(z.object({
+            name: z.string().optional().describe("Task name"),
+            start: z.number().optional().describe("Start timestamp (ms since epoch)"),
+            end: z.number().optional().describe("End timestamp (ms since epoch)"),
+            dependency: z.union([z.string(), z.array(z.string())]).optional()
+              .describe("Task ID(s) this depends on — draws connector arrows"),
+            completed: z.union([z.number(), z.object({ amount: z.number() }).passthrough()]).optional()
+              .describe("Completion ratio 0-1 or { amount: 0.5, fill: '#color' }"),
+            milestone: z.boolean().optional().describe("Render as diamond milestone marker"),
+            id: z.string().optional().describe("Task ID for dependency references"),
+            parent: z.string().optional().describe("Parent task ID for nested/grouped tasks"),
+          }).passthrough()).optional().describe("Task data array"),
+        }).passthrough())
+          .describe("Gantt series with task data"),
         xAxis: z.any().optional()
           .describe("X-axis (datetime) configuration"),
-        yAxis: z.any().optional()
-          .describe("Y-axis configuration"),
+        yAxis: z.union([
+          z.object({
+            categories: z.array(z.string()).optional().describe("Task/resource names for y-axis labels"),
+          }).passthrough(),
+          z.array(z.any()),
+        ]).optional()
+          .describe("Y-axis — use categories for task name labels"),
         navigator: z.object({}).passthrough().optional()
           .describe("Navigator for timeline overview"),
         rangeSelector: z.object({}).passthrough().optional()
@@ -321,14 +350,37 @@ export function createServer(): McpServer {
         "Render a Highcharts Grid Lite data table for tabular data display. " +
         "Standalone component — no chart required. Supports column definitions, sorting, filtering, " +
         "pagination, custom formatters, and large datasets. " +
-        "Pass data as columns (Record<string, array>) or rows (array of objects).",
+        "Pass data as columns (Record<string, array>) or rows (array of objects).\n\n" +
+        "Example — simple table:\n" +
+        '{ columns: [{ id: "name", header: { text: "Name" } }, ' +
+        '{ id: "value", header: { text: "Value" }, cells: { format: "{value:.2f}" } }], ' +
+        'data: { columns: { name: ["A","B","C"], value: [1.5, 2.7, 3.1] } } }\n\n' +
+        "Example — row-oriented (convenience):\n" +
+        '{ rows: [{ name: "A", value: 1.5 }, { name: "B", value: 2.7 }] }',
       inputSchema: {
-        columns: z.array(z.object({}).passthrough()).optional()
-          .describe("Column definitions array with id, header, cells options, sorting, filtering config"),
-        data: z.object({}).passthrough().optional()
+        columns: z.array(z.object({
+          id: z.string().optional().describe("Column ID matching data key"),
+          header: z.object({
+            text: z.string().optional().describe("Column header text"),
+          }).passthrough().optional().describe("Header options"),
+          cells: z.object({
+            format: z.string().optional().describe("Cell format string, e.g. '{value:.2f}' or '{value:%Y-%m-%d}'"),
+          }).passthrough().optional().describe("Cell rendering options"),
+          sorting: z.object({
+            sortable: z.boolean().optional().describe("Enable sorting for this column"),
+          }).passthrough().optional().describe("Column sorting config"),
+        }).passthrough()).optional()
+          .describe("Column definitions array with id, header, cells options, sorting config"),
+        data: z.object({
+          columns: z.record(z.string(), z.array(z.any())).optional()
+            .describe("Column-oriented data: { columnId: [values...] }"),
+        }).passthrough().optional()
           .describe("Data provider options. Use data.columns (Record<columnId, values[]>) for column-oriented data"),
-        dataTable: z.object({}).passthrough().optional()
-          .describe("DataTable options with columns (Record<columnId, values[]>). Deprecated — use data instead"),
+        dataTable: z.object({
+          columns: z.record(z.string(), z.array(z.any())).optional()
+            .describe("Column-oriented data: { columnId: [values...] }"),
+        }).passthrough().optional()
+          .describe("DataTable options. Deprecated — use data instead"),
         header: z.array(z.any()).optional()
           .describe("Header structure for grouped column headers"),
         columnDefaults: z.object({}).passthrough().optional()

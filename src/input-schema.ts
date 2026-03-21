@@ -53,7 +53,18 @@ const seriesSchema = z.array(z.object({
   name: z.string().optional()
     .describe("Series name shown in legend and tooltip"),
   data: z.any()
-    .describe("Data array: number[], [x,y][], {name,y}[], {from,to,weight}[], etc."),
+    .describe(
+      "Data array. Common formats:\n" +
+      "• number[] — simple values (line, bar, column)\n" +
+      "• [x, y][] — scatter/line with explicit x\n" +
+      "• [x, y, z][] — bubble, heatmap (row, col, value)\n" +
+      "• {name, y}[] — pie, labeled points\n" +
+      "• [from, to, weight][] — sankey, dependency wheel\n" +
+      "• {x, x2, y}[] — xrange, gantt\n" +
+      "• [timestamp, open, high, low, close][] — OHLC, candlestick\n" +
+      "• {name, value}[] — treemap, sunburst\n" +
+      "• {from, to}[] — networkgraph"
+    ),
   color: z.string().optional()
     .describe("Override series color (hex, rgb, CSS variable)"),
   id: z.string().optional()
@@ -176,10 +187,17 @@ const EXPLICIT_FIELDS = new Set([
   "drilldown", "colors",
 ]);
 
+// Only surface the most commonly used remaining fields.
+// Everything else still passes through via .passthrough() on the top-level object.
+const SURFACED_FIELDS = new Set([
+  "responsive", "annotations", "navigation", "accessibility", "credits",
+  "exporting", "lang", "loading", "noData", "time", "boost", "data", "defs",
+]);
+
 function buildRemainingFields(): Record<string, z.ZodTypeAny> {
   const fields: Record<string, z.ZodTypeAny> = {};
   for (const field of (optionsFields as Array<{ name: string; description: string; optional: boolean }>)) {
-    if (!EXPLICIT_FIELDS.has(field.name)) {
+    if (!EXPLICIT_FIELDS.has(field.name) && SURFACED_FIELDS.has(field.name)) {
       fields[field.name] = z.any().optional().describe(field.description);
     }
   }
