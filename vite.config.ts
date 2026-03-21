@@ -41,20 +41,6 @@ function buildMasterAliases(subdir: string, prefix: string): Record<string, stri
 export default defineConfig({
   plugins: [
     viteSingleFile(),
-    // Redirect Highcharts' DownloadURL.js to our MCP-aware override
-    {
-      name: "highcharts-download-override",
-      enforce: "pre",
-      resolveId(source, importer) {
-        if (
-          source.endsWith("Shared/DownloadURL.js") &&
-          importer?.includes("highcharts") &&
-          !importer?.includes("download-override")
-        ) {
-          return path.resolve("src/download-override.ts");
-        }
-      },
-    },
   ],
   resolve: {
     alias: {

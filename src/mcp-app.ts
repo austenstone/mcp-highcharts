@@ -14,7 +14,6 @@ import "@highcharts/dashboards/css/dashboards.css";
 import GridLite from "@highcharts/grid-lite";
 import "@highcharts/grid-lite/css/grid-lite.css";
 import { loadModulesForOptions } from "./module-loader";
-import { setMcpApp } from "./download-override";
 
 // Official ESM plugin connection (per Highcharts docs)
 Dashboards.HighchartsPlugin.custom.connectHighcharts(Highcharts);
@@ -62,8 +61,6 @@ const themeReady = (userOverrides
  */
 function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
   if (!ctx) return;
-
-  console.log("[mcp-highcharts] applyHostTheme:", ctx.theme, "bg:", ctx.styles?.variables?.["--color-background-primary"]);
 
   // Apply MCP SDK theme helpers — sets all --color-* and font CSS vars on document
   if (ctx.theme) applyDocumentTheme(ctx.theme);
@@ -424,8 +421,6 @@ async function init() {
   appInstance = app;
 
   app.ontoolresult = async (result) => {
-    console.log("[mcp-highcharts] ontoolresult received, hasStructured:", !!result.structuredContent);
-    try { appInstance?.sendLog?.({ level: "info", data: `[ontoolresult] hasStructured=${!!result.structuredContent}, keys=${result.structuredContent ? Object.keys(result.structuredContent as object).join(",") : "none"}` }); } catch {}
     let opts: Record<string, unknown> | undefined;
 
     // Prefer structuredContent (full processed config from server)
@@ -540,15 +535,6 @@ async function init() {
       // Partial args may be incomplete — expected, just wait
     }
   };
-
-  // ── downloadFile: route Highcharts export through MCP SDK ──
-  // The download-override.ts module replaces Highcharts' DownloadURL.js via Vite alias,
-  // intercepting all export downloads at the ESM import level.
-  setMcpApp(app, !!caps.downloadFile);
-  if (!caps.downloadFile) {
-    // Host doesn't support downloadFile — hide export menu entirely
-    Highcharts.setOptions({ exporting: { enabled: false } });
-  }
 
   // Apply initial host theme
   applyThemeAndRedraw(app.getHostContext());

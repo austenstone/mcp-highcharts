@@ -33,9 +33,6 @@ const ALWAYS_LOAD = [
   "modules/drilldown",
   "modules/data",                // CSV/HTML table/Google Sheets data import
   "modules/no-data-to-display",
-  "modules/exporting",           // Export menu UI
-  "modules/offline-exporting",   // Client-side export (no server needed)
-  "modules/export-data",         // CSV/XLS data export
 ];
 
 async function loadModule(name: string): Promise<void> {
