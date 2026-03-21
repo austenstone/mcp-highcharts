@@ -2,7 +2,7 @@ import { App, PostMessageTransport, applyHostStyleVariables, applyDocumentTheme,
 import type { McpUiHostContext } from "@modelcontextprotocol/ext-apps";
 import Highcharts from "highcharts";
 import type { Options } from "highcharts";
-import "virtual:highcharts-modules";
+import { loadModulesForOptions } from "./module-loader";
 
 // Lazy-load the selected Highcharts theme (default: adaptive)
 const themeModules = import.meta.glob(
@@ -113,7 +113,7 @@ async function init() {
     {},
   );
 
-  app.ontoolresult = (result) => {
+  app.ontoolresult = async (result) => {
     const textContent = result.content?.find((c: any) => c.type === "text") as { text: string } | undefined;
     const text = textContent?.text;
     if (!text) return;
@@ -124,6 +124,7 @@ async function init() {
 
       const container = document.getElementById("root")!;
       container.innerHTML = "";
+      await loadModulesForOptions(opts as Record<string, unknown>);
       Highcharts.chart(container, opts);
     } catch (e) {
       console.error("Failed to parse chart data:", e);
