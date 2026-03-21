@@ -11,6 +11,7 @@ import type {
 import { z } from "zod";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { inputSchema } from "./src/input-schema.js";
 import { readDataSource, isJsonContent } from "./src/data-source.js";
 
@@ -552,6 +553,15 @@ export function createServer(): McpServer {
           optionsJson = content;
         } catch (e) {
           console.error("Failed to load HIGHCHARTS_OPTIONS file:", e);
+        }
+      } else if (/\.(ts|js|mjs)$/.test(rawOptions)) {
+        // JS/TS module — must export default options object
+        try {
+          const mod = await import(pathToFileURL(path.resolve(rawOptions)).href);
+          const obj = mod.default ?? mod;
+          optionsJson = JSON.stringify(obj);
+        } catch (e) {
+          console.error("Failed to load HIGHCHARTS_OPTIONS module:", e);
         }
       }
 
