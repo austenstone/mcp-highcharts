@@ -4,7 +4,7 @@
  * Outputs:
  *   src/generated/module-map.json   — type→module deps, available modules/themes
  *   src/generated/chart-types.json  — full enum of chart types
- *   src/highcharts-meta.json        — backward-compat (optionsKeys + chartTypes)
+ *   src/generated/options-fields.json — Options interface field metadata
  *
  * Run: npx tsx scripts/generate-schema.ts
  */
@@ -236,18 +236,7 @@ fs.writeFileSync(
   JSON.stringify(chartTypes, null, 2) + "\n"
 );
 
-// ─── 6. Extract Options keys from highcharts.d.ts (existing logic) ──────────
-
-const SKIP_KEYS = new Set([
-  "chart", "series", "title", "subtitle",
-  "boost", "credits", "defs", "exporting", "global", "lang", "loading",
-  "mapNavigation", "mapView", "navigation", "navigator", "noData",
-  "rangeSelector", "scrollbar", "sonification", "stockTools", "time",
-  "connectors", "data",
-  "backgroundColor", "borderColor", "borderRadius", "borderWidth",
-  "className", "innerRadius", "outerRadius", "shape", "background",
-  "center", "endAngle", "innerSize", "size", "startAngle",
-]);
+// ─── 6. Extract Options interface fields from highcharts.d.ts ───────────────
 
 const program = ts.createProgram([HIGHCHARTS_DTS], {
   target: ts.ScriptTarget.ESNext,
@@ -257,26 +246,51 @@ const program = ts.createProgram([HIGHCHARTS_DTS], {
 const checker = program.getTypeChecker();
 const sourceFile = program.getSourceFile(HIGHCHARTS_DTS)!;
 
-const optionsKeys: Array<{ name: string; description: string }> = [];
+interface OptionsField {
+  name: string;
+  type: string;
+  description: string;
+  optional: boolean;
+  isArray: boolean;
+}
+
+const optionsFields: OptionsField[] = [];
 ts.forEachChild(sourceFile, (node) => {
   if (!ts.isInterfaceDeclaration(node) || node.name.text !== "Options") return;
   for (const member of node.members) {
     if (!ts.isPropertySignature(member) || !member.name) continue;
     const name = (member.name as ts.Identifier).text;
-    if (SKIP_KEYS.has(name)) continue;
     const symbol = checker.getSymbolAtLocation(member.name);
     const description = symbol
       ? ts.displayPartsToString(symbol.getDocumentationComment(checker)).replace(/\n/g, " ").replace(/^\(.*?\)\s*/, "").trim()
       : name;
-    optionsKeys.push({ name, description });
+    const optional = !!member.questionToken;
+    
+    // Extract type name and whether it's an array
+    let typeName = "";
+    let isArray = false;
+    if (member.type) {
+      const typeText = member.type.getText(sourceFile);
+      isArray = typeText.includes("Array<");
+      // Extract the primary type name (strip Array<>, parens, pipes)
+      typeName = typeText
+        .replace(/Array<([^>]+)>/g, "$1")
+        .replace(/[()]/g, "")
+        .split("|")[0]
+        .trim();
+    }
+    
+    optionsFields.push({ name, type: typeName, description, optional, isArray });
   }
 });
 
-// Write backward-compat highcharts-meta.json (still used by input-schema.ts for optionsKeys)
-const meta = { chartTypes, optionsKeys };
-fs.writeFileSync(path.resolve("src/highcharts-meta.json"), JSON.stringify(meta, null, 2) + "\n");
+// Write options-fields.json
+fs.writeFileSync(
+  path.join(GENERATED_DIR, "options-fields.json"),
+  JSON.stringify(optionsFields, null, 2) + "\n"
+);
 
 console.log(`Generated:`);
-console.log(`  src/generated/module-map.json  (${Object.keys(typeToModuleObj).length} type mappings, ${availableModules.length} modules, ${availableThemes.length} themes)`);
-console.log(`  src/generated/chart-types.json (${chartTypes.length} types)`);
-console.log(`  src/highcharts-meta.json       (${chartTypes.length} types, ${optionsKeys.length} keys)`);
+console.log(`  src/generated/module-map.json     (${Object.keys(typeToModuleObj).length} type mappings, ${availableModules.length} modules, ${availableThemes.length} themes)`);
+console.log(`  src/generated/chart-types.json    (${chartTypes.length} types)`);
+console.log(`  src/generated/options-fields.json (${optionsFields.length} fields)`);
