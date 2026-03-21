@@ -25,6 +25,15 @@ const hcModules = fs.readdirSync(path.resolve("node_modules/highcharts/esm/modul
     return acc;
   }, {} as Record<string, string>);
 
+// Auto-generate aliases for every Highcharts theme
+const hcThemes = fs.readdirSync(path.resolve("node_modules/highcharts/esm/themes"))
+  .filter((f: string) => f.endsWith(".src.js"))
+  .reduce((acc: Record<string, string>, f: string) => {
+    const name = f.replace(".src.js", "");
+    acc[`highcharts/themes/${name}`] = hcEsm(`themes/${f}`);
+    return acc;
+  }, {} as Record<string, string>);
+
 export default defineConfig({
   plugins: [react(), viteSingleFile(), highchartsModulesPlugin()],
   resolve: {
@@ -32,6 +41,7 @@ export default defineConfig({
       "highcharts/highcharts-more": hcEsm("highcharts-more.src.js"),
       "highcharts/highcharts-3d": hcEsm("highcharts-3d.src.js"),
       ...hcModules,
+      ...hcThemes,
       highcharts: hcEsm("highcharts.src.js"),
     },
   },

@@ -1,8 +1,8 @@
 {
   "servers": {
     "highcharts": {
-      "command": "npx",
-      "args": ["-y", "mcp-highcharts@latest", "--stdio"]
+      "command": "node",
+      "args": ["dist/main.js", "--stdio"]
     }
   }
 }

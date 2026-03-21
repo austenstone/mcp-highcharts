@@ -37,7 +37,7 @@ The LLM calls the `render-chart` tool with Highcharts options, and the chart ren
 
 ### 50+ Chart Types
 
-Every Highcharts series type is supported — including all extension modules:
+All Highcharts modules are bundled into a single self-contained HTML file at build time via a [custom Vite plugin](vite-plugin-highcharts-modules.ts). Every extension module is loaded in the correct dependency order — no extra config needed. The LLM just sets `chart.type` or `series[].type` and it works.
 
 | Category | Types |
 |----------|-------|
@@ -46,6 +46,15 @@ Every Highcharts series type is supported — including all extension modules:
 | **Maps** | map, mapbubble, mapline, mappoint, flowmap, geoheatmap, tiledwebmap |
 | **Flow** | sankey, dependency-wheel, arc-diagram, organization |
 | **Specialized** | wordcloud, timeline, treegraph, treemap, sunburst, networkgraph, funnel, solid-gauge, venn, variwide, heatmap, histogram, bellcurve, bullet, dumbbell, lollipop, streamgraph, tilemap, xrange, pictorial, pareto, item-series, windbarb, vector |
+
+Modules with dependencies (e.g., `funnel3d` → `highcharts-3d` → `cylinder`) are auto-resolved. You can also limit which modules are included by setting `HIGHCHARTS_MODULES` at build time:
+
+```bash
+# Only include what you need (dependencies are auto-added)
+HIGHCHARTS_MODULES=sankey,heatmap,funnel npm run build
+```
+
+By default, all modules are included (~1.5 MB inlined HTML).
 
 ### Mix Chart Types
 
@@ -87,16 +96,16 @@ Any valid Highcharts config property works — the schema is intentionally open 
 
 ## Features
 
-- **GitHub Primer theme** — Colors, typography, and axes match [Primer data visualization](https://primer.style/product/ui-patterns/data-visualization/) patterns out of the box
-- **Accessibility built-in** — Auto-cycling dash styles + marker shapes per series, screen reader support, keyboard navigation
-- **Dark/light mode** — Adapts automatically via `prefers-color-scheme`
+- **Adaptive theme** — Automatically matches your VS Code color scheme (light/dark) using Highcharts' built-in [adaptive theme](https://www.highcharts.com/docs/chart-design-and-style/themes)
+- **15 built-in themes** — Set `HIGHCHARTS_THEME` to any Highcharts theme name
+- **Dark/light mode** — Syncs with VS Code's theme via the MCP Apps host context
 - **Export** — PNG, SVG, CSV, data table via Highcharts exporting module
 - **Boost** — WebGL rendering for 100K+ data points
-- **Custom themes** — Override via `HIGHCHARTS_THEME` env var (inline JSON or file path)
+- **Custom themes** — Override via `HIGHCHARTS_THEME` env var (theme name, inline JSON, or file path)
 
-## Custom Theme
+## Themes
 
-You can override the default Primer theme by setting `HIGHCHARTS_THEME` in your MCP config:
+Set `HIGHCHARTS_THEME` to a built-in theme name, inline JSON, or a file path:
 
 ```json
 {
@@ -105,19 +114,39 @@ You can override the default Primer theme by setting `HIGHCHARTS_THEME` in your 
       "command": "npx",
       "args": ["-y", "mcp-highcharts@latest", "--stdio"],
       "env": {
-        "HIGHCHARTS_THEME": "{\"colors\":[\"#ff6384\",\"#36a2eb\",\"#ffce56\"]}"
+        "HIGHCHARTS_THEME": "dark-unica"
       }
     }
   }
 }
 ```
 
-Or point to a JSON file:
+Available built-in themes:
+
+| Theme | Description |
+|-------|-------------|
+| `adaptive` | **(default)** Auto light/dark based on OS/VS Code preference |
+| `dark-unica` | Dark theme with blue accents |
+| `dark-blue` | Dark blue background |
+| `dark-green` | Dark green background |
+| `brand-dark` | Highcharts brand colors on dark |
+| `brand-light` | Highcharts brand colors on light |
+| `high-contrast-dark` | High contrast dark mode |
+| `high-contrast-light` | High contrast light mode |
+| `avocado` | Green-toned light theme |
+| `gray` | Neutral gray theme |
+| `grid` | Grid-focused layout |
+| `grid-light` | Light grid theme |
+| `sand-signika` | Warm sand tones |
+| `skies` | Sky blue gradient |
+| `sunset` | Warm sunset colors |
+
+For fully custom themes, pass inline JSON or a file path:
 
 ```json
 {
   "env": {
-    "HIGHCHARTS_THEME": "/path/to/my-theme.json"
+    "HIGHCHARTS_THEME": "{\"colors\":[\"#ff6384\",\"#36a2eb\",\"#ffce56\"]}"
   }
 }
 ```

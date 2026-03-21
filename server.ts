@@ -16,25 +16,35 @@ const DIST_DIR = import.meta.filename.endsWith(".ts")
   ? path.join(import.meta.dirname, "dist")
   : import.meta.dirname;
 
+const BUILT_IN_THEME_SET = new Set([
+  "adaptive", "avocado", "brand-dark", "brand-light",
+  "dark-blue", "dark-green", "dark-unica", "gray",
+  "grid-light", "grid", "high-contrast-dark", "high-contrast-light",
+  "sand-signika", "skies", "sunset",
+]);
+
 /**
  * Parse the HIGHCHARTS_THEME env var.
- * Supports inline JSON or a path to a .json file.
+ * Supports a built-in theme name, inline JSON, or a path to a .json file.
  */
-async function loadUserTheme(): Promise<string | null> {
+async function loadUserTheme(): Promise<{ name?: string; json?: string } | null> {
   const raw = process.env.HIGHCHARTS_THEME;
   if (!raw) return null;
 
   const trimmed = raw.trim();
-  if (trimmed.startsWith("{")) {
-    // Validate it's parseable JSON
-    JSON.parse(trimmed);
-    return trimmed;
+
+  if (BUILT_IN_THEME_SET.has(trimmed)) {
+    return { name: trimmed };
   }
 
-  // Treat as file path
+  if (trimmed.startsWith("{")) {
+    JSON.parse(trimmed);
+    return { json: trimmed };
+  }
+
   const content = await fs.readFile(trimmed, "utf-8");
-  JSON.parse(content); // validate
-  return content;
+  JSON.parse(content);
+  return { json: content };
 }
 
 export function createServer(): McpServer {
@@ -94,15 +104,17 @@ export function createServer(): McpServer {
         "utf-8",
       );
 
-      // Inject user theme overrides if HIGHCHARTS_THEME is set
       try {
         const userTheme = await loadUserTheme();
-        if (userTheme) {
-          const injection = `<script>window.__HIGHCHARTS_THEME__=${userTheme};</script>`;
+        if (userTheme?.name) {
+          const injection = `<script>window.__HIGHCHARTS_THEME_NAME__="${userTheme.name}";</script>`;
+          html = html.replace("<head>", `<head>${injection}`);
+        } else if (userTheme?.json) {
+          const injection = `<script>window.__HIGHCHARTS_THEME__=${userTheme.json};</script>`;
           html = html.replace("<head>", `<head>${injection}`);
         }
       } catch (e) {
-        console.error("Failed to load HIGHCHARTS_THEME:", e);
+        console.error("Failed to inject theme:", e);
       }
 
       return {

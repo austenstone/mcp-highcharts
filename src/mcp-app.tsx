@@ -1,5 +1,5 @@
 import type { App } from "@modelcontextprotocol/ext-apps";
-import { useApp } from "@modelcontextprotocol/ext-apps/react";
+import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import Highcharts from "highcharts";
 import "virtual:highcharts-modules";
@@ -10,8 +10,26 @@ import { createRoot } from "react-dom/client";
 import { buildChartOptions } from "./chart-options";
 import { getTheme } from "./theme";
 
-// Apply resolved theme (default + any user overrides from env)
-Highcharts.setOptions(getTheme());
+// Lazy-load all built-in Highcharts themes so only the selected one executes
+const themeModules = import.meta.glob(
+  "/node_modules/highcharts/esm/themes/*.src.js",
+) as Record<string, () => Promise<unknown>>;
+
+const themeName =
+  (window as unknown as Record<string, unknown>).__HIGHCHARTS_THEME_NAME__ as string | undefined
+  ?? "adaptive";
+
+const themeKey = `/node_modules/highcharts/esm/themes/${themeName}.src.js`;
+const themeReady = themeModules[themeKey]
+  ? themeModules[themeKey]().then(() => {
+      // Apply our overrides after the theme loads
+      Highcharts.setOptions(getTheme());
+    })
+  : Promise.resolve().then(() => {
+      // Fallback: just apply our overrides
+      Highcharts.setOptions(getTheme());
+    });
+
 Highcharts.setOptions({
   lang: {
     decimalPoint: ".",
@@ -21,6 +39,11 @@ Highcharts.setOptions({
 
 function ChartApp() {
   const [toolResult, setToolResult] = useState<CallToolResult | null>(null);
+  const [themeLoaded, setThemeLoaded] = useState(false);
+
+  useEffect(() => {
+    themeReady.then(() => setThemeLoaded(true));
+  }, []);
 
   const { app, error } = useApp({
     appInfo: { name: "Highcharts MCP App", version: "1.0.0" },
@@ -33,8 +56,11 @@ function ChartApp() {
     },
   });
 
+  // Sync with host's color scheme so Highcharts adaptive theme matches VS Code
+  useHostStyles(app, app?.getHostContext());
+
   if (error) return <div style={{ color: "#ef4444", padding: 16 }}>Error: {error.message}</div>;
-  if (!app) return <div style={{ color: "#9ca3af", padding: 16 }}>Connecting...</div>;
+  if (!app || !themeLoaded) return <div style={{ color: "#9ca3af", padding: 16 }}>Connecting...</div>;
 
   return <ChartView app={app} toolResult={toolResult} />;
 }
