@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Highcharts Test</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 16px; height: 100%; font-family: system-ui; background: #1e1e1e; color: #fff; }
+    h2 { margin: 24px 0 8px; font-size: 14px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+    .test { margin-bottom: 32px; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
+    .test-header { padding: 8px 12px; background: #2a2a2a; font-size: 13px; font-weight: 600; }
+    .test-container { min-height: 300px; }
+    .dashboard-container { min-height: 500px; }
+    button { margin: 4px; padding: 8px 16px; border: 1px solid #555; border-radius: 4px; background: #333; color: #fff; cursor: pointer; font-size: 13px; }
+    button:hover { background: #444; }
+    button.active { background: #0066cc; border-color: #0088ff; }
+    #controls { margin-bottom: 16px; }
+    pre { background: #111; padding: 8px; border-radius: 4px; overflow: auto; font-size: 11px; color: #f88; max-height: 200px; }
+  </style>
+</head>
+<body>
+  <h1>🔬 Highcharts MCP Test Page</h1>
+  <div id="controls">
+    <button onclick="runTest('chart')" class="active">Chart</button>
+    <button onclick="runTest('stock')">Stock</button>
+    <button onclick="runTest('map')">Map</button>
+    <button onclick="runTest('gantt')">Gantt</button>
+    <button onclick="runTest('grid')">Grid</button>
+    <button onclick="runTest('dashboard')">Dashboard</button>
+    <button onclick="runTest('all')">Run All</button>
+  </div>
+  <div id="results"></div>
+  <pre id="log"></pre>
+
+  <script type="module">
+    // Import everything the same way mcp-app.ts does
+    import Highcharts from "/node_modules/highcharts/es-modules/masters/highcharts.src.js";
+    import "/node_modules/highcharts/es-modules/masters/modules/map.src.js";
+    import "/node_modules/highcharts/es-modules/masters/modules/stock.src.js";
+    import "/node_modules/highcharts/es-modules/masters/modules/gantt.src.js";
+    import "/node_modules/highcharts/es-modules/masters/modules/exporting.src.js";
+    import "/node_modules/highcharts/es-modules/masters/modules/accessibility.src.js";
+    import "/node_modules/highcharts/es-modules/masters/modules/no-data-to-display.src.js";
+    import Dashboards from "/node_modules/@highcharts/dashboards/es-modules/masters/dashboards.src.js";
+    import "/node_modules/@highcharts/dashboards/es-modules/masters/modules/layout.src.js";
+    import GridLite from "/node_modules/@highcharts/grid-lite/es-modules/masters/grid-lite.src.js";
+
+    // Connect plugins (official ESM way)
+    Dashboards.HighchartsPlugin.custom.connectHighcharts(Highcharts);
+    Dashboards.PluginHandler.addPlugin(Dashboards.HighchartsPlugin);
+
+    // Expose for debugging
+    window.Highcharts = Highcharts;
+    window.Dashboards = Dashboards;
+    window.GridLite = GridLite;
+
+    const log = (msg) => {
+      const el = document.getElementById("log");
+      el.textContent += msg + "\n";
+      el.scrollTop = el.scrollHeight;
+      console.log(msg);
+    };
+
+    log(`✅ Highcharts ${Highcharts.version}`);
+    log(`✅ Dashboards ${Dashboards.version}`);
+    log(`✅ mapChart: ${typeof Highcharts.mapChart}`);
+    log(`✅ stockChart: ${typeof Highcharts.stockChart}`);
+    log(`✅ ganttChart: ${typeof Highcharts.ganttChart}`);
+
+    const tests = {
+      chart: {
+        name: "Basic Chart",
+        render: (el) => Highcharts.chart(el, {
+          chart: { type: "column" },
+          title: { text: "Monthly Sales" },
+          xAxis: { categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"] },
+          series: [{ name: "Revenue", data: [49, 71, 106, 129, 144, 176] }]
+        })
+      },
+      stock: {
+        name: "Stock Chart",
+        render: (el) => Highcharts.stockChart(el, {
+          title: { text: "AAPL Stock Price" },
+          rangeSelector: { selected: 1 },
+          series: [{
+            name: "AAPL",
+            data: Array.from({ length: 100 }, (_, i) => [
+              Date.now() - (100 - i) * 86400000,
+              150 + Math.random() * 50
+            ])
+          }]
+        })
+      },
+      map: {
+        name: "Map Chart",
+        render: (el) => Highcharts.mapChart(el, {
+          chart: { map: undefined },
+          title: { text: "Map Chart Test" },
+          mapNavigation: { enabled: true },
+          series: [{
+            type: "mappoint",
+            name: "Cities",
+            data: [
+              { name: "New York", lat: 40.7, lon: -74.0 },
+              { name: "London", lat: 51.5, lon: -0.1 },
+              { name: "Tokyo", lat: 35.7, lon: 139.7 }
+            ]
+          }]
+        })
+      },
+      gantt: {
+        name: "Gantt Chart",
+        render: (el) => Highcharts.ganttChart(el, {
+          title: { text: "Project Timeline" },
+          series: [{
+            name: "Project",
+            data: [
+              { name: "Design", start: Date.UTC(2026, 0, 1), end: Date.UTC(2026, 1, 1) },
+              { name: "Develop", start: Date.UTC(2026, 1, 1), end: Date.UTC(2026, 3, 1) },
+              { name: "Test", start: Date.UTC(2026, 3, 1), end: Date.UTC(2026, 4, 1) }
+            ]
+          }]
+        })
+      },
+      grid: {
+        name: "Grid Lite",
+        render: (el) => GridLite.grid(el, {
+          columns: [
+            { id: "name", header: { text: "Name" } },
+            { id: "age", header: { text: "Age" } },
+            { id: "city", header: { text: "City" } }
+          ],
+          dataTable: {
+            columns: {
+              name: ["Alice", "Bob", "Charlie"],
+              age: [28, 34, 45],
+              city: ["NYC", "London", "Tokyo"]
+            }
+          }
+        })
+      },
+      dashboard: {
+        name: "Dashboard",
+        containerClass: "dashboard-container",
+        render: (el) => Dashboards.board(el, {
+          gui: {
+            rows: [
+              { cells: [{ id: "kpi-1" }, { id: "kpi-2" }, { id: "kpi-3" }] },
+              { cells: [{ id: "chart-1" }, { id: "chart-2" }] }
+            ]
+          },
+          components: [
+            { renderTo: "kpi-1", type: "KPI", title: "Revenue", value: "$1.42M", subtitle: "+12.5%" },
+            { renderTo: "kpi-2", type: "KPI", title: "Users", value: "84,230", subtitle: "+8.3%" },
+            { renderTo: "kpi-3", type: "KPI", title: "Orders", value: "12,847", subtitle: "+5.1%" },
+            {
+              renderTo: "chart-1", type: "Highcharts",
+              chartOptions: {
+                chart: { type: "areaspline" },
+                title: { text: "Monthly Revenue" },
+                xAxis: { categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"] },
+                series: [
+                  { name: "2025", data: [980, 1050, 1120, 1200, 1350, 1420] },
+                  { name: "2024", data: [850, 900, 940, 1010, 1100, 1180] }
+                ]
+              }
+            },
+            {
+              renderTo: "chart-2", type: "Highcharts",
+              chartOptions: {
+                chart: { type: "pie" },
+                title: { text: "Sales by Category" },
+                series: [{ name: "Sales", data: [
+                  { name: "Electronics", y: 45 },
+                  { name: "Clothing", y: 25 },
+                  { name: "Food", y: 20 },
+                  { name: "Other", y: 10 }
+                ]}]
+              }
+            }
+          ]
+        }, true)
+      }
+    };
+
+    window.runTest = async (name) => {
+      const results = document.getElementById("results");
+      const logEl = document.getElementById("log");
+      logEl.textContent = "";
+      results.innerHTML = "";
+
+      // Update active button
+      document.querySelectorAll("#controls button").forEach(b => b.classList.remove("active"));
+      event.target.classList.add("active");
+
+      const toRun = name === "all" ? Object.keys(tests) : [name];
+
+      for (const key of toRun) {
+        const test = tests[key];
+        const wrapper = document.createElement("div");
+        wrapper.className = "test";
+        wrapper.innerHTML = `<div class="test-header">${test.name}</div><div id="test-${key}" class="${test.containerClass || 'test-container'}"></div>`;
+        results.appendChild(wrapper);
+
+        try {
+          log(`⏳ Rendering ${test.name}...`);
+          const result = await test.render(document.getElementById(`test-${key}`));
+          log(`✅ ${test.name} rendered`);
+        } catch (e) {
+          log(`❌ ${test.name} FAILED: ${e.message}`);
+          console.error(e);
+        }
+      }
+    };
+
+    // Auto-run chart test
+    runTest("chart");
+  </script>
+</body>
+</html>
