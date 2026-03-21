@@ -1,9 +1,9 @@
 import { App, PostMessageTransport, applyHostStyleVariables, applyDocumentTheme, applyHostFonts } from "@modelcontextprotocol/ext-apps";
 import type { McpUiHostContext } from "@modelcontextprotocol/ext-apps";
-// Import Highcharts and expose on window BEFORE Dashboards (import order matters)
-import Highcharts from "./highcharts-init";
+// Import Highcharts core
+import Highcharts from "highcharts";
 import type { Options } from "highcharts";
-import * as Dashboards from "@highcharts/dashboards";
+import Dashboards from "@highcharts/dashboards";
 import "@highcharts/dashboards/modules/layout";
 import "@highcharts/dashboards/css/dashboards.css";
 import GridLite from "@highcharts/grid-lite";

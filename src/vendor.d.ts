@@ -1,20 +1,28 @@
-// Type declarations for packages with non-standard type resolution
+// Type declarations for @highcharts packages with non-standard ESM type resolution
 
 declare module "@highcharts/dashboards" {
-  const HighchartsPlugin: {
-    custom: {
-      connectHighcharts(Highcharts: any): void;
+  interface DashboardsGlobals {
+    HighchartsPlugin: {
+      custom: {
+        connectHighcharts(Highcharts: any): void;
+      };
     };
-  };
-  const PluginHandler: {
-    addPlugin(plugin: any): void;
-  };
-  function board(
-    container: string | HTMLElement,
-    config: Record<string, unknown>,
-    async?: boolean
-  ): any;
-  export { HighchartsPlugin, PluginHandler, board };
+    GridPlugin: {
+      custom: {
+        connectGrid(Grid: any): void;
+      };
+    };
+    PluginHandler: {
+      addPlugin(plugin: any): void;
+    };
+    board(
+      container: string | HTMLElement,
+      config: Record<string, unknown>,
+      async?: boolean
+    ): any;
+  }
+  const Dashboards: DashboardsGlobals;
+  export default Dashboards;
 }
 
 declare module "@highcharts/dashboards/modules/layout" {
@@ -28,9 +36,10 @@ declare module "@highcharts/dashboards/css/dashboards.css" {
 }
 
 declare module "@highcharts/grid-lite" {
-  const GridLite: {
+  interface GridLiteStatic {
     grid(container: string | HTMLElement, options: Record<string, unknown>): unknown;
-  };
+  }
+  const GridLite: GridLiteStatic;
   export default GridLite;
 }
 
