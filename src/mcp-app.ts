@@ -155,10 +155,50 @@ function ensureMinHeight(opts: Record<string, unknown>, minHeight: number) {
   }
 }
 
+/**
+ * Generate a monochrome color palette from a base color using Highcharts color utilities.
+ * Produces evenly-spaced brightness variants of a single hue.
+ */
+function generateMonochromePalette(baseColor: string, count = 10): string[] {
+  const colors: string[] = [];
+  // Spread from darkened (-0.3) to lightened (+0.3)
+  const range = 0.6;
+  const start = -(range / 2);
+  for (let i = 0; i < count; i++) {
+    const offset = start + (range * i) / (count - 1);
+    colors.push(Highcharts.color(baseColor).brighten(offset).get() as string);
+  }
+  return colors;
+}
+
+const MONOCHROME_PRESETS: Record<string, string> = {
+  monochrome: "#7cb5ec",      // Highcharts default blue
+  "monochrome-blue": "#4572A7",
+  "monochrome-green": "#2b8c5a",
+  "monochrome-purple": "#7b68ee",
+  "monochrome-red": "#c0392b",
+  "monochrome-orange": "#e67e22",
+  "monochrome-teal": "#1abc9c",
+};
+
 function processOptions(opts: Record<string, unknown>): Options & Record<string, unknown> {
   const processed = opts as Options & Record<string, unknown>;
   if (typeof processed.title === "string") processed.title = { text: processed.title };
   if (typeof processed.subtitle === "string") processed.subtitle = { text: processed.subtitle };
+
+  // Color mode: generate palette from Highcharts color utilities
+  const colorMode = processed.colorMode as string | undefined;
+  if (colorMode) {
+    delete processed.colorMode;
+    const preset = MONOCHROME_PRESETS[colorMode];
+    if (preset) {
+      processed.colors = generateMonochromePalette(preset);
+    } else if (colorMode.startsWith("#") || colorMode.startsWith("rgb")) {
+      // Custom color: "colorMode": "#ff6600"
+      processed.colors = generateMonochromePalette(colorMode);
+    }
+  }
+
   return processed;
 }
 

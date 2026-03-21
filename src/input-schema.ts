@@ -180,6 +180,16 @@ const colorsSchema = z.array(z.string()).optional()
   .describe("Default color palette for the chart series")
   .meta({ examples: [["#006edb", "#30a147", "#eb670f", "#ce2c85", "#b88700"]] });
 
+const colorModeSchema = z.string().optional()
+  .describe(
+    "Generate a color palette automatically. Use a preset name " +
+    "(monochrome, monochrome-blue, monochrome-green, monochrome-purple, " +
+    "monochrome-red, monochrome-orange, monochrome-teal) or pass any CSS color " +
+    '(e.g. "#ff6600") to generate monochrome shades from that base color. ' +
+    "Overrides the colors array if both are provided."
+  )
+  .meta({ examples: ["monochrome", "monochrome-blue", "#7b68ee"] });
+
 // ── Build remaining fields from generated Options interface data ──
 const EXPLICIT_FIELDS = new Set([
   "chart", "title", "subtitle", "series", "xAxis", "yAxis",
@@ -241,5 +251,6 @@ export const inputSchema = {
   pane: paneSchema,
   drilldown: drilldownSchema,
   colors: colorsSchema,
+  colorMode: colorModeSchema,
   ...buildRemainingFields(),
 };
