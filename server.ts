@@ -50,7 +50,16 @@ export function createServer(): McpServer {
           name: z.string(),
           data: z.any(),
           type: z.string().optional(),
-        })).describe("Array of Highcharts series objects with name and data"),
+          color: z.string().optional(),
+          id: z.string().optional(),
+        })).describe(
+          "Array of Highcharts series objects. Each has `name` and `data`. " +
+          "Data formats: number[] for simple values, [x,y][] for coordinates, " +
+          "{name,y}[] for named points (pie), {from,to,weight}[] for sankey. " +
+          "Set `type` per-series to mix chart types (e.g. column + spline). " +
+          "Set `color` to override the theme color for a series. " +
+          "Set `id` for drilldown references."
+        ),
         xAxisCategories: z.array(z.string()).optional().describe("Category labels for the X axis"),
         xAxisTitle: z.string().optional().describe("X axis title"),
         yAxisTitle: z.string().optional().describe("Y axis title"),

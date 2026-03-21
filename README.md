@@ -7,7 +7,7 @@ Built with [MCP Apps SDK](https://github.com/modelcontextprotocol/ext-apps) + Re
 ## Features
 
 - **17 chart types**: line, bar, column, area, pie, spline, areaspline, scatter, heatmap, gauge, solidgauge, treemap, sunburst, sankey, funnel, networkgraph + any type via `highchartsOptions`
-- **GitHub Primer theme**: Colors, typography, axes, and tooltips match [github/github-ui chart-card](https://github.com/github/github-ui/tree/main/packages/chart-card)
+- **GitHub Primer theme**: Colors, typography, axes, and tooltips match [Primer data visualization](https://primer.style/product/ui-patterns/data-visualization/) patterns
 - **Primer data-viz accessibility**: Auto-cycling dash styles + marker shapes per [primer.style/product/ui-patterns/data-visualization](https://primer.style/product/ui-patterns/data-visualization/)
 - **Stacking**: `normal` and `percentage` stacked bar/area/column
 - **Height presets**: `small`, `medium`, `large`, `xl` (matching chart-card sizes)
@@ -39,7 +39,7 @@ Add to your VS Code MCP config (`.vscode/mcp.json` or user `mcp.json`):
 
 Just ask your AI agent to render a chart:
 
-> "Render a line chart of monthly Actions spend for CaptivateIQ"
+> "Render a line chart of monthly revenue by quarter"
 
 The LLM calls `render-chart` with series data and the chart renders inline.
 
@@ -78,7 +78,7 @@ Set `type` on individual series to mix chart types:
 
 ## Theme
 
-Edit [`src/theme.ts`](src/theme.ts) to customize globally. Colors use GitHub Primer `data-*-color-emphasis` tokens in the same order as `github/github-ui` chart-card.
+Edit [`src/theme.ts`](src/theme.ts) to customize globally. Colors use GitHub Primer `data-*-color-emphasis` tokens following [Primer data visualization](https://primer.style/product/ui-patterns/data-visualization/) ordering.
 
 ## Development
 

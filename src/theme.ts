@@ -9,7 +9,7 @@ import type { Options } from "highcharts";
  * Any property here can be overridden per-chart via the tool's `highchartsOptions`.
  */
 export const theme: Options = {
-  // github/github-ui chart-card color order (Primer data-visualization tokens)
+  // Primer data-visualization token color order
   colors: [
     "#006edb", // data-blue
     "#30a147", // data-green
