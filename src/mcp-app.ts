@@ -43,12 +43,7 @@ const themeReady = (userOverrides
 ).then(() => {
   Highcharts.setOptions({
     credits: { enabled: false },
-    exporting: {
-      enabled: true,
-      fallbackToExportServer: false,
-    },
-    // Let the adaptive theme handle ALL styling — buttons, menus, colors.
-    // We only disable credits and configure exporting.
+    exporting: { enabled: false },
   });
   if (userOverrides) {
     Highcharts.setOptions(userOverrides);
