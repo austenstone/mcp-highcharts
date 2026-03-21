@@ -430,7 +430,7 @@ async function init() {
 
   // Check host capabilities — only enable features the host supports
   const caps = app.getHostCapabilities?.() ?? {};
-  console.log("[mcp-highcharts] Host capabilities:", JSON.stringify(caps));
+  console.debug("[mcp-highcharts] host capabilities:", caps);
 
   // Enable updateModelContext if host supports it
   _canUpdateContext = !!caps.updateModelContext;
@@ -504,7 +504,7 @@ async function init() {
             ],
           })
           .catch((err: Error) => {
-            console.warn("[mcp-highcharts] downloadFile failed, falling back:", err);
+            console.debug("[mcp-highcharts] downloadFile failed, falling back:", err);
             _downloadURL?.(dataURL, filename);
           });
       } catch {
