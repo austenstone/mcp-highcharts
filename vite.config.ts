@@ -39,12 +39,25 @@ function buildMasterAliases(subdir: string, prefix: string): Record<string, stri
 }
 
 export default defineConfig({
-  plugins: [viteSingleFile()],
+  plugins: [
+    viteSingleFile(),
+    // Redirect Highcharts' DownloadURL.js to our MCP-aware override
+    {
+      name: "highcharts-download-override",
+      enforce: "pre",
+      resolveId(source, importer) {
+        if (
+          source.endsWith("Shared/DownloadURL.js") &&
+          importer?.includes("highcharts") &&
+          !importer?.includes("download-override")
+        ) {
+          return path.resolve("src/download-override.ts");
+        }
+      },
+    },
+  ],
   resolve: {
     alias: {
-      // --- Override Highcharts download to route through MCP SDK ---
-      [resolve("highcharts/es-modules/Shared/DownloadURL.js")]: path.resolve("src/download-override.ts"),
-
       // --- Highcharts Core (es-modules/masters/) ---
       "highcharts/highcharts-more": hcMaster("highcharts-more.src.js"),
       "highcharts/highcharts-3d": hcMaster("highcharts-3d.src.js"),
