@@ -16,33 +16,25 @@ const DIST_DIR = import.meta.filename.endsWith(".ts")
   ? path.join(import.meta.dirname, "dist")
   : import.meta.dirname;
 
-const BUILT_IN_THEME_SET = new Set([
-  "adaptive", "avocado", "brand-dark", "brand-light",
-  "dark-blue", "dark-green", "dark-unica", "gray",
-  "grid-light", "grid", "high-contrast-dark", "high-contrast-light",
-  "sand-signika", "skies", "sunset",
-]);
-
 /**
  * Parse the HIGHCHARTS_THEME env var.
- * Supports a built-in theme name, inline JSON, or a path to a .json file.
+ * A bare word (no braces, no path separators) is treated as a built-in theme name.
+ * A string starting with "{" is inline JSON. Anything else is a file path.
  */
 async function loadUserTheme(): Promise<{ name?: string; json?: string } | null> {
-  const raw = process.env.HIGHCHARTS_THEME;
+  const raw = process.env.HIGHCHARTS_THEME?.trim();
   if (!raw) return null;
 
-  const trimmed = raw.trim();
-
-  if (BUILT_IN_THEME_SET.has(trimmed)) {
-    return { name: trimmed };
+  if (raw.startsWith("{")) {
+    JSON.parse(raw);
+    return { json: raw };
   }
 
-  if (trimmed.startsWith("{")) {
-    JSON.parse(trimmed);
-    return { json: trimmed };
+  if (!raw.includes("/") && !raw.includes("\\") && !raw.includes(".")) {
+    return { name: raw };
   }
 
-  const content = await fs.readFile(trimmed, "utf-8");
+  const content = await fs.readFile(raw, "utf-8");
   JSON.parse(content);
   return { json: content };
 }
