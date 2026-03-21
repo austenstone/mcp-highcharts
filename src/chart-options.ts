@@ -39,11 +39,19 @@ function deepMerge(target: any, source: any): any {
   return result;
 }
 
+// Primer data-viz guideline: differentiate lines with stroke style, not just color
+const DASH_STYLES = ["Solid", "ShortDash", "Dot", "DashDot", "LongDash"] as const;
+const MARKER_SYMBOLS = ["circle", "diamond", "square", "triangle", "triangle-down"] as const;
+
 /** Build Highcharts Options from tool params */
 export function buildChartOptions(params: ChartToolParams): Options {
+  const chartType = params.chartType ?? "line";
+  const isLineType = chartType === "line" || chartType === "spline";
+  const hasMultipleSeries = params.series.length > 1;
+
   const base: Options = {
     chart: {
-      type: params.chartType ?? "line",
+      type: chartType,
     },
     title: {
       text: params.title ?? "",
@@ -58,9 +66,18 @@ export function buildChartOptions(params: ChartToolParams): Options {
     yAxis: {
       title: { text: params.yAxisTitle ?? "" },
     },
-    series: params.series.map((s) => ({
+    series: params.series.map((s, i) => ({
       ...s,
       type: (s.type ?? undefined) as never,
+      // Primer: cycle dash styles and marker shapes for multi-line differentiation
+      ...(isLineType && hasMultipleSeries
+        ? {
+            dashStyle: DASH_STYLES[i % DASH_STYLES.length],
+            marker: {
+              symbol: MARKER_SYMBOLS[i % MARKER_SYMBOLS.length],
+            },
+          }
+        : {}),
     })) as Options["series"],
   };
 

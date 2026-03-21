@@ -130,18 +130,24 @@ export const theme: Options = {
   plotOptions: {
     series: {
       animation: false,
+      marker: {
+        enabled: false,
+        states: {
+          hover: { enabled: true, radius: 4 },
+        },
+      },
     },
     line: {
       lineWidth: 2,
-      marker: { radius: 3 },
+      // Primer: first line solid, subsequent lines use different dash styles
+      // Applied per-series via dashStyle cycling when multiple lines are present
     },
     spline: {
-      animation: false,
+      lineWidth: 2,
     },
     area: {
       fillOpacity: 0.15,
       lineWidth: 2,
-      marker: { radius: 3 },
     },
     column: {
       borderColor: "var(--bgColor-default, transparent)",
