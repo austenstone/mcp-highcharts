@@ -462,39 +462,70 @@ async function init() {
   };
 
   // Override Highcharts download to use MCP SDK's downloadFile()
-  const origDownloadURL = (Highcharts as any).downloadURL;
-  if (typeof origDownloadURL === "function") {
-    (Highcharts as any).downloadURL = function (dataURL: string, filename: string) {
-      if (!appInstance) {
-        origDownloadURL(dataURL, filename);
+  // Highcharts ESM lazy-loads offline-exporting which sets H.downloadURL after init.
+  // We override it via a getter/setter on the Highcharts object to catch whenever it's assigned.
+  let _downloadURL: ((dataURL: string, filename: string) => void) | undefined;
+  const hc = Highcharts as any;
+  const origDownloadURL = hc.downloadURL;
+
+  function mcpDownload(dataURL: string, filename: string) {
+    if (!appInstance) {
+      _downloadURL?.(dataURL, filename);
+      return;
+    }
+    try {
+      const mimeMatch = dataURL.match(/^data:([^;,]+)/);
+      const mimeType = mimeMatch?.[1] || "application/octet-stream";
+      const base64 = dataURL.split(",")[1];
+      if (!base64) {
+        _downloadURL?.(dataURL, filename);
         return;
       }
-      try {
-        const mimeMatch = dataURL.match(/^data:([^;,]+)/);
-        const mimeType = mimeMatch?.[1] || "application/octet-stream";
-        const base64 = dataURL.split(",")[1];
 
-        appInstance
-          .downloadFile({
-            contents: [
-              {
-                type: "resource",
-                resource: {
-                  uri: `file:///${filename}`,
-                  mimeType,
-                  blob: base64,
-                },
+      appInstance
+        .downloadFile({
+          contents: [
+            {
+              type: "resource" as const,
+              resource: {
+                uri: `file:///${filename}`,
+                mimeType,
+                blob: base64,
               },
-            ],
-          })
-          .catch((err: Error) => {
-            console.warn("MCP downloadFile failed, falling back:", err);
-            origDownloadURL(dataURL, filename);
-          });
-      } catch {
-        origDownloadURL(dataURL, filename);
-      }
-    };
+            },
+          ],
+        })
+        .catch((err: Error) => {
+          console.warn("MCP downloadFile failed, falling back:", err);
+          _downloadURL?.(dataURL, filename);
+        });
+    } catch {
+      _downloadURL?.(dataURL, filename);
+    }
+  }
+
+  // Set immediately if already defined
+  if (typeof origDownloadURL === "function") {
+    _downloadURL = origDownloadURL;
+    hc.downloadURL = mcpDownload;
+  }
+
+  // Also use Object.defineProperty to intercept future assignments
+  // (offline-exporting module sets H.downloadURL when it loads)
+  try {
+    let _currentDownload = hc.downloadURL;
+    Object.defineProperty(hc, "downloadURL", {
+      get() {
+        return mcpDownload;
+      },
+      set(fn: (dataURL: string, filename: string) => void) {
+        _downloadURL = fn;
+        _currentDownload = mcpDownload;
+      },
+      configurable: true,
+    });
+  } catch {
+    // defineProperty may fail on frozen objects — the direct override above is the fallback
   }
 
   // Apply initial host theme
