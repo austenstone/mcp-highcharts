@@ -54,10 +54,14 @@ function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
     root.classList.remove("highcharts-dark");
   }
 
-  // Bridge MCP host vars → Highcharts CSS vars so chart matches VS Code theme
   const vars = ctx.styles?.variables;
   if (!vars) return;
-  const map: Record<string, string | undefined> = {
+
+  // ── CSS variable bridge ──
+  // Maps MCP host design tokens → Highcharts adaptive theme CSS vars.
+  // See: https://www.highcharts.com/docs/chart-design-and-style/custom-themes-in-styled-mode
+  const cssVarMap: Record<string, string | undefined> = {
+    // Neutral scale: text → borders → backgrounds
     "--highcharts-background-color": vars["--color-background-primary"],
     "--highcharts-neutral-color-100": vars["--color-text-primary"],
     "--highcharts-neutral-color-80": vars["--color-text-secondary"],
@@ -67,9 +71,32 @@ function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
     "--highcharts-neutral-color-10": vars["--color-border-tertiary"],
     "--highcharts-neutral-color-5": vars["--color-background-secondary"],
     "--highcharts-neutral-color-3": vars["--color-background-tertiary"],
+
+    // Highlight scale: accent/interactive elements (drilldown, selection, navigator, color axis)
+    "--highcharts-highlight-color-100": vars["--color-ring-primary"],
+    "--highcharts-highlight-color-80": vars["--color-ring-info"],
+    "--highcharts-highlight-color-60": vars["--color-background-info"],
+    "--highcharts-highlight-color-20": vars["--color-border-info"],
+    "--highcharts-highlight-color-10": vars["--color-background-secondary"],
+
+    // Indicator colors for stock charts
+    "--highcharts-positive-color": vars["--color-text-success"],
+    "--highcharts-negative-color": vars["--color-text-danger"],
   };
-  for (const [hcVar, value] of Object.entries(map)) {
+
+  for (const [hcVar, value] of Object.entries(cssVarMap)) {
     if (value) root.style.setProperty(hcVar, value);
+  }
+
+  // ── Highcharts options bridge ──
+  // Only font family needs setOptions — all colors are handled by the CSS var
+  // bridge above. Setting colors via setOptions would conflict with the adaptive
+  // theme's var() references and cause stale values on theme switches.
+  const fontFamily = vars["--font-sans"];
+  if (fontFamily) {
+    Highcharts.setOptions({
+      chart: { style: { fontFamily } },
+    });
   }
 }
 
