@@ -42,6 +42,9 @@ export default defineConfig({
   plugins: [viteSingleFile()],
   resolve: {
     alias: {
+      // --- Override Highcharts download to route through MCP SDK ---
+      [resolve("highcharts/es-modules/Shared/DownloadURL.js")]: path.resolve("src/download-override.ts"),
+
       // --- Highcharts Core (es-modules/masters/) ---
       "highcharts/highcharts-more": hcMaster("highcharts-more.src.js"),
       "highcharts/highcharts-3d": hcMaster("highcharts-3d.src.js"),

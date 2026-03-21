@@ -14,6 +14,7 @@ import "@highcharts/dashboards/css/dashboards.css";
 import GridLite from "@highcharts/grid-lite";
 import "@highcharts/grid-lite/css/grid-lite.css";
 import { loadModulesForOptions } from "./module-loader";
+import { setMcpApp } from "./download-override";
 
 // Official ESM plugin connection (per Highcharts docs)
 Dashboards.HighchartsPlugin.custom.connectHighcharts(Highcharts);
@@ -471,67 +472,12 @@ async function init() {
   };
 
   // ── downloadFile: route Highcharts export through MCP SDK ──
-  if (caps.downloadFile) {
-    let _downloadURL: ((dataURL: string, filename: string) => void) | undefined;
-    const hc = Highcharts as any;
-    const origDownloadURL = hc.downloadURL;
-
-    function mcpDownload(dataURL: string, filename: string) {
-      if (!appInstance) {
-        _downloadURL?.(dataURL, filename);
-        return;
-      }
-      try {
-        const mimeMatch = dataURL.match(/^data:([^;,]+)/);
-        const mimeType = mimeMatch?.[1] || "application/octet-stream";
-        const base64 = dataURL.split(",")[1];
-        if (!base64) {
-          _downloadURL?.(dataURL, filename);
-          return;
-        }
-
-        appInstance
-          .downloadFile({
-            contents: [
-              {
-                type: "resource" as const,
-                resource: {
-                  uri: `file:///${filename}`,
-                  mimeType,
-                  blob: base64,
-                },
-              },
-            ],
-          })
-          .catch((err: Error) => {
-            console.debug("[mcp-highcharts] downloadFile failed, falling back:", err);
-            _downloadURL?.(dataURL, filename);
-          });
-      } catch {
-        _downloadURL?.(dataURL, filename);
-      }
-    }
-
-    if (typeof origDownloadURL === "function") {
-      _downloadURL = origDownloadURL;
-      hc.downloadURL = mcpDownload;
-    }
-
-    // Intercept future assignments (offline-exporting sets H.downloadURL when it loads)
-    try {
-      Object.defineProperty(hc, "downloadURL", {
-        get() { return mcpDownload; },
-        set(fn: (dataURL: string, filename: string) => void) { _downloadURL = fn; },
-        configurable: true,
-      });
-    } catch {
-      // defineProperty may fail on frozen objects
-    }
-  } else {
-    // Host doesn't support downloadFile — disable export menu entirely
-    Highcharts.setOptions({
-      exporting: { enabled: false },
-    });
+  // The download-override.ts module replaces Highcharts' DownloadURL.js via Vite alias,
+  // intercepting all export downloads at the ESM import level.
+  setMcpApp(app, !!caps.downloadFile);
+  if (!caps.downloadFile) {
+    // Host doesn't support downloadFile — hide export menu entirely
+    Highcharts.setOptions({ exporting: { enabled: false } });
   }
 
   // Apply initial host theme
