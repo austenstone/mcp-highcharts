@@ -71,10 +71,7 @@ function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
   // Apply MCP SDK theme helpers
   if (ctx.theme) applyDocumentTheme(ctx.theme);
 
-  // Toggle Highcharts adaptive theme light/dark — that's it.
-  // The adaptive theme handles all colors, backgrounds, grid lines, etc.
-  // Don't override Highcharts CSS variables with host tokens — it breaks
-  // dashboards, KPIs, grids, and menu theming.
+  // Toggle Highcharts adaptive theme light/dark
   if (ctx.theme === "dark") {
     document.documentElement.classList.add("highcharts-dark");
     document.documentElement.classList.remove("highcharts-light");
@@ -86,8 +83,29 @@ function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
   if (ctx.styles?.variables) applyHostStyleVariables(ctx.styles.variables);
   if (ctx.styles?.css?.fonts) applyHostFonts(ctx.styles.css.fonts);
 
-  // Only sync font family from host — everything else is adaptive theme's job
-  const fontFamily = ctx.styles?.variables?.["--font-sans"];
+  const vars = ctx.styles?.variables;
+  if (!vars) return;
+
+  // Bridge host color tokens to Highcharts CSS variables.
+  // Only the "accent" colors — structural colors (backgrounds, grid lines, text)
+  // are handled by the adaptive theme and MUST NOT be overridden.
+  const el = document.documentElement;
+  const colorMappings: [string, string | undefined][] = [
+    // Use host's info/ring colors as the highlight color for interactive elements
+    ["--highcharts-color-0", vars["--color-ring-primary"]],
+    ["--highcharts-color-1", vars["--color-text-info"]],
+    ["--highcharts-color-2", vars["--color-text-success"]],
+    ["--highcharts-color-3", vars["--color-text-warning"]],
+    ["--highcharts-color-4", vars["--color-text-danger"]],
+  ];
+
+  for (const [hcVar, value] of colorMappings) {
+    if (value) el.style.setProperty(hcVar, value);
+    else el.style.removeProperty(hcVar);
+  }
+
+  // Font family sync
+  const fontFamily = vars["--font-sans"];
   if (fontFamily) {
     Highcharts.setOptions({
       chart: { style: { fontFamily } },
