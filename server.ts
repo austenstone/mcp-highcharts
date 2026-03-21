@@ -35,8 +35,10 @@ export function createServer(): McpServer {
         "Render an interactive Highcharts chart inline. Supports all major chart types and full Highcharts customization. " +
         "Chart types: line, bar, column, area, pie, spline, areaspline, scatter, heatmap, " +
         "gauge, solidgauge, treemap, sunburst, sankey, funnel, networkgraph. " +
+        "You can combine chart types by setting `type` on individual series (e.g. line + column on one chart). " +
         "Use `stacking` for stacked charts, `height` for sizing, `yAxisFormat` for label formatting, " +
-        "`drilldown` for drill-down data, and `highchartsOptions` as an escape hatch for any Highcharts config.",
+        "`tooltipValueSuffix`/`tooltipValuePrefix` for units, `drilldown` for drill-down data, " +
+        "and `highchartsOptions` as an escape hatch for any Highcharts config.",
       inputSchema: {
         chartType: z.string().optional().describe(
           "Chart type: line, bar, column, area, pie, spline, areaspline, scatter, heatmap, " +

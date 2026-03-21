@@ -18,6 +18,7 @@ Built with [MCP Apps SDK](https://github.com/modelcontextprotocol/ext-apps) + Re
 - **Boost**: WebGL rendering for 100K+ data points
 - **Dark/light mode**: Adapts via `prefers-color-scheme`
 - **`highchartsOptions` escape hatch**: Deep-merge any valid Highcharts config
+- **Combined chart types**: Set `type` per-series to mix line + column, area + scatter, etc.
 
 ## Setup
 
@@ -56,8 +57,24 @@ The LLM calls `render-chart` with series data and the chart renders inline.
 | `yAxisFormat` | string | Y axis label format (e.g. `${value}`, `{value}%`) |
 | `stacking` | string | `normal` or `percentage` |
 | `height` | string | `small`, `medium`, `large`, `xl`, or px number |
+| `tooltipValueSuffix` | string | Suffix for tooltip values (e.g. ` USD`, `%`) |
+| `tooltipValuePrefix` | string | Prefix for tooltip values (e.g. `$`) |
 | `drilldown` | object | Highcharts drilldown config |
 | `highchartsOptions` | object | Any Highcharts options (deep-merged) |
+
+### Combined Chart Types
+
+Set `type` on individual series to mix chart types:
+
+```json
+{
+  "chartType": "column",
+  "series": [
+    { "name": "Revenue", "data": [10, 20, 30], "type": "column" },
+    { "name": "Trend", "data": [12, 18, 28], "type": "spline" }
+  ]
+}
+```
 
 ## Theme
 
