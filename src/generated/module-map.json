@@ -1,0 +1,425 @@
+{
+  "typeToModule": {
+    "arcdiagram": [
+      "modules/sankey",
+      "modules/arc-diagram"
+    ],
+    "arearange": [
+      "highcharts-more"
+    ],
+    "areasplinerange": [
+      "highcharts-more"
+    ],
+    "bellcurve": [
+      "modules/histogram-bellcurve"
+    ],
+    "boxplot": [
+      "highcharts-more"
+    ],
+    "bubble": [
+      "highcharts-more"
+    ],
+    "bullet": [
+      "modules/bullet"
+    ],
+    "candlestick": [
+      "modules/stock"
+    ],
+    "columnpyramid": [
+      "highcharts-more"
+    ],
+    "columnrange": [
+      "highcharts-more"
+    ],
+    "cylinder": [
+      "modules/cylinder"
+    ],
+    "dependencywheel": [
+      "modules/sankey",
+      "modules/dependency-wheel"
+    ],
+    "dotplot": [
+      "modules/dotplot"
+    ],
+    "dumbbell": [
+      "highcharts-more",
+      "modules/dumbbell"
+    ],
+    "errorbar": [
+      "highcharts-more"
+    ],
+    "flags": [
+      "modules/stock"
+    ],
+    "flowmap": [
+      "modules/map",
+      "modules/flowmap"
+    ],
+    "funnel": [
+      "modules/funnel"
+    ],
+    "funnel3d": [
+      "modules/funnel3d"
+    ],
+    "gantt": [
+      "modules/xrange",
+      "modules/gantt"
+    ],
+    "gauge": [
+      "highcharts-more"
+    ],
+    "geoheatmap": [
+      "modules/map",
+      "modules/geoheatmap"
+    ],
+    "heatmap": [
+      "modules/heatmap"
+    ],
+    "heikinashi": [
+      "modules/stock",
+      "modules/heikinashi"
+    ],
+    "histogram": [
+      "modules/histogram-bellcurve"
+    ],
+    "hlc": [
+      "modules/stock"
+    ],
+    "hollowcandlestick": [
+      "modules/stock",
+      "modules/hollowcandlestick"
+    ],
+    "item": [
+      "modules/item-series"
+    ],
+    "lollipop": [
+      "highcharts-more",
+      "modules/dumbbell",
+      "modules/lollipop"
+    ],
+    "map": [
+      "modules/map"
+    ],
+    "mapbubble": [
+      "modules/map"
+    ],
+    "mapline": [
+      "modules/map"
+    ],
+    "mappoint": [
+      "modules/map"
+    ],
+    "networkgraph": [
+      "modules/networkgraph"
+    ],
+    "ohlc": [
+      "modules/stock"
+    ],
+    "organization": [
+      "modules/sankey",
+      "modules/organization"
+    ],
+    "packedbubble": [
+      "highcharts-more"
+    ],
+    "pareto": [
+      "modules/pareto"
+    ],
+    "pictorial": [
+      "modules/pictorial"
+    ],
+    "pointandfigure": [
+      "modules/pointandfigure"
+    ],
+    "polygon": [
+      "highcharts-more"
+    ],
+    "pyramid": [
+      "modules/funnel"
+    ],
+    "pyramid3d": [
+      "modules/funnel3d",
+      "modules/pyramid3d"
+    ],
+    "renko": [
+      "modules/renko"
+    ],
+    "sankey": [
+      "modules/sankey"
+    ],
+    "scatter3d": [
+      "highcharts-3d"
+    ],
+    "solidgauge": [
+      "highcharts-more",
+      "modules/solid-gauge"
+    ],
+    "streamgraph": [
+      "modules/streamgraph"
+    ],
+    "sunburst": [
+      "modules/sunburst"
+    ],
+    "tiledwebmap": [
+      "modules/map",
+      "modules/tiledwebmap"
+    ],
+    "tilemap": [
+      "modules/heatmap",
+      "modules/tilemap"
+    ],
+    "timeline": [
+      "modules/timeline"
+    ],
+    "treegraph": [
+      "modules/treemap",
+      "modules/treegraph"
+    ],
+    "treemap": [
+      "modules/treemap"
+    ],
+    "variablepie": [
+      "modules/variable-pie"
+    ],
+    "variwide": [
+      "modules/variwide"
+    ],
+    "vector": [
+      "modules/vector"
+    ],
+    "venn": [
+      "modules/venn"
+    ],
+    "waterfall": [
+      "highcharts-more"
+    ],
+    "windbarb": [
+      "modules/windbarb"
+    ],
+    "wordcloud": [
+      "modules/wordcloud"
+    ],
+    "xrange": [
+      "modules/xrange"
+    ]
+  },
+  "availableModules": [
+    "modules/accessibility",
+    "modules/annotations",
+    "modules/annotations-advanced",
+    "modules/arc-diagram",
+    "modules/arrow-symbols",
+    "modules/boost",
+    "modules/boost-canvas",
+    "modules/broken-axis",
+    "modules/bullet",
+    "modules/coloraxis",
+    "modules/current-date-indicator",
+    "modules/cylinder",
+    "modules/data",
+    "modules/data-tools",
+    "modules/datagrouping",
+    "modules/debugger",
+    "modules/dependency-wheel",
+    "modules/dotplot",
+    "modules/drag-panes",
+    "modules/draggable-points",
+    "modules/drilldown",
+    "modules/dumbbell",
+    "modules/export-data",
+    "modules/exporting",
+    "modules/flowmap",
+    "modules/full-screen",
+    "modules/funnel",
+    "modules/funnel3d",
+    "modules/gantt",
+    "modules/geoheatmap",
+    "modules/grid-axis",
+    "modules/heatmap",
+    "modules/heikinashi",
+    "modules/histogram-bellcurve",
+    "modules/hollowcandlestick",
+    "modules/item-series",
+    "modules/lollipop",
+    "modules/map",
+    "modules/marker-clusters",
+    "modules/mouse-wheel-zoom",
+    "modules/navigator",
+    "modules/networkgraph",
+    "modules/no-data-to-display",
+    "modules/non-cartesian-zoom",
+    "modules/offline-exporting",
+    "modules/organization",
+    "modules/parallel-coordinates",
+    "modules/pareto",
+    "modules/pathfinder",
+    "modules/pattern-fill",
+    "modules/pictorial",
+    "modules/pointandfigure",
+    "modules/price-indicator",
+    "modules/pyramid3d",
+    "modules/renko",
+    "modules/sankey",
+    "modules/series-label",
+    "modules/series-on-point",
+    "modules/solid-gauge",
+    "modules/sonification",
+    "modules/static-scale",
+    "modules/stock",
+    "modules/stock-tools",
+    "modules/streamgraph",
+    "modules/sunburst",
+    "modules/textpath",
+    "modules/tiledwebmap",
+    "modules/tilemap",
+    "modules/timeline",
+    "modules/treegraph",
+    "modules/treegrid",
+    "modules/treemap",
+    "modules/variable-pie",
+    "modules/variwide",
+    "modules/vector",
+    "modules/venn",
+    "modules/windbarb",
+    "modules/wordcloud",
+    "modules/xrange"
+  ],
+  "availableThemes": [
+    "adaptive",
+    "avocado",
+    "brand-dark",
+    "brand-light",
+    "dark-blue",
+    "dark-green",
+    "dark-unica",
+    "gray",
+    "grid",
+    "grid-light",
+    "high-contrast-dark",
+    "high-contrast-light",
+    "sand-signika",
+    "skies",
+    "sunset"
+  ],
+  "chartTypes": [
+    "abands",
+    "ad",
+    "ao",
+    "apo",
+    "arcdiagram",
+    "area",
+    "arearange",
+    "areaspline",
+    "areasplinerange",
+    "aroon",
+    "aroonoscillator",
+    "atr",
+    "bar",
+    "bb",
+    "bellcurve",
+    "boxplot",
+    "bubble",
+    "bullet",
+    "candlestick",
+    "cci",
+    "chaikin",
+    "cmf",
+    "cmo",
+    "column",
+    "columnpyramid",
+    "columnrange",
+    "cylinder",
+    "dema",
+    "dependencywheel",
+    "disparityindex",
+    "dmi",
+    "dotplot",
+    "dpo",
+    "dumbbell",
+    "ema",
+    "errorbar",
+    "flags",
+    "flowmap",
+    "funnel",
+    "funnel3d",
+    "gantt",
+    "gauge",
+    "geoheatmap",
+    "heatmap",
+    "heikinashi",
+    "histogram",
+    "hlc",
+    "hollowcandlestick",
+    "ikh",
+    "item",
+    "keltnerchannels",
+    "klinger",
+    "line",
+    "linearregression",
+    "linearregressionangle",
+    "linearregressionintercept",
+    "linearregressionslope",
+    "lollipop",
+    "macd",
+    "map",
+    "mapbubble",
+    "mapline",
+    "mappoint",
+    "mfi",
+    "momentum",
+    "natr",
+    "networkgraph",
+    "obv",
+    "ohlc",
+    "organization",
+    "packedbubble",
+    "pareto",
+    "pc",
+    "pictorial",
+    "pie",
+    "pivotpoints",
+    "pointandfigure",
+    "polygon",
+    "ppo",
+    "priceenvelopes",
+    "psar",
+    "pyramid",
+    "pyramid3d",
+    "renko",
+    "roc",
+    "rsi",
+    "sankey",
+    "scatter",
+    "scatter3d",
+    "series",
+    "slowstochastic",
+    "sma",
+    "solidgauge",
+    "spline",
+    "stochastic",
+    "streamgraph",
+    "sunburst",
+    "supertrend",
+    "tema",
+    "tiledwebmap",
+    "tilemap",
+    "timeline",
+    "treegraph",
+    "treemap",
+    "trendline",
+    "trix",
+    "variablepie",
+    "variwide",
+    "vbp",
+    "vector",
+    "venn",
+    "vwap",
+    "waterfall",
+    "williamsr",
+    "windbarb",
+    "wma",
+    "wordcloud",
+    "xrange",
+    "zigzag"
+  ]
+}

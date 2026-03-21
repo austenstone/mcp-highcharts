@@ -31,6 +31,7 @@
     }
   },
   "scripts": {
+    "prebuild": "tsx scripts/generate-schema.ts",
     "build": "tsc --noEmit && cross-env INPUT=mcp-app.html vite build && tsc -p tsconfig.server.json",
     "watch": "cross-env INPUT=mcp-app.html vite build --watch",
     "serve": "tsx watch main.ts",

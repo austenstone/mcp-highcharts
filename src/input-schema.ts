@@ -1,7 +1,8 @@
 import { z } from "zod";
 import meta from "./highcharts-meta.json" with { type: "json" };
+import generatedChartTypes from "./generated/chart-types.json" with { type: "json" };
 
-const CHART_TYPES = meta.chartTypes as [string, ...string[]];
+const CHART_TYPES = generatedChartTypes as [string, ...string[]];
 
 const EXAMPLES: Record<string, unknown[]> = {
   xAxis: [{ categories: ["Q1", "Q2", "Q3", "Q4"] }],

@@ -1,64 +1,43 @@
 import Highcharts from "highcharts";
+import moduleMapData from "./generated/module-map.json" with { type: "json" };
 
-// Map of chart/series types to their required module imports.
-// Dependencies are handled by import order — put deps first.
-// Only the modules for chart types we support (curated list from highcharts-meta.json).
-const MODULE_MAP: Record<string, () => Promise<unknown>> = {
-  // Core extras (needed by several types)
-  _more: () => import("highcharts/highcharts-more"),
-  _3d: () => import("highcharts/highcharts-3d"),
+const { typeToModule } = moduleMapData;
 
-  // Types that need highcharts-more
-  arearange: () => import("highcharts/highcharts-more"),
-  areasplinerange: () => import("highcharts/highcharts-more"),
-  boxplot: () => import("highcharts/highcharts-more"),
-  bubble: () => import("highcharts/highcharts-more"),
-  columnrange: () => import("highcharts/highcharts-more"),
-  errorbar: () => import("highcharts/highcharts-more"),
-  gauge: () => import("highcharts/highcharts-more"),
-  packedbubble: () => import("highcharts/highcharts-more"),
-  polygon: () => import("highcharts/highcharts-more"),
-  waterfall: () => import("highcharts/highcharts-more"),
+// Use import.meta.glob to create lazy loaders for ALL Highcharts modules at once.
+// Vite resolves these through the aliases defined in vite.config.ts.
+const allModules = import.meta.glob([
+  "/node_modules/highcharts/esm/highcharts-more.src.js",
+  "/node_modules/highcharts/esm/highcharts-3d.src.js",
+  "/node_modules/highcharts/esm/modules/*.src.js",
+]);
 
-  // Individual modules
-  heatmap: () => import("highcharts/modules/heatmap"),
-  tilemap: async () => { await import("highcharts/modules/heatmap"); await import("highcharts/modules/tilemap"); },
-  treemap: () => import("highcharts/modules/treemap"),
-  sunburst: () => import("highcharts/modules/sunburst"),
-  sankey: () => import("highcharts/modules/sankey"),
-  "arc-diagram": async () => { await import("highcharts/modules/sankey"); await import("highcharts/modules/arc-diagram"); },
-  arcdiagram: async () => { await import("highcharts/modules/sankey"); await import("highcharts/modules/arc-diagram"); },
-  "dependency-wheel": async () => { await import("highcharts/modules/sankey"); await import("highcharts/modules/dependency-wheel"); },
-  dependencywheel: async () => { await import("highcharts/modules/sankey"); await import("highcharts/modules/dependency-wheel"); },
-  organization: async () => { await import("highcharts/modules/sankey"); await import("highcharts/modules/organization"); },
-  networkgraph: () => import("highcharts/modules/networkgraph"),
-  wordcloud: () => import("highcharts/modules/wordcloud"),
-  timeline: () => import("highcharts/modules/timeline"),
-  treegraph: () => import("highcharts/modules/treegraph"),
-  venn: () => import("highcharts/modules/venn"),
-  funnel: () => import("highcharts/modules/funnel"),
-  item: () => import("highcharts/modules/item-series"),
-  variwide: () => import("highcharts/modules/variwide"),
-  streamgraph: () => import("highcharts/modules/streamgraph"),
-  "solid-gauge": async () => { await import("highcharts/highcharts-more"); await import("highcharts/modules/solid-gauge"); },
-  solidgauge: async () => { await import("highcharts/highcharts-more"); await import("highcharts/modules/solid-gauge"); },
-  xrange: () => import("highcharts/modules/xrange"),
-  dumbbell: () => import("highcharts/modules/dumbbell"),
-  lollipop: () => import("highcharts/modules/lollipop"),
-  bullet: () => import("highcharts/modules/bullet"),
-  pictorial: () => import("highcharts/modules/pictorial"),
-  "variable-pie": () => import("highcharts/modules/variable-pie"),
-  variablepie: () => import("highcharts/modules/variable-pie"),
-};
+/** Build a name→loader map from the glob results */
+function buildLoaderMap(): Record<string, () => Promise<unknown>> {
+  const loaders: Record<string, () => Promise<unknown>> = {};
+  for (const [path, loader] of Object.entries(allModules)) {
+    const match = path.match(/\/highcharts\/esm\/(.+)\.src\.js$/);
+    if (match) {
+      loaders[match[1]] = loader; // e.g. "modules/heatmap" or "highcharts-more"
+    }
+  }
+  return loaders;
+}
+
+const loaders = buildLoaderMap();
+const loaded = new Set<string>();
 
 // Always load these for common functionality
 const ALWAYS_LOAD = [
-  () => import("highcharts/modules/accessibility"),
-  () => import("highcharts/modules/drilldown"),
-  () => import("highcharts/modules/no-data-to-display"),
+  "modules/accessibility",
+  "modules/drilldown",
+  "modules/no-data-to-display",
 ];
 
-const loaded = new Set<string>();
+async function loadModule(name: string): Promise<void> {
+  if (loaded.has(name) || !loaders[name]) return;
+  await loaders[name]();
+  loaded.add(name);
+}
 
 /**
  * Inspect chart options, determine which modules are needed, and dynamically import them.
@@ -66,10 +45,7 @@ const loaded = new Set<string>();
  */
 export async function loadModulesForOptions(options: Record<string, unknown>): Promise<void> {
   // Load always-needed modules once
-  if (!loaded.has("_always")) {
-    await Promise.all(ALWAYS_LOAD.map(fn => fn()));
-    loaded.add("_always");
-  }
+  for (const mod of ALWAYS_LOAD) await loadModule(mod);
 
   // Collect all chart types from options
   const types = new Set<string>();
@@ -83,13 +59,15 @@ export async function loadModulesForOptions(options: Record<string, unknown>): P
     }
   }
 
-  // Check for features that need coloraxis module
-  if (options.colorAxis) types.add("_coloraxis");
+  // Feature-based module detection
+  if (options.colorAxis) await loadModule("modules/coloraxis");
+  if (options.drilldown) await loadModule("modules/drilldown");
 
-  // Load needed modules (skip already loaded)
-  const toLoad = [...types].filter(t => MODULE_MAP[t] && !loaded.has(t));
-  for (const t of toLoad) {
-    await MODULE_MAP[t]();
-    loaded.add(t);
+  // Load modules for each type (in dependency order from generated map)
+  for (const type of types) {
+    const modules = (typeToModule as Record<string, string[]>)[type];
+    if (modules) {
+      for (const mod of modules) await loadModule(mod);
+    }
   }
 }
