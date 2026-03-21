@@ -4,7 +4,8 @@ import Highcharts from "highcharts";
 import type { Options } from "highcharts";
 import { loadModulesForOptions } from "./module-loader";
 
-// Lazy-load the selected Highcharts theme (default: adaptive)
+// Theme name is a runtime value (from env var), so we use import.meta.glob for dynamic loading.
+// Highcharts themes self-register via Highcharts.setOptions() when imported — no manual setup needed.
 const themeModules = import.meta.glob(
   "/node_modules/highcharts/esm/themes/*.src.js",
 ) as Record<string, () => Promise<unknown>>;
@@ -15,7 +16,8 @@ const themeName =
   (window as unknown as Record<string, unknown>).__HIGHCHARTS_THEME_NAME__ as string | undefined
   ?? "adaptive";
 
-// When user provides full custom options, skip the built-in theme entirely
+// When user provides full custom options, skip the built-in theme entirely.
+// Otherwise, dynamically import the theme module — it self-registers on load.
 const themeKey = `/node_modules/highcharts/esm/themes/${themeName}.src.js`;
 const themeReady = (userOverrides
   ? Promise.resolve()
@@ -23,7 +25,10 @@ const themeReady = (userOverrides
 ).then(() => {
   Highcharts.setOptions({
     credits: { enabled: false },
-    exporting: { enabled: false },
+    exporting: {
+      enabled: true,
+      fallbackToExportServer: false, // Client-side only — don't send data to Highcharts servers
+    },
   });
   if (userOverrides) {
     Highcharts.setOptions(userOverrides);
@@ -31,7 +36,14 @@ const themeReady = (userOverrides
 });
 
 /**
- * Sync host theme to adaptive theme's forced class + bridge CSS vars.
+ * Sync host theme to Highcharts adaptive theme.
+ *
+ * The adaptive theme (built-in since v12.2+) uses CSS variables in both classic
+ * and styled modes and handles light/dark automatically via class names.
+ * We only need to:
+ * 1. Toggle highcharts-light/dark classes
+ * 2. Apply MCP SDK helpers (fonts, style variables)
+ * 3. Bridge the few host tokens that map to Highcharts CSS vars
  */
 function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
   if (!ctx) return;
@@ -39,11 +51,9 @@ function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
   const root = document.documentElement;
 
   // Apply MCP SDK theme helpers
-  if (ctx.theme) {
-    applyDocumentTheme(ctx.theme);
-  }
+  if (ctx.theme) applyDocumentTheme(ctx.theme);
 
-  // Force adaptive theme mode via class names
+  // Let Highcharts adaptive theme handle light/dark via class names
   if (ctx.theme === "dark") {
     root.classList.add("highcharts-dark");
     root.classList.remove("highcharts-light");
@@ -52,44 +62,25 @@ function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
     root.classList.remove("highcharts-dark");
   }
 
-  // Apply host style variables
-  if (ctx.styles?.variables) {
-    applyHostStyleVariables(ctx.styles.variables);
-  }
-
-  // Apply host fonts
-  if (ctx.styles?.css?.fonts) {
-    applyHostFonts(ctx.styles.css.fonts);
-  }
+  if (ctx.styles?.variables) applyHostStyleVariables(ctx.styles.variables);
+  if (ctx.styles?.css?.fonts) applyHostFonts(ctx.styles.css.fonts);
 
   const vars = ctx.styles?.variables;
   if (!vars) return;
 
-  // CSS variable bridge: MCP host tokens → Highcharts adaptive theme CSS vars
-  const cssVarMap: Record<string, string | undefined> = {
+  // Only override specific vars the host provides — adaptive theme handles the rest
+  const overrides: Record<string, string | undefined> = {
     "--highcharts-background-color": vars["--color-background-primary"],
     "--highcharts-neutral-color-100": vars["--color-text-primary"],
     "--highcharts-neutral-color-80": vars["--color-text-secondary"],
-    "--highcharts-neutral-color-60": vars["--color-text-tertiary"],
-    "--highcharts-neutral-color-40": vars["--color-border-primary"],
-    "--highcharts-neutral-color-20": vars["--color-border-secondary"],
-    "--highcharts-neutral-color-10": vars["--color-border-tertiary"],
     "--highcharts-neutral-color-5": vars["--color-background-secondary"],
-    "--highcharts-neutral-color-3": vars["--color-background-tertiary"],
-    "--highcharts-highlight-color-100": vars["--color-ring-primary"],
-    "--highcharts-highlight-color-80": vars["--color-ring-info"],
-    "--highcharts-highlight-color-60": vars["--color-background-info"],
-    "--highcharts-highlight-color-20": vars["--color-border-info"],
-    "--highcharts-highlight-color-10": vars["--color-background-secondary"],
-    "--highcharts-positive-color": vars["--color-text-success"],
-    "--highcharts-negative-color": vars["--color-text-danger"],
   };
 
-  for (const [hcVar, value] of Object.entries(cssVarMap)) {
+  for (const [hcVar, value] of Object.entries(overrides)) {
     if (value) root.style.setProperty(hcVar, value);
   }
 
-  // Font family via setOptions
+  // Font family — use CSS custom property so it works in both classic and styled modes
   const fontFamily = vars["--font-sans"];
   if (fontFamily) {
     Highcharts.setOptions({
@@ -123,11 +114,18 @@ function showError(container: HTMLElement, e: unknown) {
 async function renderSingleChart(opts: Options & Record<string, unknown>) {
   const processed = processOptions(opts as Record<string, unknown>);
   const container = document.getElementById("root")!;
-  container.innerHTML = "";
-  container.style.display = "";
   try {
     await loadModulesForOptions(processed as Record<string, unknown>);
-    Highcharts.chart(container, processed);
+
+    // Update existing chart if possible — smoother than destroy + recreate
+    const existingChart = Highcharts.charts.find(c => (c as any)?.renderTo === container);
+    if (existingChart) {
+      existingChart.update(processed, true, true);
+    } else {
+      container.innerHTML = "";
+      container.style.display = "";
+      Highcharts.chart(container, processed);
+    }
   } catch (e) {
     showError(container, e);
   }

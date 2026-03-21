@@ -31,6 +31,9 @@ const ALWAYS_LOAD = [
   "modules/accessibility",
   "modules/drilldown",
   "modules/no-data-to-display",
+  "modules/exporting",           // Export menu UI
+  "modules/offline-exporting",   // Client-side export (no server needed)
+  "modules/export-data",         // CSV/XLS data export
 ];
 
 async function loadModule(name: string): Promise<void> {
