@@ -159,14 +159,12 @@ export const theme: Options = {
       marker: {
         enabled: false,
         states: {
-          hover: { enabled: true, radius: 4 },
+          hover: { enabled: true, radius: 6, lineWidth: 2, lineColor: "#ffffff" },
         },
       },
     },
     line: {
       lineWidth: 2,
-      // Primer: first line solid, subsequent lines use different dash styles
-      // Applied per-series via dashStyle cycling when multiple lines are present
     },
     spline: {
       lineWidth: 2,
@@ -174,6 +172,15 @@ export const theme: Options = {
     area: {
       fillOpacity: 0.15,
       lineWidth: 2,
+    },
+    scatter: {
+      marker: {
+        enabled: true,
+        radius: 6,
+        states: {
+          hover: { enabled: true, radius: 8, lineWidth: 2, lineColor: "#ffffff" },
+        },
+      },
     },
     column: {
       borderColor: "var(--bgColor-default, transparent)",
