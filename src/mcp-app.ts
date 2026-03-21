@@ -97,15 +97,18 @@ function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
   // These are set as CSS vars so the adaptive theme's defaults are overridden
   // only when the host provides values.
   const structuralMappings: [string, string | undefined][] = [
-    ["--highcharts-background-color", vars["--color-background-primary"]],
-    ["--highcharts-neutral-color-0", vars["--color-background-primary"]], // Dashboard container bg
+    // Chart background = secondary (lighter/darker surface for contrast against container)
+    ["--highcharts-background-color", vars["--color-background-secondary"]],
+    // Dashboard outer wrapper = primary (the base layer)
+    ["--highcharts-neutral-color-0", vars["--color-background-primary"]],
+    // Dashboard cell/card background = tertiary (distinct from both chart and wrapper)
+    ["--highcharts-dashboards-content-background-color", vars["--color-background-tertiary"]],
     ["--highcharts-neutral-color-100", vars["--color-text-primary"]],
     ["--highcharts-neutral-color-80", vars["--color-text-secondary"]],
     ["--highcharts-neutral-color-60", vars["--color-text-tertiary"]],
     ["--highcharts-neutral-color-20", vars["--color-border-secondary"]],
     ["--highcharts-neutral-color-10", vars["--color-border-tertiary"]],
     ["--highcharts-neutral-color-5", vars["--color-background-secondary"]],
-    ["--highcharts-dashboards-content-background-color", vars["--color-background-secondary"]],
   ];
 
   // Series palette: map host semantic colors to chart series colors
