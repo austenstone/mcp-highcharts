@@ -207,13 +207,27 @@ function buildRemainingFields(): Record<string, z.ZodTypeAny> {
 // ── Data source ──
 const dataSourceSchema = z.string().optional().describe(
   "Path to a data file (CSV, JSON, TSV) relative to the workspace, or a URL. " +
-  "The server reads and parses the file, injecting data into the chart config. " +
-  "If series[].data is also provided inline, inline data takes precedence."
+  "The server reads the file and injects it via Highcharts' data module (data.csv). " +
+  "If series[].data is also provided inline, inline data takes precedence. " +
+  "Alternative: pass CSV directly as data.csv in the options without using dataSource."
 );
 
 // ── Export the complete input schema ──
 export const inputSchema = {
   dataSource: dataSourceSchema,
+  data: z.object({
+    csv: z.string().optional().describe("Raw CSV string. Highcharts auto-parses columns into series. First row = headers, first column = xAxis categories."),
+    csvURL: z.string().optional().describe("URL to a CSV file. Highcharts fetches and parses it."),
+    rows: z.array(z.array(z.any())).optional().describe("2D array of data rows (first row = column names)."),
+    columns: z.array(z.array(z.any())).optional().describe("2D array of data columns (first element = column name)."),
+    itemDelimiter: z.string().optional().describe("CSV column delimiter. Auto-detected if omitted."),
+    decimalPoint: z.string().optional().describe("Decimal point character. Default: '.'"),
+    switchRowsAndColumns: z.boolean().optional().describe("Swap rows and columns interpretation."),
+  }).passthrough().optional().describe(
+    "Highcharts data module config — parse CSV, HTML tables, or Google Sheets directly. " +
+    "Use data.csv for inline CSV strings, data.csvURL for remote CSV files. " +
+    "See https://api.highcharts.com/highcharts/data"
+  ),
   chart: chartSchema,
   title: titleSchema,
   subtitle: subtitleSchema,

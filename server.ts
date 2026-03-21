@@ -12,7 +12,7 @@ import { z } from "zod";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { inputSchema } from "./src/input-schema.js";
-import { loadDataSource, autoGenerateSeries } from "./src/data-source.js";
+import { readDataSource, isJsonContent } from "./src/data-source.js";
 
 const DIST_DIR = import.meta.filename.endsWith(".ts")
   ? path.join(import.meta.dirname, "dist")
@@ -28,20 +28,20 @@ export function createServer(): McpServer {
     if (!dataSource) return args;
     delete args.dataSource;
 
-    const parsed = await loadDataSource(dataSource);
-    const series = args.series as any[] | undefined;
-    const hasInlineData = series?.some((s: any) => s.data != null);
+    const content = await readDataSource(dataSource);
 
-    if (!hasInlineData) {
-      const generated = autoGenerateSeries(parsed, series);
-      args.series = generated.series;
-      if (generated.xAxis && !args.xAxis) {
-        args.xAxis = generated.xAxis;
-      } else if (generated.xAxis && args.xAxis) {
-        // Merge categories into existing xAxis
-        const existing = args.xAxis as Record<string, unknown>;
-        if (!existing.categories) existing.categories = generated.xAxis.categories;
+    if (isJsonContent(dataSource, content)) {
+      // JSON → parse and merge as series data
+      const jsonData = JSON.parse(content);
+      if (Array.isArray(jsonData) && !args.series) {
+        // Array of objects → let Highcharts data module handle via columns/rows
+        args.data = { ...(args.data as object || {}), columns: jsonData };
+      } else if (!args.series) {
+        args.series = jsonData;
       }
+    } else {
+      // CSV/TSV → inject as data.csv for Highcharts' built-in data module
+      args.data = { ...(args.data as object || {}), csv: content };
     }
 
     return args;
@@ -50,11 +50,14 @@ export function createServer(): McpServer {
   /** Build a text summary for the content field */
   function chartSummary(args: Record<string, unknown>, chartType?: string): string {
     const series = args.series as any[] | undefined;
+    const data = args.data as Record<string, unknown> | undefined;
     const seriesCount = Array.isArray(series) ? series.length : 0;
+    const hasDataModule = !!data?.csv;
     const type = chartType || (args.chart as any)?.type || series?.[0]?.type || "line";
     const title = typeof args.title === "string" ? args.title : (args.title as any)?.text || "";
     const titleStr = title ? ` "${title}"` : "";
-    return `Rendered ${type} chart${titleStr} with ${seriesCount} series`;
+    const dataInfo = hasDataModule ? " from CSV data" : ` with ${seriesCount} series`;
+    return `Rendered ${type} chart${titleStr}${dataInfo}`;
   }
 
   const server = new McpServer(
@@ -103,10 +106,10 @@ export function createServer(): McpServer {
     },
     async (args): Promise<CallToolResult> => {
       const processed = await resolveDataSource(args as Record<string, unknown>);
-      if (!processed.series || !Array.isArray(processed.series)) {
+      if (!processed.series && !processed.data) {
         return {
           isError: true,
-          content: [{ type: "text", text: "series is required and must be an array" }],
+          content: [{ type: "text", text: "series or dataSource is required" }],
         };
       }
       return {
@@ -161,10 +164,10 @@ export function createServer(): McpServer {
     },
     async (args): Promise<CallToolResult> => {
       const processed = await resolveDataSource(args as Record<string, unknown>);
-      if (!processed.series || !Array.isArray(processed.series)) {
+      if (!processed.series && !processed.data) {
         return {
           isError: true,
-          content: [{ type: "text", text: "series is required and must be an array" }],
+          content: [{ type: "text", text: "series or dataSource is required" }],
         };
       }
       const full = { ...processed, __chartType: "stock" };
@@ -329,7 +332,7 @@ export function createServer(): McpServer {
       if (!args.series || !Array.isArray(args.series)) {
         return {
           isError: true,
-          content: [{ type: "text", text: "series is required and must be an array" }],
+          content: [{ type: "text", text: "series or dataSource is required" }],
         };
       }
       const full = { ...args, __chartType: "map" };
@@ -403,7 +406,7 @@ export function createServer(): McpServer {
       if (!args.series || !Array.isArray(args.series)) {
         return {
           isError: true,
-          content: [{ type: "text", text: "series is required and must be an array" }],
+          content: [{ type: "text", text: "series or dataSource is required" }],
         };
       }
       const full = { ...args, __chartType: "gantt" };

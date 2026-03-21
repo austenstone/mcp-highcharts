@@ -31,6 +31,7 @@ const loaded = new Set<string>();
 const ALWAYS_LOAD = [
   "modules/accessibility",
   "modules/drilldown",
+  "modules/data",                // CSV/HTML table/Google Sheets data import
   "modules/no-data-to-display",
   "modules/exporting",           // Export menu UI
   "modules/offline-exporting",   // Client-side export (no server needed)
