@@ -1,6 +1,7 @@
 import { App, PostMessageTransport, applyHostStyleVariables, applyDocumentTheme, applyHostFonts } from "@modelcontextprotocol/ext-apps";
 import type { McpUiHostContext } from "@modelcontextprotocol/ext-apps";
-import Highcharts from "highcharts";
+// Import Highcharts and expose on window BEFORE Dashboards (import order matters)
+import Highcharts from "./highcharts-init";
 import type { Options } from "highcharts";
 import * as Dashboards from "@highcharts/dashboards";
 import "@highcharts/dashboards/modules/layout";
@@ -9,9 +10,7 @@ import GridLite from "@highcharts/grid-lite";
 import "@highcharts/grid-lite/css/grid-lite.css";
 import { loadModulesForOptions } from "./module-loader";
 
-// Connect Highcharts to Dashboards
-Dashboards.HighchartsPlugin.custom.connectHighcharts(Highcharts);
-Dashboards.PluginHandler.addPlugin(Dashboards.HighchartsPlugin);
+// Dashboards auto-connects Highcharts plugin via window.Highcharts (set in highcharts-init).
 
 // Theme name is a runtime value (from env var), so we use import.meta.glob for dynamic loading.
 // Highcharts themes self-register via Highcharts.setOptions() when imported — no manual setup needed.
