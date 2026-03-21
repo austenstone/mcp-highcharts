@@ -1,12 +1,12 @@
 import Highcharts from "highcharts";
-// Core extensions
 import "highcharts/highcharts-more";
-// All standalone modules — order matters: sankey before dependency-wheel
+import "highcharts/highcharts-3d";
+// All Highcharts modules — packed ESM bundles handle init order
 import "highcharts/modules/accessibility";
 import "highcharts/modules/annotations";
-import "highcharts/modules/boost";
 import "highcharts/modules/bullet";
 import "highcharts/modules/coloraxis";
+import "highcharts/modules/cylinder";
 import "highcharts/modules/data";
 import "highcharts/modules/drilldown";
 import "highcharts/modules/dumbbell";
@@ -14,6 +14,8 @@ import "highcharts/modules/exporting";
 import "highcharts/modules/export-data";
 import "highcharts/modules/offline-exporting";
 import "highcharts/modules/funnel";
+import "highcharts/modules/funnel3d";
+import "highcharts/modules/gantt";
 import "highcharts/modules/heatmap";
 import "highcharts/modules/tilemap";
 import "highcharts/modules/histogram-bellcurve";
@@ -24,7 +26,9 @@ import "highcharts/modules/no-data-to-display";
 import "highcharts/modules/pareto";
 import "highcharts/modules/pattern-fill";
 import "highcharts/modules/sankey";
+import "highcharts/modules/arc-diagram";
 import "highcharts/modules/dependency-wheel";
+import "highcharts/modules/organization";
 import "highcharts/modules/series-label";
 import "highcharts/modules/solid-gauge";
 import "highcharts/modules/streamgraph";
@@ -39,6 +43,12 @@ import "highcharts/modules/venn";
 import "highcharts/modules/windbarb";
 import "highcharts/modules/wordcloud";
 import "highcharts/modules/xrange";
+import "highcharts/modules/map";
+import "highcharts/modules/flowmap";
+import "highcharts/modules/geoheatmap";
+import "highcharts/modules/pictorial";
+import "highcharts/modules/pyramid3d";
+import "highcharts/modules/tiledwebmap";
 import HighchartsReact from "highcharts-react-official";
 import { createRoot } from "react-dom/client";
 import { describe, it, expect, afterEach } from "vitest";
@@ -469,6 +479,464 @@ describe("Visual Chart Rendering", () => {
           { name: "Other", y: 12, color: "#484f58" },
         ],
       }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("gantt chart", async () => {
+    const el = await renderChart({
+      chart: { type: "gantt" },
+      title: "Migration Timeline",
+      series: [{
+        name: "Project",
+        data: [
+          { name: "Discovery", start: 1704067200000, end: 1704672000000 },
+          { name: "POC", start: 1704672000000, end: 1705276800000 },
+          { name: "Migration", start: 1705276800000, end: 1706486400000 },
+          { name: "Go Live", start: 1706486400000, end: 1706832000000 },
+        ],
+      }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("boxplot chart", async () => {
+    const el = await renderChart({
+      chart: { type: "boxplot" },
+      title: "Build Time Distribution",
+      series: [{
+        name: "Build Times",
+        data: [
+          [760, 801, 848, 895, 965],
+          [733, 853, 939, 980, 1080],
+          [714, 762, 817, 870, 918],
+          [724, 802, 836, 871, 950],
+        ],
+      }],
+      xAxis: { categories: ["Linux", "Windows", "macOS", "ARM"] },
+      yAxis: { title: { text: "Duration (ms)" } },
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("arearange chart", async () => {
+    const el = await renderChart({
+      chart: { type: "arearange" },
+      title: "Build Time Range",
+      series: [{
+        name: "Min-Max",
+        data: [[0, 5, 15], [1, 8, 20], [2, 10, 25], [3, 7, 18], [4, 12, 28]],
+      }],
+      xAxis: { categories: ["Mon", "Tue", "Wed", "Thu", "Fri"] },
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("areasplinerange chart", async () => {
+    const el = await renderChart({
+      chart: { type: "areasplinerange" },
+      title: "Response Time Range",
+      series: [{
+        name: "p10-p90",
+        data: [[0, 30, 120], [1, 50, 180], [2, 70, 220], [3, 40, 160], [4, 60, 200]],
+      }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("columnrange chart", async () => {
+    const el = await renderChart({
+      chart: { type: "columnrange" },
+      title: "Temperature Range",
+      series: [{
+        name: "Temps",
+        data: [[-5, 10], [2, 18], [5, 22], [8, 28]],
+      }],
+      xAxis: { categories: ["Jan", "Feb", "Mar", "Apr"] },
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("columnpyramid chart", async () => {
+    const el = await renderChart({
+      chart: { type: "columnpyramid" },
+      title: "Pipeline Volume",
+      series: [{ name: "Pipelines", data: [50, 80, 120, 90] }],
+      xAxis: { categories: ["Q1", "Q2", "Q3", "Q4"] },
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("cylinder chart", async () => {
+    const el = await renderChart({
+      chart: { type: "cylinder", options3d: { enabled: true, alpha: 15, beta: 15, depth: 50, viewDistance: 25 } },
+      title: "Cylinder Chart",
+      series: [{ name: "Storage", data: [50, 80, 120, 90] }],
+      xAxis: { categories: ["Q1", "Q2", "Q3", "Q4"] },
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("funnel3d chart", async () => {
+    const el = await renderChart({
+      chart: { type: "funnel3d", options3d: { enabled: true, alpha: 10, depth: 50, viewDistance: 50 } },
+      title: "3D Funnel",
+      series: [{
+        name: "Pipeline",
+        data: [
+          { name: "Leads", y: 1000 },
+          { name: "Qualified", y: 600 },
+          { name: "Proposals", y: 300 },
+          { name: "Closed", y: 100 },
+        ],
+      }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("pyramid3d chart", async () => {
+    const el = await renderChart({
+      chart: { type: "pyramid3d", options3d: { enabled: true, alpha: 10, depth: 50, viewDistance: 50 } },
+      title: "3D Pyramid",
+      series: [{
+        name: "Hierarchy",
+        data: [
+          { name: "Executives", y: 5 },
+          { name: "Managers", y: 25 },
+          { name: "Engineers", y: 100 },
+          { name: "Interns", y: 50 },
+        ],
+      }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("3D column chart", async () => {
+    const el = await renderChart({
+      chart: { type: "column", options3d: { enabled: true, alpha: 15, beta: 15, depth: 50, viewDistance: 25 } },
+      title: "3D Column Chart",
+      series: [{ name: "Revenue", data: [100, 200, 300, 400] }],
+      xAxis: { categories: ["Q1", "Q2", "Q3", "Q4"] },
+      plotOptions: { column: { depth: 25 } },
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("3D pie chart", async () => {
+    const el = await renderChart({
+      chart: { type: "pie", options3d: { enabled: true, alpha: 45, beta: 0 } },
+      title: "3D Pie Chart",
+      series: [{
+        name: "Share",
+        data: [
+          { name: "GitHub Actions", y: 45 },
+          { name: "Jenkins", y: 25 },
+          { name: "GitLab CI", y: 15 },
+          { name: "Other", y: 15 },
+        ],
+      }],
+      plotOptions: { pie: { depth: 35 } },
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("3D scatter chart", async () => {
+    const el = await renderChart({
+      chart: { type: "scatter", options3d: { enabled: true, alpha: 10, beta: 30, depth: 250, viewDistance: 5, fitToPlot: false } },
+      title: "3D Scatter",
+      series: [{
+        name: "Points",
+        data: [[1, 6, 5], [8, 7, 9], [1, 3, 4], [4, 6, 8], [5, 7, 7], [6, 9, 6], [7, 0, 5], [2, 3, 3], [3, 9, 8], [3, 6, 5]],
+      }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("variablepie chart", async () => {
+    const el = await renderChart({
+      chart: { type: "variablepie" },
+      title: "Runner Pool Allocation",
+      series: [{
+        name: "Runners",
+        data: [
+          { name: "Linux", y: 505, z: 92 },
+          { name: "Windows", y: 251, z: 119 },
+          { name: "macOS", y: 112, z: 121 },
+        ],
+      }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("variwide chart", async () => {
+    const el = await renderChart({
+      chart: { type: "variwide" },
+      title: "Cost per Runner Type",
+      series: [{
+        name: "Cost",
+        data: [[0, 50, 100], [100, 80, 150], [250, 30, 80]],
+      }],
+      xAxis: { type: "linear" },
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("lollipop chart", async () => {
+    const el = await renderChart({
+      chart: { type: "lollipop" },
+      title: "Feature Adoption",
+      series: [{ name: "Adoption %", data: [85, 72, 68, 55, 42] }],
+      xAxis: { categories: ["Actions", "Copilot", "GHAS", "Codespaces", "Packages"] },
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("dumbbell chart", async () => {
+    const el = await renderChart({
+      chart: { type: "dumbbell" },
+      title: "Before/After Migration",
+      series: [{
+        name: "Build Time",
+        data: [
+          { low: 20, high: 50 },
+          { low: 30, high: 80 },
+          { low: 15, high: 65 },
+        ],
+      }],
+      xAxis: { categories: ["Repo A", "Repo B", "Repo C"] },
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("streamgraph chart", async () => {
+    const el = await renderChart({
+      chart: { type: "streamgraph" },
+      title: "Language Trends",
+      series: [
+        { name: "TypeScript", data: [1, 3, 5, 8, 12] },
+        { name: "Python", data: [2, 4, 6, 7, 9] },
+        { name: "Go", data: [3, 5, 4, 6, 8] },
+      ],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("xrange chart", async () => {
+    const el = await renderChart({
+      chart: { type: "xrange" },
+      title: "Sprint Tasks",
+      series: [{
+        name: "Tasks",
+        data: [
+          { x: 1704067200000, x2: 1704326400000, y: 0 },
+          { x: 1704153600000, x2: 1704499200000, y: 1 },
+          { x: 1704240000000, x2: 1704412800000, y: 2 },
+        ],
+      }],
+      xAxis: { type: "datetime" },
+      yAxis: { categories: ["Design", "Dev", "QA"] },
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("errorbar chart", async () => {
+    const el = await renderChart({
+      title: "Rainfall with Error",
+      series: [
+        { name: "Rainfall", type: "column", data: [49, 71, 106, 129] },
+        { name: "Error", type: "errorbar", data: [[44, 54], [66, 78], [96, 116], [119, 139]] },
+      ],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("polygon chart", async () => {
+    const el = await renderChart({
+      chart: { type: "polygon" },
+      title: "Coverage Area",
+      series: [{ name: "Shape", data: [[0, 0], [5, 10], [10, 5], [8, -2], [2, -3]] }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("item chart", async () => {
+    const el = await renderChart({
+      chart: { type: "item" },
+      title: "Parliament Seats",
+      series: [{
+        name: "Seats",
+        data: [
+          { name: "Party A", y: 220, color: "#006edb" },
+          { name: "Party B", y: 215, color: "#e5534b" },
+        ],
+      }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("tilemap chart", async () => {
+    const el = await renderChart({
+      chart: { type: "tilemap" },
+      title: "Grid Metrics",
+      series: [{
+        name: "Tiles",
+        data: [
+          { x: 0, y: 0, value: 5, name: "A1" },
+          { x: 1, y: 0, value: 8, name: "A2" },
+          { x: 0, y: 1, value: 3, name: "B1" },
+          { x: 1, y: 1, value: 9, name: "B2" },
+        ],
+      }],
+      colorAxis: { min: 0, minColor: "#30363d", maxColor: "#006edb" },
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("vector chart", async () => {
+    const el = await renderChart({
+      chart: { type: "vector" },
+      title: "Wind Vectors",
+      series: [{
+        name: "Wind",
+        data: [[0, 0, 10, 45], [1, 0, 15, 90], [0, 1, 8, 135], [1, 1, 12, 270]],
+      }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("windbarb chart", async () => {
+    const el = await renderChart({
+      chart: { type: "windbarb" },
+      title: "Wind Observations",
+      series: [{ name: "Wind", data: [[5, 180], [10, 90], [15, 270], [8, 45]] }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("histogram chart", async () => {
+    const el = await renderChart({
+      title: "Build Duration Distribution",
+      series: [
+        { type: "scatter", name: "Data", id: "data", visible: false, data: [3.5, 3, 3.2, 3.1, 3.6, 3.9, 3.4, 3.4, 2.9, 3.1, 4.7, 4.4, 5.1, 4.9, 5, 5.4, 4.6, 5, 4.4, 4.9] },
+        { type: "histogram", name: "Histogram", baseSeries: "data", data: [] },
+      ],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("bellcurve chart", async () => {
+    const el = await renderChart({
+      title: "Normal Distribution",
+      series: [
+        { type: "scatter", name: "Data", id: "data", visible: false, data: [3.5, 3, 3.2, 3.1, 3.6, 3.9, 3.4, 3.4, 2.9, 3.1, 4.7, 4.4, 5.1, 4.9, 5, 5.4, 4.6, 5, 4.4, 4.9] },
+        { type: "bellcurve", name: "Bell Curve", baseSeries: "data", data: [] },
+      ],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("pareto chart", async () => {
+    const el = await renderChart({
+      title: "Defect Analysis",
+      series: [
+        { type: "column", name: "Complaints", data: [100, 80, 50, 30, 20, 10] },
+        { type: "pareto", name: "Cumulative", baseSeries: 0, data: [] },
+      ],
+      xAxis: { categories: ["Late", "Defect", "Wrong", "Missing", "Damaged", "Other"] },
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("venn diagram", async () => {
+    const el = await renderChart({
+      chart: { type: "venn" },
+      title: "Platform Overlap",
+      series: [{
+        name: "Sets",
+        data: [
+          { sets: ["Actions"], value: 10, name: "Actions" },
+          { sets: ["Copilot"], value: 8, name: "Copilot" },
+          { sets: ["GHAS"], value: 6, name: "GHAS" },
+          { sets: ["Actions", "Copilot"], value: 4, name: "Actions+Copilot" },
+          { sets: ["Actions", "GHAS"], value: 3, name: "Actions+GHAS" },
+        ],
+      }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("arcdiagram chart", async () => {
+    const el = await renderChart({
+      chart: { type: "arcdiagram" },
+      title: "Service Connections",
+      series: [{
+        name: "Links",
+        data: [
+          { from: "A", to: "B", weight: 4 },
+          { from: "B", to: "C", weight: 2 },
+          { from: "A", to: "C", weight: 3 },
+        ],
+      }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("dependencywheel chart", async () => {
+    const el = await renderChart({
+      chart: { type: "dependencywheel" },
+      title: "Team Dependencies",
+      series: [{
+        name: "Deps",
+        data: [
+          { from: "Frontend", to: "API", weight: 5 },
+          { from: "API", to: "DB", weight: 3 },
+          { from: "Frontend", to: "Auth", weight: 2 },
+        ],
+      }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("organization chart", async () => {
+    const el = await renderChart({
+      chart: { type: "organization" },
+      title: "Org Structure",
+      series: [{
+        name: "Org",
+        data: [
+          { from: "CEO", to: "CTO" },
+          { from: "CEO", to: "CFO" },
+          { from: "CTO", to: "Dev Lead" },
+          { from: "CTO", to: "QA Lead" },
+        ],
+      }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("pyramid chart", async () => {
+    const el = await renderChart({
+      chart: { type: "pyramid" },
+      title: "Adoption Pyramid",
+      series: [{
+        name: "Users",
+        data: [
+          ["Enterprise", 200],
+          ["Mid-Market", 500],
+          ["SMB", 1500],
+          ["Free", 5000],
+        ],
+      }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("pictorial chart", async () => {
+    const el = await renderChart({
+      chart: { type: "pictorial" },
+      title: "Pictorial Values",
+      series: [{ name: "Values", data: [40, 60, 80] }],
+      xAxis: { categories: ["A", "B", "C"] },
     });
     expect(el.querySelector(".highcharts-root")).toBeTruthy();
   });

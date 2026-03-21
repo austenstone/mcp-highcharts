@@ -4,13 +4,12 @@ import { playwright } from "@vitest/browser-playwright";
 import path from "node:path";
 import fs from "node:fs";
 
-// Highcharts UMD modules use global `_Highcharts` context which Vite 8's Rolldown
-// bundler doesn't set up. Resolve to ESM builds instead.
+// Use Highcharts packed ESM bundles (v12.2+) which handle init order correctly
 const hcEsm = (p: string) =>
-  path.resolve("node_modules/highcharts/es-modules/masters", p);
+  path.resolve("node_modules/highcharts/esm", p);
 
-// Auto-generate aliases for every Highcharts module so we never have to add them 1-by-1
-const hcModules = fs.readdirSync(path.resolve("node_modules/highcharts/es-modules/masters/modules"))
+// Auto-generate aliases for every Highcharts module
+const hcModules = fs.readdirSync(path.resolve("node_modules/highcharts/esm/modules"))
   .filter((f: string) => f.endsWith(".src.js"))
   .reduce((acc: Record<string, string>, f: string) => {
     const name = f.replace(".src.js", "");
@@ -23,6 +22,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "highcharts/highcharts-more": hcEsm("highcharts-more.src.js"),
+      "highcharts/highcharts-3d": hcEsm("highcharts-3d.src.js"),
       ...hcModules,
       highcharts: hcEsm("highcharts.src.js"),
     },

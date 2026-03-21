@@ -59,7 +59,15 @@ export function createServer(): McpServer {
         "xAxis, yAxis, tooltip, plotOptions, legend, colors, colorAxis, pane, drilldown. " +
         "50+ series types: line, bar, column, area, pie, spline, scatter, heatmap, gauge, " +
         "treemap, sankey, funnel, networkgraph, waterfall, boxplot, timeline, wordcloud, and more. " +
-        "title/subtitle accept string shorthand. The theme auto-applies; override via plotOptions or series config.",
+        "title/subtitle accept string shorthand. The theme auto-applies; override via plotOptions or series config. " +
+        "All Highcharts modules are loaded: " +
+        "Core (line, area, spline, areaspline, column, bar, scatter, pie), " +
+        "Highcharts More (arearange, areasplinerange, boxplot, bubble, columnrange, columnpyramid, errorbar, gauge, packedbubble, polygon, waterfall), " +
+        "and all extension modules including maps (map, mapbubble, mapline, mappoint, flowmap, geoheatmap, tiledwebmap), " +
+        "sankey-family (sankey, dependency-wheel, arc-diagram, organization), " +
+        "and specialized types (wordcloud, timeline, treegraph, treemap, sunburst, networkgraph, funnel, " +
+        "solid-gauge, venn, variwide, variable-pie, vector, windbarb, xrange, pictorial, bullet, dumbbell, " +
+        "lollipop, streamgraph, tilemap, histogram-bellcurve, item-series, pareto).",
       inputSchema,
       _meta: { ui: { resourceUri } },
     },
