@@ -9,16 +9,16 @@ Just ask your AI to make a chart. It does the rest.
 
 ## Features
 
-- **119 chart types** — line, bar, column, pie, scatter, heatmap, sankey, gauge, treemap, wordcloud, network graph, timeline, and [many more](https://www.highcharts.com/demo)
-- **Multiple charts** — render dashboards with vertical, horizontal, or grid layouts
-- **Mixed/overlay charts** — combine column + line, dual Y-axes, any combination
+- **6 specialized tools** — charts, stock, dashboards, maps, gantt, and data grids
+- **65+ chart types** — line, bar, column, pie, scatter, heatmap, sankey, gauge, treemap, wordcloud, network graph, timeline, and [many more](https://www.highcharts.com/demo)
 - **Full Highcharts API** — every option from [api.highcharts.com](https://api.highcharts.com/highcharts/) is supported
 - **Lazy module loading** — only loads the Highcharts modules needed for your chart type
-- **Auto-generated schema** — chart types and module map regenerated from Highcharts on every build
+- **Auto-generated schema** — chart types, module map, and options schema regenerated from Highcharts on every build
 - **Adaptive theming** — respects host dark/light mode via CSS variables
-- **Custom themes** — JSON file or inline options via environment variable
+- **Custom themes** — 15 built-in themes or bring your own via JSON
+- **MCP Prompts** — 5 reusable slash commands for common charting tasks
 - **Accessibility** — built-in screen reader support
-- **Export** — PNG, SVG, PDF download
+- **Export** — PNG, SVG, PDF download (client-side, no server needed)
 - **Zero config** — `npx mcp-highcharts@latest --stdio` just works
 
 ## Quick Start
@@ -59,34 +59,65 @@ Add to `claude_desktop_config.json`:
 
 ### `render_chart`
 
-Render a single interactive chart. Input is any valid [Highcharts Options](https://api.highcharts.com/highcharts/) object.
+Render any interactive Highcharts chart. Input is a [Highcharts Options](https://api.highcharts.com/highcharts/) object.
 
-**Key properties:** `chart` (type, height), `title`, `subtitle`, `series`, `xAxis`, `yAxis`, `tooltip`, `plotOptions`, `legend`, `colors`, `colorAxis`, `pane`, `drilldown`
-
-**String shorthand:** `title` and `subtitle` accept plain strings — `"Revenue"` becomes `{ text: "Revenue" }`.
+Supports all 65+ chart types: line, bar, column, pie, scatter, spline, area, heatmap, treemap, sankey, gauge, funnel, waterfall, boxplot, wordcloud, networkgraph, sunburst, timeline, and more.
 
 ```
 Show me a bar chart of Q1-Q4 revenue: 100, 200, 300, 400
 ```
 
-### `render_charts`
+**String shorthand:** `title` and `subtitle` accept plain strings — `"Revenue"` becomes `{ text: "Revenue" }`.
 
-Render multiple charts in a single view.
+### `render_stock_chart`
+
+Financial charts with navigator, range selector, and technical indicators.
 
 ```
-Show me a dashboard with:
-1. A pie chart of market share (Chrome 65%, Firefox 20%, Safari 15%)
-2. A line chart of monthly growth (Jan-Jun: 10, 15, 20, 28, 35, 42)
-3. A gauge showing 95% uptime
-Use a 2-column grid layout.
+Show me AAPL stock price as a candlestick chart with volume bars
 ```
 
-**Layout options:**
-- `vertical` — stacked (default)
-- `horizontal` — side by side
-- `grid` — auto-grid with configurable columns
+Supports OHLC, candlestick, HLC, flags, and 40+ technical indicators. Dual y-axis for price + volume.
 
-### Mixed / Overlay Charts
+### `render_dashboard`
+
+Multi-component dashboards with KPIs, charts, and data grids in a synced layout.
+
+```
+Create a sales dashboard with revenue KPI, monthly trend chart, and top products pie chart
+```
+
+Uses [@highcharts/dashboards](https://www.highcharts.com/docs/dashboards/installation) with data connectors and component sync.
+
+### `render_map`
+
+Geographic visualizations — choropleth maps, map bubbles, map points.
+
+```
+Show a world map colored by population density
+```
+
+Supports GeoJSON/TopoJSON inline, multiple projections, and map navigation.
+
+### `render_gantt`
+
+Project timelines with tasks, dependencies, milestones, and progress tracking.
+
+```
+Create a project timeline for a 3-month software release
+```
+
+### `render_grid`
+
+Standalone data grids for tabular data display with sorting, filtering, and custom formatting.
+
+```
+Show a grid of the top 10 largest companies by market cap
+```
+
+Accepts data as columns (`Record<string, array>`) or rows (`array of objects`).
+
+## Mixed / Overlay Charts
 
 Combine chart types by setting `type` per series:
 
@@ -114,11 +145,23 @@ Dual Y-axis:
 }
 ```
 
+## Prompts
+
+Reusable slash commands (available in VS Code as `/mcp.highcharts.<prompt>`):
+
+| Prompt | Description |
+|--------|-------------|
+| `chart_from_data` | Paste data and get the best chart recommendation |
+| `dashboard_layout` | Scaffold a multi-component dashboard |
+| `stock_analysis` | Candlestick + volume + indicators template |
+| `comparison_chart` | Side-by-side comparison patterns |
+| `project_timeline` | Gantt chart with dependencies and milestones |
+
 ## Theming
 
-Charts automatically adapt to your host's light/dark mode.
+Charts automatically adapt to your host's light/dark mode via the `adaptive` theme (default).
 
-### Custom theme via environment variable
+### Custom theme
 
 **JSON file:**
 ```json
@@ -147,7 +190,7 @@ HIGHCHARTS_OPTIONS='{"chart":{"backgroundColor":"#0d1117"},"colors":["#006edb","
 HIGHCHARTS_THEME=dark-unica
 ```
 
-Available: `adaptive`, `avocado`, `brand-dark`, `brand-light`, `dark-blue`, `dark-green`, `dark-unica`, `gray`, `grid`, `grid-light`, `high-contrast-dark`, `high-contrast-light`, `sand-signika`, `skies`, `sunset`
+Available: `adaptive` (default), `avocado`, `brand-dark`, `brand-light`, `dark-blue`, `dark-green`, `dark-unica`, `gray`, `grid`, `grid-light`, `high-contrast-dark`, `high-contrast-light`, `sand-signika`, `skies`, `sunset`
 
 ## HTTP Mode
 
@@ -167,23 +210,28 @@ git clone https://github.com/austenstone/mcp-highcharts.git
 cd mcp-highcharts
 npm install
 npm run build    # prebuild auto-generates schema + module map
-npm test         # e2e tests via MCP SDK client
+npm test         # e2e tests
 npm run dev      # watch mode
 ```
 
 ### Architecture
 
-- **`server.ts`** — MCP server with `render_chart` and `render_charts` tools
-- **`src/mcp-app.ts`** — Client-side app: receives tool results, lazy-loads Highcharts modules, renders charts
-- **`src/module-loader.ts`** — Dynamic module loading using `import.meta.glob` + auto-generated type→module map
-- **`src/input-schema.ts`** — Rich Zod 4 schema with typed fields, examples, and passthrough for full API access
-- **`scripts/generate-schema.ts`** — Scans Highcharts package to generate chart types, module map, and Options fields
-- **`vite.config.ts`** — Builds self-contained HTML for the MCP App
+| File | Purpose |
+|------|---------|
+| `server.ts` | MCP server — 6 tools, 5 prompts, 1 app resource |
+| `main.ts` | Entry point — stdio + Streamable HTTP transports |
+| `src/mcp-app.ts` | Client-side app — receives tool results, renders charts |
+| `src/module-loader.ts` | Dynamic module loading via `import.meta.glob` + type→module map |
+| `src/input-schema.ts` | Rich Zod 4 schema with typed fields, examples, passthrough |
+| `scripts/generate-module-map.mjs` | Generates chart type → module mappings from Highcharts |
+| `scripts/generate-schema.ts` | Generates chart types and options fields from Highcharts types |
+| `scripts/generate-schema-from-tree.ts` | Downloads Highcharts API tree.json for schema enrichment |
+| `vite.config.ts` | Builds self-contained HTML via vite-plugin-singlefile |
 
 ### Updating Highcharts
 
 ```bash
-npm update highcharts
+npm update highcharts @highcharts/dashboards @highcharts/grid-lite
 npm run build  # regenerates everything automatically
 ```
 
