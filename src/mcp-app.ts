@@ -103,9 +103,13 @@ function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
 
   // Let Highcharts adaptive theme handle light/dark via class names
   if (ctx.theme === "dark") {
+    document.documentElement.classList.add("highcharts-dark");
+    document.documentElement.classList.remove("highcharts-light");
     root.classList.add("highcharts-dark");
     root.classList.remove("highcharts-light");
   } else {
+    document.documentElement.classList.add("highcharts-light");
+    document.documentElement.classList.remove("highcharts-dark");
     root.classList.add("highcharts-light");
     root.classList.remove("highcharts-dark");
   }
