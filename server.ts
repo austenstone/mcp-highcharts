@@ -496,7 +496,18 @@ export function createServer(): McpServer {
 
       return {
         contents: [
-          { uri: resourceUri, mimeType: RESOURCE_MIME_TYPE, text: html },
+          {
+            uri: resourceUri,
+            mimeType: RESOURCE_MIME_TYPE,
+            text: html,
+            _meta: {
+              ui: {
+                csp: {
+                  connectDomains: ["https://code.highcharts.com"],
+                },
+              },
+            },
+          },
         ],
       };
     },
