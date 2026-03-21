@@ -245,6 +245,9 @@ async function renderDashboard(config: Record<string, unknown>) {
   root.style.padding = "";
   root.style.overflow = "";
   root.style.gridTemplateColumns = "";
+  // Dashboards needs the container to have dimensions
+  root.style.width = "100%";
+  root.style.minHeight = "400px";
 
   // Load modules for all Highcharts components' chartOptions
   const components = config.components as Array<Record<string, unknown>> | undefined;
