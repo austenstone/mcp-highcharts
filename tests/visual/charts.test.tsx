@@ -1,12 +1,44 @@
 import Highcharts from "highcharts";
+// Core extensions
 import "highcharts/highcharts-more";
-import "highcharts/modules/heatmap";
-import "highcharts/modules/sankey";
+// All standalone modules — order matters: sankey before dependency-wheel
+import "highcharts/modules/accessibility";
+import "highcharts/modules/annotations";
+import "highcharts/modules/boost";
+import "highcharts/modules/bullet";
+import "highcharts/modules/coloraxis";
+import "highcharts/modules/data";
+import "highcharts/modules/drilldown";
+import "highcharts/modules/dumbbell";
+import "highcharts/modules/exporting";
+import "highcharts/modules/export-data";
+import "highcharts/modules/offline-exporting";
 import "highcharts/modules/funnel";
-import "highcharts/modules/treemap";
-import "highcharts/modules/sunburst";
-import "highcharts/modules/solid-gauge";
+import "highcharts/modules/heatmap";
+import "highcharts/modules/tilemap";
+import "highcharts/modules/histogram-bellcurve";
+import "highcharts/modules/item-series";
+import "highcharts/modules/lollipop";
 import "highcharts/modules/networkgraph";
+import "highcharts/modules/no-data-to-display";
+import "highcharts/modules/pareto";
+import "highcharts/modules/pattern-fill";
+import "highcharts/modules/sankey";
+import "highcharts/modules/dependency-wheel";
+import "highcharts/modules/series-label";
+import "highcharts/modules/solid-gauge";
+import "highcharts/modules/streamgraph";
+import "highcharts/modules/sunburst";
+import "highcharts/modules/timeline";
+import "highcharts/modules/treegraph";
+import "highcharts/modules/treemap";
+import "highcharts/modules/variable-pie";
+import "highcharts/modules/variwide";
+import "highcharts/modules/vector";
+import "highcharts/modules/venn";
+import "highcharts/modules/windbarb";
+import "highcharts/modules/wordcloud";
+import "highcharts/modules/xrange";
 import HighchartsReact from "highcharts-react-official";
 import { createRoot } from "react-dom/client";
 import { describe, it, expect, afterEach } from "vitest";
@@ -314,6 +346,129 @@ describe("Visual Chart Rendering", () => {
         background: [{ backgroundColor: "#1f2937", innerRadius: "60%", outerRadius: "100%", shape: "arc" }],
       },
       yAxis: { min: 0, max: 100, title: { text: "%" } },
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("waterfall chart", async () => {
+    const el = await renderChart({
+      chart: { type: "waterfall" },
+      title: "SHR True TCO Breakdown",
+      series: [{
+        name: "TCO",
+        data: [
+          { name: "Base Compute", y: 120000, color: "#30a147" },
+          { name: "Infra Mgmt", y: 45000, color: "#e5534b" },
+          { name: "Networking", y: 22000, color: "#e5534b" },
+          { name: "Maintenance FTE", y: 85000, color: "#e5534b" },
+          { name: "Security", y: 18000, color: "#e5534b" },
+          { name: "Total", isSum: true, color: "#006edb" },
+        ],
+      }],
+      xAxis: { type: "category" },
+      yAxis: { title: { text: "Annual Cost ($)" } },
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("timeline chart", async () => {
+    const el = await renderChart({
+      chart: { type: "timeline" },
+      title: "Platform Modernization",
+      series: [{
+        data: [
+          { name: "Jenkins Migration", label: "Jan 2024", description: "Migrated 50 repos" },
+          { name: "Zero Trust", label: "Apr 2024", description: "OIDC everywhere" },
+          { name: "GHR Adoption", label: "Jul 2024", description: "Full GHR rollout" },
+          { name: "Security", label: "Oct 2024", description: "GHAS enabled" },
+        ],
+      }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("wordcloud chart", async () => {
+    const el = await renderChart({
+      chart: { type: "wordcloud" },
+      title: "CI/CD Keywords",
+      series: [{
+        name: "Keywords",
+        data: [
+          { name: "node", weight: 38 },
+          { name: "build", weight: 32 },
+          { name: "deploy", weight: 28 },
+          { name: "test", weight: 25 },
+          { name: "docker", weight: 22 },
+          { name: "cache", weight: 20 },
+          { name: "actions", weight: 18 },
+          { name: "runner", weight: 16 },
+        ],
+      }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("treegraph chart", async () => {
+    const el = await renderChart({
+      chart: { type: "treegraph" },
+      title: "Platform Hierarchy",
+      series: [{
+        data: [
+          { id: "0.0", name: "Platform" },
+          { id: "1.0", name: "Actions", parent: "0.0" },
+          { id: "1.1", name: "Copilot", parent: "0.0" },
+          { id: "1.2", name: "Security", parent: "0.0" },
+          { id: "2.0", name: "CI", parent: "1.0" },
+          { id: "2.1", name: "CD", parent: "1.0" },
+        ],
+      }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("bubble chart", async () => {
+    const el = await renderChart({
+      chart: { type: "bubble" },
+      title: "Repos vs Success Rate vs Minutes",
+      series: [
+        { name: "Enterprise", data: [[10, 95, 60], [25, 88, 120], [50, 72, 200]], color: "#006edb" },
+        { name: "SMB", data: [[5, 98, 20], [15, 92, 50], [30, 85, 80]], color: "#30a147" },
+      ],
+      xAxis: { title: { text: "Active Repos" } },
+      yAxis: { title: { text: "Success Rate (%)" } },
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("packedbubble chart", async () => {
+    const el = await renderChart({
+      chart: { type: "packedbubble" },
+      title: "Top Actions by Usage",
+      series: [
+        { name: "GitHub", data: [{ name: "checkout", value: 95 }, { name: "setup-node", value: 82 }, { name: "cache", value: 68 }], color: "#006edb" },
+        { name: "Docker", data: [{ name: "build-push", value: 72 }, { name: "login", value: 58 }], color: "#30a147" },
+        { name: "Cloud", data: [{ name: "aws-configure", value: 45 }, { name: "azure-login", value: 38 }], color: "#d29922" },
+      ],
+      plotOptions: { packedbubble: { dataLabels: { enabled: true, format: "{point.name}" }, layoutAlgorithm: { splitSeries: true } } },
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("donut chart (pie with innerSize)", async () => {
+    const el = await renderChart({
+      chart: { type: "pie" },
+      title: "CI/CD Market Share (Donut)",
+      series: [{
+        name: "Share",
+        innerSize: "55%",
+        data: [
+          { name: "GitHub Actions", y: 42, color: "#006edb" },
+          { name: "Jenkins", y: 22, color: "#d29922" },
+          { name: "GitLab CI", y: 16, color: "#e5534b" },
+          { name: "CircleCI", y: 8, color: "#8b949e" },
+          { name: "Other", y: 12, color: "#484f58" },
+        ],
+      }],
     });
     expect(el.querySelector(".highcharts-root")).toBeTruthy();
   });

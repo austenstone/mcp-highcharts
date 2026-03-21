@@ -38,7 +38,7 @@ ts.forEachChild(sourceFile, (node) => {
     if (SKIP_KEYS.has(name)) continue;
     const symbol = checker.getSymbolAtLocation(member.name);
     const description = symbol
-      ? ts.displayPartsToString(symbol.getDocumentationComment(checker)).replace(/\n/g, " ").trim()
+      ? ts.displayPartsToString(symbol.getDocumentationComment(checker)).replace(/\n/g, " ").replace(/^\(.*?\)\s*/, "").trim()
       : name;
     optionsKeys.push({ name, description });
   }
