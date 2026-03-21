@@ -76,18 +76,33 @@ export function createServer(): McpServer {
       );
 
       // HIGHCHARTS_THEME: bare theme name (e.g. "dark-unica")
-      // HIGHCHARTS_OPTIONS: inline JSON passed to Highcharts.setOptions()
+      // HIGHCHARTS_OPTIONS: inline JSON string or path to a .json file
       const themeName = process.env.HIGHCHARTS_THEME?.trim();
-      const optionsJson = process.env.HIGHCHARTS_OPTIONS?.trim();
+      const rawOptions = (process.env.HIGHCHARTS_OPTIONS ?? "").trim();
 
-      if (optionsJson) {
+      let optionsJson: string | undefined;
+      if (rawOptions.startsWith("{")) {
+        // Inline JSON
         try {
-          JSON.parse(optionsJson); // validate
-          const injection = `<script>window.__HIGHCHARTS_OPTIONS__=${optionsJson};</script>`;
-          html = html.replace("<head>", `<head>${injection}`);
+          JSON.parse(rawOptions);
+          optionsJson = rawOptions;
         } catch (e) {
           console.error("Invalid HIGHCHARTS_OPTIONS JSON:", e);
         }
+      } else if (rawOptions.endsWith(".json")) {
+        // JSON file path
+        try {
+          const content = await fs.readFile(path.resolve(rawOptions), "utf-8");
+          JSON.parse(content); // validate
+          optionsJson = content;
+        } catch (e) {
+          console.error("Failed to load HIGHCHARTS_OPTIONS file:", e);
+        }
+      }
+
+      if (optionsJson) {
+        const injection = `<script>window.__HIGHCHARTS_OPTIONS__=${optionsJson};</script>`;
+        html = html.replace("<head>", `<head>${injection}`);
       } else if (themeName) {
         const injection = `<script>window.__HIGHCHARTS_THEME_NAME__="${themeName}";</script>`;
         html = html.replace("<head>", `<head>${injection}`);
