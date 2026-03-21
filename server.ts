@@ -33,7 +33,12 @@ export function createServer(): McpServer {
 
     if (isJsonContent(dataSource, content)) {
       // JSON → parse and merge as series data
-      const jsonData = JSON.parse(content);
+      let jsonData: unknown;
+      try {
+        jsonData = JSON.parse(content);
+      } catch {
+        throw new Error(`Invalid JSON in dataSource "${dataSource}"`);
+      }
       if (Array.isArray(jsonData) && !args.series) {
         args.data = { ...(args.data as object || {}), columns: jsonData };
       } else if (!args.series) {
@@ -340,16 +345,17 @@ export function createServer(): McpServer {
       _meta: { ui: { resourceUri } },
     },
     async (args): Promise<CallToolResult> => {
-      if (!args.series || !Array.isArray(args.series)) {
+      const processed = await resolveDataSource(args as Record<string, unknown>);
+      if (!processed.series || !Array.isArray(processed.series)) {
         return {
           isError: true,
           content: [{ type: "text", text: "series or dataSource is required" }],
         };
       }
-      const full = { ...args, __chartType: "map" };
-      const mapKey = (args.chart as any)?.map || "custom/world";
+      const full = { ...processed, __chartType: "map" };
+      const mapKey = (processed.chart as any)?.map || "custom/world";
       return {
-        content: [{ type: "text", text: `Rendered map chart (${mapKey}) with ${(args.series as any[]).length} series` }],
+        content: [{ type: "text", text: `Rendered map chart (${mapKey}) with ${(processed.series as any[]).length} series` }],
         structuredContent: full as any,
       };
     },
@@ -414,14 +420,15 @@ export function createServer(): McpServer {
       _meta: { ui: { resourceUri } },
     },
     async (args): Promise<CallToolResult> => {
-      if (!args.series || !Array.isArray(args.series)) {
+      const processed = await resolveDataSource(args as Record<string, unknown>);
+      if (!processed.series || !Array.isArray(processed.series)) {
         return {
           isError: true,
           content: [{ type: "text", text: "series or dataSource is required" }],
         };
       }
-      const full = { ...args, __chartType: "gantt" };
-      const tasks = (args.series as any[]).reduce((n, s) => n + (Array.isArray(s.data) ? s.data.length : 0), 0);
+      const full = { ...processed, __chartType: "gantt" };
+      const tasks = (processed.series as any[]).reduce((n, s) => n + (Array.isArray(s.data) ? s.data.length : 0), 0);
       return {
         content: [{ type: "text", text: `Rendered Gantt chart with ${tasks} tasks` }],
         structuredContent: full as any,

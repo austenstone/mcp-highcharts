@@ -297,9 +297,18 @@ async function renderGrid(opts: Record<string, unknown>) {
 
 function showError(container: HTMLElement, e: unknown) {
   const msg = e instanceof Error ? e.message : String(e);
-  container.innerHTML = `<div style="padding:24px;color:#f85149;font-family:system-ui;font-size:14px;">
-    <strong>Chart rendering failed</strong><br><code style="color:#8b949e;font-size:12px;">${msg}</code>
-  </div>`;
+  container.innerHTML = "";
+  const div = document.createElement("div");
+  div.style.cssText = "padding:24px;color:#f85149;font-family:system-ui;font-size:14px;";
+  const strong = document.createElement("strong");
+  strong.textContent = "Chart rendering failed";
+  const code = document.createElement("code");
+  code.style.cssText = "color:#8b949e;font-size:12px;";
+  code.textContent = msg;
+  div.appendChild(strong);
+  div.appendChild(document.createElement("br"));
+  div.appendChild(code);
+  container.appendChild(div);
   console.error("Chart rendering failed:", e);
 }
 
@@ -421,6 +430,9 @@ async function init() {
   appInstance = app;
 
   app.ontoolresult = async (result) => {
+    // Cancel any pending streaming preview to avoid overwriting the final render
+    clearTimeout(streamDebounce);
+
     let opts: Record<string, unknown> | undefined;
 
     // Prefer structuredContent (full processed config from server)
@@ -451,9 +463,11 @@ async function init() {
         const title = typeof opts.title === "string" ? opts.title : (opts.title as any)?.text || "";
         sendChartContext(`Rendered stock chart "${title}" with ${series.length} series (${types}).`);
       } else if (opts.__chartType === "map") {
+        // Capture map key before resolveMapData replaces it with TopoJSON object
+        const mapKey = (opts.chart as any)?.map && typeof (opts.chart as any).map === "string"
+          ? (opts.chart as any).map : "custom/world";
         await renderMapChart(opts);
         const series = (opts.series as Array<Record<string, unknown>>) || [];
-        const mapKey = (opts.chart as any)?.map && typeof (opts.chart as any).map === "string" ? (opts.chart as any).map : "custom/world";
         const dataPoints = series.reduce((n, s) => n + (Array.isArray(s.data) ? s.data.length : 0), 0);
         sendChartContext(`Rendered map chart (map: ${mapKey}) with ${dataPoints} data points across ${series.length} series.`);
       } else if (opts.__chartType === "gantt") {
@@ -464,7 +478,8 @@ async function init() {
       } else if (opts.__chartType === "grid") {
         await renderGrid(opts);
         const cols = Array.isArray((opts as any).columns) ? (opts as any).columns.length : 0;
-        const rows = Array.isArray((opts as any).data) ? (opts as any).data.length : 0;
+        const dataObj = (opts as any).data?.columns as Record<string, unknown[]> | undefined;
+        const rows = dataObj ? Math.max(0, ...Object.values(dataObj).map(a => Array.isArray(a) ? a.length : 0)) : 0;
         sendChartContext(`Rendered data grid with ${rows} rows and ${cols} columns.`);
       } else if (opts.components && Array.isArray(opts.components)) {
         await renderDashboard(opts);
