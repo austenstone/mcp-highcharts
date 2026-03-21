@@ -17,7 +17,7 @@ Dashboards.PluginHandler.addPlugin(Dashboards.HighchartsPlugin);
 // Theme name is a runtime value (from env var), so we use import.meta.glob for dynamic loading.
 // Highcharts themes self-register via Highcharts.setOptions() when imported — no manual setup needed.
 const themeModules = import.meta.glob(
-  "/node_modules/highcharts/esm/themes/*.src.js",
+  "/node_modules/highcharts/es-modules/masters/themes/*.src.js",
 ) as Record<string, () => Promise<unknown>>;
 
 const userOverrides = (window as unknown as Record<string, unknown>).__HIGHCHARTS_OPTIONS__ as Options | undefined;
@@ -28,7 +28,7 @@ const themeName =
 
 // When user provides full custom options, skip the built-in theme entirely.
 // Otherwise, dynamically import the theme module — it self-registers on load.
-const themeKey = `/node_modules/highcharts/esm/themes/${themeName}.src.js`;
+const themeKey = `/node_modules/highcharts/es-modules/masters/themes/${themeName}.src.js`;
 const themeReady = (userOverrides
   ? Promise.resolve()
   : themeModules[themeKey]?.() ?? Promise.resolve()

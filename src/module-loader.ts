@@ -3,21 +3,20 @@ import moduleMapData from "./generated/module-map.json" with { type: "json" };
 
 const { typeToModule } = moduleMapData;
 
-// Use import.meta.glob to create lazy loaders for ALL Highcharts modules at once.
-// Vite resolves these through the aliases defined in vite.config.ts.
+// Use import.meta.glob to create lazy loaders for ALL Highcharts modules.
+// Paths use es-modules/masters/ (granular ESM) matching Highcharts' own repo structure.
 const allModules = import.meta.glob([
-  "/node_modules/highcharts/esm/highcharts-more.src.js",
-  "/node_modules/highcharts/esm/highcharts-3d.src.js",
-  "/node_modules/highcharts/esm/modules/*.src.js",
-  "/node_modules/highcharts/esm/indicators/*.src.js",
+  "/node_modules/highcharts/es-modules/masters/highcharts-more.src.js",
+  "/node_modules/highcharts/es-modules/masters/highcharts-3d.src.js",
+  "/node_modules/highcharts/es-modules/masters/modules/*.src.js",
+  "/node_modules/highcharts/es-modules/masters/indicators/*.src.js",
 ]);
 
 /** Build a name→loader map from the glob results */
 function buildLoaderMap(): Record<string, () => Promise<unknown>> {
   const loaders: Record<string, () => Promise<unknown>> = {};
   for (const [path, loader] of Object.entries(allModules)) {
-    // Match modules/, indicators/, and top-level highcharts-*.src.js
-    const match = path.match(/\/highcharts\/esm\/(.+)\.src\.js$/);
+    const match = path.match(/\/es-modules\/masters\/(.+)\.src\.js$/);
     if (match) {
       loaders[match[1]] = loader; // e.g. "modules/stock", "indicators/rsi", "highcharts-more"
     }
@@ -68,12 +67,12 @@ export async function loadModulesForOptions(options: Record<string, unknown>): P
   if (options.colorAxis) await loadModule("modules/coloraxis");
   if (options.drilldown) await loadModule("modules/drilldown");
 
-  // Stock chart detection — load stock module for stock-specific options or chart type
+  // Stock chart detection
   if (options.__chartType === "stock" || options.navigator || options.rangeSelector || options.stockTools) {
     await loadModule("modules/stock");
   }
 
-  // Map chart detection — load map module for map-specific options or chart type
+  // Map chart detection
   if (options.__chartType === "map" || options.mapNavigation || options.mapView) {
     await loadModule("modules/map");
   }
@@ -88,7 +87,6 @@ export async function loadModulesForOptions(options: Record<string, unknown>): P
     for (const s of series) {
       const t = s.type as string | undefined;
       if (t && loaders[`indicators/${t}`]) {
-        // Load base indicators module first (required dependency)
         await loadModule("indicators/indicators");
         await loadModule(`indicators/${t}`);
       }

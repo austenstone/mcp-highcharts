@@ -2,25 +2,27 @@
 /**
  * Generate type→module mapping using Highcharts' actual runtime registry.
  * 
- * Imports each module, diffs Highcharts.seriesTypes before/after, and records
- * which module provides which chart types. 100% accurate — no regex parsing.
+ * Uses es-modules/masters/ (granular ESM) — the same module structure
+ * Highcharts uses internally. Imports each module, diffs seriesTypes
+ * before/after, and records which module provides which chart types.
  *
- * Must run with: node --input-type=module scripts/generate-module-map.mjs
- * (or just `node scripts/generate-module-map.mjs` since .mjs is ESM)
+ * @see https://www.highcharts.com/docs/getting-started/installation-with-esm
  */
-import Highcharts from "../node_modules/highcharts/esm/highcharts.src.js";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
-const HC_ESM = path.join(ROOT, "node_modules/highcharts/esm");
+const HC_ESM = path.join(ROOT, "node_modules/highcharts/es-modules/masters");
 const MODULES_DIR = path.join(HC_ESM, "modules");
 const THEMES_DIR = path.join(HC_ESM, "themes");
 const GENERATED_DIR = path.join(ROOT, "src/generated");
 
 fs.mkdirSync(GENERATED_DIR, { recursive: true });
+
+// Import Highcharts from es-modules/masters/ (same entry point used at runtime)
+const Highcharts = (await import(path.join(HC_ESM, "highcharts.src.js"))).default;
 
 // Module load order (deps before dependents)
 const LOAD_ORDER = [
@@ -56,10 +58,7 @@ function ensureLoaded(modName) {
   if (loaded.has(modName)) return;
   const deps = DEPS[modName] || [];
   for (const dep of deps) {
-    if (dep.startsWith("../")) {
-      // Root module reference — already in LOAD_ORDER
-      continue;
-    }
+    if (dep.startsWith("../")) continue;
     ensureLoaded(dep);
   }
   loaded.add(modName);
@@ -68,7 +67,6 @@ function ensureLoaded(modName) {
 
 for (const mod of moduleFiles) ensureLoaded(mod);
 
-// Add modules to load order
 for (const mod of orderedModules) {
   LOAD_ORDER.push([`modules/${mod}`, path.join(MODULES_DIR, `${mod}.src.js`)]);
 }

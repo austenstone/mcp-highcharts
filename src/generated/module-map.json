@@ -130,10 +130,6 @@
     "renko": [
       "modules/renko"
     ],
-    "solidgauge": [
-      "highcharts-more",
-      "modules/solid-gauge"
-    ],
     "hlc": [
       "modules/stock"
     ],
@@ -176,9 +172,6 @@
     ],
     "vector": [
       "modules/vector"
-    ],
-    "venn": [
-      "modules/venn"
     ],
     "windbarb": [
       "modules/windbarb"
@@ -337,7 +330,6 @@
     "sankey",
     "scatter",
     "scatter3d",
-    "solidgauge",
     "spline",
     "streamgraph",
     "sunburst",
@@ -349,7 +341,6 @@
     "variablepie",
     "variwide",
     "vector",
-    "venn",
     "waterfall",
     "windbarb",
     "wordcloud",
