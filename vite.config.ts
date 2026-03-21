@@ -4,7 +4,7 @@ import path from "node:path";
 import fs from "node:fs";
 
 const INPUT = process.env.INPUT;
-if (!INPUT) {
+if (!INPUT && process.env.NODE_ENV === "production") {
   throw new Error("INPUT environment variable is not set");
 }
 
@@ -63,7 +63,7 @@ export default defineConfig({
     sourcemap: isDevelopment ? "inline" : undefined,
     cssMinify: !isDevelopment,
     minify: !isDevelopment,
-    rollupOptions: { input: INPUT },
+    rollupOptions: INPUT ? { input: INPUT } : {},
     outDir: "dist",
     emptyOutDir: false,
   },
