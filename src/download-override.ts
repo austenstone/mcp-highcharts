@@ -30,46 +30,41 @@ export function setMcpApp(app: any, canDownload: boolean) {
 }
 
 export function downloadURL(dataURL: string | URL, filename: string): void {
-  console.debug("[mcp-highcharts] downloadURL called:", { filename, canDownload: _canDownload, hasApp: !!_appInstance });
+  console.log("[mcp-highcharts] downloadURL called:", filename, "canDownload:", _canDownload, "hasApp:", !!_appInstance);
   if (!_canDownload || !_appInstance) {
+    console.log("[mcp-highcharts] falling back to original downloadURL");
     origDownloadURL(dataURL, filename);
     return;
   }
 
   const dataStr = String(dataURL);
+  const mimeMatch = dataStr.match(/^data:([^;,]+)/);
+  const mimeType = mimeMatch?.[1] || "application/octet-stream";
+  const base64 = dataStr.split(",")[1];
 
-  try {
-    const mimeMatch = dataStr.match(/^data:([^;,]+)/);
-    const mimeType = mimeMatch?.[1] || "application/octet-stream";
-    const base64 = dataStr.split(",")[1];
-
-    if (!base64) {
-      console.debug("[mcp-highcharts] no base64 data, falling back");
-      origDownloadURL(dataURL, filename);
-      return;
-    }
-
-    console.debug("[mcp-highcharts] calling app.downloadFile", { filename, mimeType, blobLen: base64.length });
-    _appInstance
-      .downloadFile({
-        contents: [
-          {
-            type: "resource" as const,
-            resource: {
-              uri: `file:///${filename}`,
-              mimeType,
-              blob: base64,
-            },
-          },
-        ],
-      })
-      .then(() => console.debug("[mcp-highcharts] downloadFile succeeded"))
-      .catch((err: any) => {
-        console.warn("[mcp-highcharts] downloadFile failed:", err);
-        origDownloadURL(dataURL, filename);
-      });
-  } catch (err) {
-    console.warn("[mcp-highcharts] downloadURL error:", err);
+  if (!base64) {
+    console.log("[mcp-highcharts] no base64 in dataURL, falling back");
     origDownloadURL(dataURL, filename);
+    return;
   }
+
+  console.log("[mcp-highcharts] calling app.downloadFile:", filename, mimeType, "blob length:", base64.length);
+  _appInstance
+    .downloadFile({
+      contents: [
+        {
+          type: "resource" as const,
+          resource: {
+            uri: `file:///${filename}`,
+            mimeType,
+            blob: base64,
+          },
+        },
+      ],
+    })
+    .then((result: any) => console.log("[mcp-highcharts] downloadFile result:", JSON.stringify(result)))
+    .catch((err: any) => {
+      console.error("[mcp-highcharts] downloadFile error:", err);
+      origDownloadURL(dataURL, filename);
+    });
 }
