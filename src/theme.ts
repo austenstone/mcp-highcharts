@@ -180,9 +180,12 @@ export const theme: Options = {
     scatter: {
       marker: {
         enabled: true,
-        radius: 6,
+        radius: 8,
+        symbol: "circle",
+        lineWidth: 1,
+        lineColor: "rgba(255, 255, 255, 0.3)",
         states: {
-          hover: { enabled: true, radius: 8, lineWidth: 2, lineColor: "#ffffff" },
+          hover: { enabled: true, radius: 10, lineWidth: 2, lineColor: "#ffffff" },
         },
       },
     },
