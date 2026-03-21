@@ -249,6 +249,15 @@ async function renderDashboard(config: Record<string, unknown>) {
   root.style.width = "100%";
   root.style.minHeight = "400px";
 
+  // Normalize gui config: LLMs often send gui.rows shorthand,
+  // but Dashboards requires gui.layouts[].rows[]
+  const gui = config.gui as Record<string, unknown> | undefined;
+  if (gui?.rows && !gui.layouts) {
+    gui.layouts = [{ rows: gui.rows }];
+    delete gui.rows;
+    gui.enabled = true;
+  }
+
   // Load modules for all Highcharts components' chartOptions
   const components = config.components as Array<Record<string, unknown>> | undefined;
   if (components) {

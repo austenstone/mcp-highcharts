@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Highcharts Test</title>
+  <link rel="stylesheet" href="/node_modules/@highcharts/dashboards/css/dashboards.css">
+  <link rel="stylesheet" href="/node_modules/@highcharts/grid-lite/css/grid-lite.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; padding: 16px; height: 100%; font-family: system-ui; background: #1e1e1e; color: #fff; }
@@ -145,10 +147,13 @@
         containerClass: "dashboard-container",
         render: (el) => Dashboards.board(el, {
           gui: {
-            rows: [
-              { cells: [{ id: "kpi-1" }, { id: "kpi-2" }, { id: "kpi-3" }] },
-              { cells: [{ id: "chart-1" }, { id: "chart-2" }] }
-            ]
+            enabled: true,
+            layouts: [{
+              rows: [
+                { cells: [{ id: "kpi-1" }, { id: "kpi-2" }, { id: "kpi-3" }] },
+                { cells: [{ id: "chart-1" }, { id: "chart-2" }] }
+              ]
+            }]
           },
           components: [
             { renderTo: "kpi-1", type: "KPI", title: "Revenue", value: "$1.42M", subtitle: "+12.5%" },
