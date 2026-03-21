@@ -373,6 +373,8 @@ async function init() {
   appInstance = app;
 
   app.ontoolresult = async (result) => {
+    console.log("[mcp-highcharts] ontoolresult received, hasStructured:", !!result.structuredContent);
+    try { appInstance?.sendLog?.({ level: "info", data: `[ontoolresult] hasStructured=${!!result.structuredContent}, keys=${result.structuredContent ? Object.keys(result.structuredContent as object).join(",") : "none"}` }); } catch {}
     let opts: Record<string, unknown> | undefined;
 
     // Prefer structuredContent (full processed config from server)
