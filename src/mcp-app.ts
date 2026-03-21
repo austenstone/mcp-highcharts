@@ -37,7 +37,7 @@ const themeReady = (userOverrides
               hover: { fill: "var(--highcharts-neutral-color-10, #333)" },
               select: { fill: "var(--highcharts-neutral-color-10, #333)" },
             },
-          },
+          } as any,
         },
       },
     },
