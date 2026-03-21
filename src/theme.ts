@@ -57,9 +57,9 @@ export const theme: Options = {
       width: 1,
       dashStyle: "Dash",
     },
-    gridLineColor: "var(--borderColor-muted, #374151)",
+    gridLineColor: "rgba(139, 148, 158, 0.15)",
     gridLineDashStyle: "Dash",
-    lineColor: "var(--borderColor-default, #4b5563)",
+    lineColor: "rgba(139, 148, 158, 0.4)",
     labels: {
       style: {
         color: "var(--fgColor-muted, #d1d5db)",
@@ -77,7 +77,7 @@ export const theme: Options = {
   yAxis: {
     tickWidth: 0,
     lineWidth: 0,
-    gridLineColor: "var(--borderColor-muted, #374151)",
+    gridLineColor: "rgba(139, 148, 158, 0.15)",
     gridLineDashStyle: "Dash",
     labels: {
       style: {
