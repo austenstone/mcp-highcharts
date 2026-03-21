@@ -10,7 +10,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -19,10 +19,13 @@ const MODULES_DIR = path.join(HC_ESM, "modules");
 const THEMES_DIR = path.join(HC_ESM, "themes");
 const GENERATED_DIR = path.join(ROOT, "src/generated");
 
+// Convert absolute paths to file:// URLs for cross-platform ESM import compatibility
+const toURL = (p) => pathToFileURL(p).href;
+
 fs.mkdirSync(GENERATED_DIR, { recursive: true });
 
 // Import Highcharts from es-modules/masters/ (same entry point used at runtime)
-const Highcharts = (await import(path.join(HC_ESM, "highcharts.src.js"))).default;
+const Highcharts = (await import(toURL(path.join(HC_ESM, "highcharts.src.js")))).default;
 
 // Module load order (deps before dependents)
 const LOAD_ORDER = [
@@ -80,7 +83,7 @@ for (const [name, filePath] of LOAD_ORDER) {
   if (!fs.existsSync(filePath)) continue;
   const before = new Set(Object.keys(Highcharts.seriesTypes));
   try {
-    await import(filePath);
+    await import(toURL(filePath));
   } catch (e) {
     continue;
   }
