@@ -233,6 +233,73 @@ export function createServer(): McpServer {
     },
   );
 
+  registerAppTool(
+    server,
+    "render_grid",
+    {
+      title: "Render Data Grid",
+      annotations: { readOnlyHint: true },
+      description:
+        "Render a Highcharts Grid Lite data table for tabular data display. " +
+        "Standalone component — no chart required. Supports column definitions, sorting, filtering, " +
+        "pagination, custom formatters, and large datasets. " +
+        "Pass data as columns (Record<string, array>) or rows (array of objects).",
+      inputSchema: {
+        columns: z.array(z.object({}).passthrough()).optional()
+          .describe("Column definitions array with id, header, cells options, sorting, filtering config"),
+        data: z.object({}).passthrough().optional()
+          .describe("Data provider options. Use data.columns (Record<columnId, values[]>) for column-oriented data"),
+        dataTable: z.object({}).passthrough().optional()
+          .describe("DataTable options with columns (Record<columnId, values[]>). Deprecated — use data instead"),
+        header: z.array(z.any()).optional()
+          .describe("Header structure for grouped column headers"),
+        columnDefaults: z.object({}).passthrough().optional()
+          .describe("Default options applied to all columns"),
+        pagination: z.object({}).passthrough().optional()
+          .describe("Pagination options (enabled, pageSize)"),
+        rendering: z.object({}).passthrough().optional()
+          .describe("Rendering options (rows.strictHeights, columns.distribution)"),
+        caption: z.object({}).passthrough().optional()
+          .describe("Grid caption options"),
+        description: z.object({}).passthrough().optional()
+          .describe("Grid description options for accessibility"),
+        lang: z.object({}).passthrough().optional()
+          .describe("Language/localization options"),
+        // Convenience: accept row-oriented data and convert to column-oriented
+        rows: z.array(z.object({}).passthrough()).optional()
+          .describe("Row data as array of objects (convenience — converted to column-oriented data internally)"),
+      },
+      _meta: { ui: { resourceUri } },
+    },
+    async (args): Promise<CallToolResult> => {
+      const a = args as Record<string, unknown>;
+      // Must have some data source
+      if (!a.data && !a.dataTable && !a.rows) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: "One of data, dataTable, or rows is required" }],
+        };
+      }
+
+      // Convert convenience rows format to data.columns
+      if (a.rows && Array.isArray(a.rows) && !a.data) {
+        const rows = a.rows as Record<string, unknown>[];
+        const colMap: Record<string, unknown[]> = {};
+        for (const row of rows) {
+          for (const [key, val] of Object.entries(row)) {
+            (colMap[key] ??= []).push(val);
+          }
+        }
+        a.data = { columns: colMap };
+        delete a.rows;
+      }
+
+      return {
+        content: [{ type: "text", text: JSON.stringify({ ...a, __chartType: "grid" }) }],
+      };
+    },
+  );
+
   registerAppResource(
     server,
     resourceUri,

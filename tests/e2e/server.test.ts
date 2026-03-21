@@ -171,6 +171,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
     const result = await client.callTool({
       name: "render_stock_chart",
       arguments: {
+        chart: { type: "candlestick" },
         title: { text: "Stock Price" },
         series: [{
           type: "candlestick",

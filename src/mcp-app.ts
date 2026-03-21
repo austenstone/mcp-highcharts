@@ -5,6 +5,8 @@ import type { Options } from "highcharts";
 import * as Dashboards from "@highcharts/dashboards";
 import "@highcharts/dashboards/modules/layout";
 import "@highcharts/dashboards/css/dashboards.css";
+import GridLite from "@highcharts/grid-lite";
+import "@highcharts/grid-lite/css/grid-lite.css";
 import { loadModulesForOptions } from "./module-loader";
 
 // Connect Highcharts to Dashboards
