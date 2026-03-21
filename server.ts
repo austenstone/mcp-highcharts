@@ -10,6 +10,8 @@ import type {
 } from "@modelcontextprotocol/sdk/types.js";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { z } from "zod";
+
 const DIST_DIR = import.meta.filename.endsWith(".ts")
   ? path.join(import.meta.dirname, "dist")
   : import.meta.dirname;
@@ -33,16 +35,28 @@ export function createServer(): McpServer {
         "Render an interactive Highcharts chart. Pass series data, chart type, title, and optional Highcharts configuration. " +
         "Supports: line, bar, column, area, pie, spline, areaspline, scatter. " +
         "The `highchartsOptions` field accepts any valid Highcharts chart options for full customization.",
-      inputSchema: {},
+      inputSchema: {
+        chartType: z.string().optional().describe("Chart type: line, bar, column, area, pie, spline, areaspline, scatter"),
+        title: z.string().optional().describe("Chart title"),
+        subtitle: z.string().optional().describe("Chart subtitle"),
+        series: z.array(z.object({
+          name: z.string(),
+          data: z.any(),
+          type: z.string().optional(),
+        })).describe("Array of Highcharts series objects with name and data"),
+        xAxisCategories: z.array(z.string()).optional().describe("Category labels for the X axis"),
+        xAxisTitle: z.string().optional().describe("X axis title"),
+        yAxisTitle: z.string().optional().describe("Y axis title"),
+        highchartsOptions: z.record(z.string(), z.any()).optional().describe("Additional Highcharts options to deep-merge"),
+      },
       _meta: { ui: { resourceUri } },
     },
-    async (params: Record<string, unknown>): Promise<CallToolResult> => {
-      // Pass the chart config straight through as JSON — the view renders it
+    async (args): Promise<CallToolResult> => {
       return {
         content: [
           {
             type: "text",
-            text: JSON.stringify(params),
+            text: JSON.stringify(args),
           },
         ],
       };
