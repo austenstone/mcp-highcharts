@@ -353,11 +353,13 @@ async function renderDashboard(config: Record<string, unknown>) {
 let appInstance: InstanceType<typeof App> | null = null;
 let streamDebounce: ReturnType<typeof setTimeout>;
 
+/** Send chart context back to the LLM — gated on host capability */
+let _canUpdateContext = false;
 function sendChartContext(description: string) {
-  if (!appInstance || typeof appInstance.updateModelContext !== "function") return;
+  if (!_canUpdateContext || !appInstance) return;
   appInstance.updateModelContext({
     content: [{ type: "text", text: description }],
-  }).catch(() => {}); // Silently fail if host doesn't support it
+  }).catch(() => {});
 }
 
 async function init() {
@@ -424,27 +426,30 @@ async function init() {
   app.onerror = console.error;
 
   await app.connect(new PostMessageTransport(window.parent, window.parent));
-
-  // Log host capabilities for debugging
-  const caps = app.getHostCapabilities?.();
-  console.log("[mcp-highcharts] Host capabilities:", JSON.stringify(caps, null, 2));
   appInstance = app;
 
-  // Intercept link clicks to open in host browser
-  document.addEventListener('click', (e) => {
-    const anchor = (e.target as HTMLElement).closest('a[href]');
-    if (anchor) {
-      const href = anchor.getAttribute('href');
-      if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
-        e.preventDefault();
-        appInstance?.openLink({ url: href }).catch(() => {
-          // Fallback: do nothing (can't navigate in sandbox anyway)
-        });
-      }
-    }
-  });
+  // Check host capabilities — only enable features the host supports
+  const caps = app.getHostCapabilities?.() ?? {};
+  console.log("[mcp-highcharts] Host capabilities:", JSON.stringify(caps));
 
-  // Streaming preview: render partial chart config as LLM streams
+  // Enable updateModelContext if host supports it
+  _canUpdateContext = !!caps.updateModelContext;
+
+  // ── openLink: intercept external link clicks ──
+  if (caps.openLinks) {
+    document.addEventListener('click', (e) => {
+      const anchor = (e.target as HTMLElement).closest('a[href]');
+      if (anchor) {
+        const href = anchor.getAttribute('href');
+        if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+          e.preventDefault();
+          appInstance?.openLink({ url: href }).catch(() => {});
+        }
+      }
+    });
+  }
+
+  // ── ontoolinputpartial: streaming preview ──
   app.ontoolinputpartial = (partialArgs) => {
     try {
       const partial = partialArgs.arguments;
@@ -465,73 +470,68 @@ async function init() {
     }
   };
 
-  // Override Highcharts download to use MCP SDK's downloadFile()
-  // Highcharts ESM lazy-loads offline-exporting which sets H.downloadURL after init.
-  // We override it via a getter/setter on the Highcharts object to catch whenever it's assigned.
-  let _downloadURL: ((dataURL: string, filename: string) => void) | undefined;
-  const hc = Highcharts as any;
-  const origDownloadURL = hc.downloadURL;
+  // ── downloadFile: route Highcharts export through MCP SDK ──
+  if (caps.downloadFile) {
+    let _downloadURL: ((dataURL: string, filename: string) => void) | undefined;
+    const hc = Highcharts as any;
+    const origDownloadURL = hc.downloadURL;
 
-  function mcpDownload(dataURL: string, filename: string) {
-    console.log("[mcp-highcharts] downloadURL called:", { filename, hasApp: !!appInstance, dataURLLen: dataURL?.length });
-    if (!appInstance) {
-      console.log("[mcp-highcharts] no appInstance, falling back");
-      _downloadURL?.(dataURL, filename);
-      return;
-    }
-    try {
-      const mimeMatch = dataURL.match(/^data:([^;,]+)/);
-      const mimeType = mimeMatch?.[1] || "application/octet-stream";
-      const base64 = dataURL.split(",")[1];
-      if (!base64) {
+    function mcpDownload(dataURL: string, filename: string) {
+      if (!appInstance) {
         _downloadURL?.(dataURL, filename);
         return;
       }
-
-      appInstance
-        .downloadFile({
-          contents: [
-            {
-              type: "resource" as const,
-              resource: {
-                uri: `file:///${filename}`,
-                mimeType,
-                blob: base64,
-              },
-            },
-          ],
-        })
-        .catch((err: Error) => {
-          console.warn("MCP downloadFile failed, falling back:", err);
+      try {
+        const mimeMatch = dataURL.match(/^data:([^;,]+)/);
+        const mimeType = mimeMatch?.[1] || "application/octet-stream";
+        const base64 = dataURL.split(",")[1];
+        if (!base64) {
           _downloadURL?.(dataURL, filename);
-        });
-    } catch {
-      _downloadURL?.(dataURL, filename);
+          return;
+        }
+
+        appInstance
+          .downloadFile({
+            contents: [
+              {
+                type: "resource" as const,
+                resource: {
+                  uri: `file:///${filename}`,
+                  mimeType,
+                  blob: base64,
+                },
+              },
+            ],
+          })
+          .catch((err: Error) => {
+            console.warn("[mcp-highcharts] downloadFile failed, falling back:", err);
+            _downloadURL?.(dataURL, filename);
+          });
+      } catch {
+        _downloadURL?.(dataURL, filename);
+      }
     }
-  }
 
-  // Set immediately if already defined
-  if (typeof origDownloadURL === "function") {
-    _downloadURL = origDownloadURL;
-    hc.downloadURL = mcpDownload;
-  }
+    if (typeof origDownloadURL === "function") {
+      _downloadURL = origDownloadURL;
+      hc.downloadURL = mcpDownload;
+    }
 
-  // Also use Object.defineProperty to intercept future assignments
-  // (offline-exporting module sets H.downloadURL when it loads)
-  try {
-    let _currentDownload = hc.downloadURL;
-    Object.defineProperty(hc, "downloadURL", {
-      get() {
-        return mcpDownload;
-      },
-      set(fn: (dataURL: string, filename: string) => void) {
-        _downloadURL = fn;
-        _currentDownload = mcpDownload;
-      },
-      configurable: true,
+    // Intercept future assignments (offline-exporting sets H.downloadURL when it loads)
+    try {
+      Object.defineProperty(hc, "downloadURL", {
+        get() { return mcpDownload; },
+        set(fn: (dataURL: string, filename: string) => void) { _downloadURL = fn; },
+        configurable: true,
+      });
+    } catch {
+      // defineProperty may fail on frozen objects
+    }
+  } else {
+    // Host doesn't support downloadFile — disable export menu entirely
+    Highcharts.setOptions({
+      exporting: { enabled: false },
     });
-  } catch {
-    // defineProperty may fail on frozen objects — the direct override above is the fallback
   }
 
   // Apply initial host theme
