@@ -143,6 +143,16 @@ function applyThemeAndRedraw(ctx: McpUiHostContext | null | undefined) {
   }
 }
 
+
+/** Set a minimum chart height if not explicitly specified */
+function ensureMinHeight(opts: Record<string, unknown>, minHeight: number) {
+  const chart = (opts.chart || {}) as Record<string, unknown>;
+  if (!chart.height) {
+    chart.height = minHeight;
+    opts.chart = chart;
+  }
+}
+
 function processOptions(opts: Record<string, unknown>): Options & Record<string, unknown> {
   const processed = opts as Options & Record<string, unknown>;
   if (typeof processed.title === "string") processed.title = { text: processed.title };
@@ -209,6 +219,7 @@ async function renderMapChart(opts: Record<string, unknown>) {
   container.innerHTML = "";
   container.style.display = "";
 
+  ensureMinHeight(opts, 500);
   const processed = processOptions(opts);
 
   try {
@@ -249,6 +260,7 @@ async function renderStockChart(opts: Record<string, unknown>) {
   root.style.display = "";
 
   const { __chartType, ...rest } = opts;
+  ensureMinHeight(rest, 600);
   const processed = processOptions(rest);
   await loadModulesForOptions({ ...processed as Record<string, unknown>, __chartType: "stock" });
 
@@ -263,6 +275,7 @@ async function renderGanttChart(opts: Record<string, unknown>) {
   const container = document.getElementById("root")!;
   container.innerHTML = "";
   container.style.display = "";
+  ensureMinHeight(opts, 500);
   const processed = processOptions(opts as Record<string, unknown>);
   delete processed.__chartType;
   try {
