@@ -1,5 +1,12 @@
 // Type declarations for @highcharts packages with non-standard ESM type resolution
 
+// Extend Highcharts with mapChart, stockChart, ganttChart from modules
+declare namespace Highcharts {
+  function mapChart(container: string | HTMLElement, options: Highcharts.Options): Highcharts.Chart;
+  function stockChart(container: string | HTMLElement, options: Highcharts.Options): Highcharts.Chart;
+  function ganttChart(container: string | HTMLElement, options: Highcharts.Options): Highcharts.Chart;
+}
+
 declare module "@highcharts/dashboards" {
   interface DashboardsGlobals {
     HighchartsPlugin: {

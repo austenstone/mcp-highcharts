@@ -38,6 +38,8 @@ import GridLite from "/node_modules/@highcharts/grid-lite/es-modules/masters/gri
 // Connect plugins
 Dashboards.HighchartsPlugin.custom.connectHighcharts(Highcharts);
 Dashboards.PluginHandler.addPlugin(Dashboards.HighchartsPlugin);
+Dashboards.GridPlugin.custom.connectGrid(GridLite);
+Dashboards.PluginHandler.addPlugin(Dashboards.GridPlugin);
 
 window.Highcharts = Highcharts;
 window.Dashboards = Dashboards;
@@ -257,17 +259,16 @@ const dashboardTests = [
           connectors: [{
             id: "sales-data",
             type: "JSON",
-            options: {
-              data: [
-                { month: "Jan", revenue: 4200, cost: 3100 },
-                { month: "Feb", revenue: 5100, cost: 3400 },
-                { month: "Mar", revenue: 6200, cost: 3900 },
-                { month: "Apr", revenue: 5800, cost: 3700 },
-                { month: "May", revenue: 7100, cost: 4200 },
-                { month: "Jun", revenue: 8300, cost: 4800 }
-              ],
-              dataModifier: { type: "Math" }
-            }
+            data: [
+              ["month", "revenue", "cost"],
+              ["Jan", 4200, 3100],
+              ["Feb", 5100, 3400],
+              ["Mar", 6200, 3900],
+              ["Apr", 5800, 3700],
+              ["May", 7100, 4200],
+              ["Jun", 8300, 4800]
+            ],
+            firstRowAsNames: true
           }]
         },
         gui: { enabled: true, layouts: [{ rows: [{ cells: [{ id: "dp-chart" },{ id: "dp-grid" }] }] }] },

@@ -18,6 +18,8 @@ import { loadModulesForOptions } from "./module-loader";
 // Official ESM plugin connection (per Highcharts docs)
 Dashboards.HighchartsPlugin.custom.connectHighcharts(Highcharts);
 Dashboards.PluginHandler.addPlugin(Dashboards.HighchartsPlugin);
+Dashboards.GridPlugin.custom.connectGrid(GridLite);
+Dashboards.PluginHandler.addPlugin(Dashboards.GridPlugin);
 
 // Theme name is a runtime value (from env var), so we use import.meta.glob for dynamic loading.
 // Highcharts themes self-register via Highcharts.setOptions() when imported — no manual setup needed.
@@ -158,7 +160,7 @@ async function renderMapChart(opts: Record<string, unknown>) {
   try {
     await loadModulesForOptions(processed as Record<string, unknown>);
     delete (processed as any).__chartType;
-    (Highcharts as any).mapChart(container, processed as any);
+    Highcharts.mapChart(container, processed as Options);
   } catch (e) {
     showError(container, e);
   }
@@ -196,7 +198,7 @@ async function renderStockChart(opts: Record<string, unknown>) {
   await loadModulesForOptions({ ...processed as Record<string, unknown>, __chartType: "stock" });
 
   try {
-    (Highcharts as any).stockChart(root, processed as Options);
+    Highcharts.stockChart(root, processed as Options);
   } catch (e) {
     showError(root, e);
   }
@@ -210,7 +212,7 @@ async function renderGanttChart(opts: Record<string, unknown>) {
   delete processed.__chartType;
   try {
     await loadModulesForOptions({ ...opts }); // pass original with __chartType for module detection
-    (Highcharts as any).ganttChart(container, processed as any);
+    Highcharts.ganttChart(container, processed as Options);
   } catch (e) {
     showError(container, e);
   }
@@ -314,7 +316,8 @@ async function init() {
         await renderSingleChart(opts as Options & Record<string, unknown>);
       }
     } catch (e) {
-      console.error("Failed to parse chart data:", e);
+      const container = document.getElementById("root")!;
+      showError(container, e instanceof Error ? e : new Error("Failed to parse chart data"));
     }
   };
 
