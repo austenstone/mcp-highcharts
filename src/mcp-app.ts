@@ -46,37 +46,9 @@ const themeReady = (userOverrides
     exporting: {
       enabled: true,
       fallbackToExportServer: false,
-      buttons: {
-        contextButton: {
-          symbolStroke: "var(--highcharts-neutral-color-80, #999)",
-          theme: {
-            fill: "transparent",
-            states: {
-              hover: { fill: "var(--highcharts-neutral-color-10, #333)" },
-              select: { fill: "var(--highcharts-neutral-color-10, #333)" },
-            },
-          } as any,
-        },
-      },
     },
-    navigation: {
-      buttonOptions: {
-        symbolStroke: "var(--highcharts-neutral-color-80, #999)",
-        theme: {
-          fill: "transparent",
-        },
-      },
-      menuStyle: {
-        background: "var(--highcharts-background-color, #1a1a2e)",
-        color: "var(--highcharts-neutral-color-80, #ccc)",
-      },
-      menuItemStyle: {
-        color: "var(--highcharts-neutral-color-80, #ccc)",
-      },
-      menuItemHoverStyle: {
-        background: "var(--highcharts-neutral-color-10, #333)",
-      },
-    },
+    // Let the adaptive theme handle ALL styling — buttons, menus, colors.
+    // We only disable credits and configure exporting.
   });
   if (userOverrides) {
     Highcharts.setOptions(userOverrides);
@@ -96,44 +68,26 @@ const themeReady = (userOverrides
 function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
   if (!ctx) return;
 
-  const root = document.documentElement;
-
   // Apply MCP SDK theme helpers
   if (ctx.theme) applyDocumentTheme(ctx.theme);
 
-  // Let Highcharts adaptive theme handle light/dark via class names
+  // Toggle Highcharts adaptive theme light/dark — that's it.
+  // The adaptive theme handles all colors, backgrounds, grid lines, etc.
+  // Don't override Highcharts CSS variables with host tokens — it breaks
+  // dashboards, KPIs, grids, and menu theming.
   if (ctx.theme === "dark") {
     document.documentElement.classList.add("highcharts-dark");
     document.documentElement.classList.remove("highcharts-light");
-    root.classList.add("highcharts-dark");
-    root.classList.remove("highcharts-light");
   } else {
     document.documentElement.classList.add("highcharts-light");
     document.documentElement.classList.remove("highcharts-dark");
-    root.classList.add("highcharts-light");
-    root.classList.remove("highcharts-dark");
   }
 
   if (ctx.styles?.variables) applyHostStyleVariables(ctx.styles.variables);
   if (ctx.styles?.css?.fonts) applyHostFonts(ctx.styles.css.fonts);
 
-  const vars = ctx.styles?.variables;
-  if (!vars) return;
-
-  // Only override specific vars the host provides — adaptive theme handles the rest
-  const overrides: Record<string, string | undefined> = {
-    "--highcharts-background-color": vars["--color-background-primary"],
-    "--highcharts-neutral-color-100": vars["--color-text-primary"],
-    "--highcharts-neutral-color-80": vars["--color-text-secondary"],
-    "--highcharts-neutral-color-5": vars["--color-background-secondary"],
-  };
-
-  for (const [hcVar, value] of Object.entries(overrides)) {
-    if (value) root.style.setProperty(hcVar, value);
-  }
-
-  // Font family — use CSS custom property so it works in both classic and styled modes
-  const fontFamily = vars["--font-sans"];
+  // Only sync font family from host — everything else is adaptive theme's job
+  const fontFamily = ctx.styles?.variables?.["--font-sans"];
   if (fontFamily) {
     Highcharts.setOptions({
       chart: { style: { fontFamily } },
