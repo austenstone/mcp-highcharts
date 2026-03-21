@@ -25,8 +25,9 @@ export function createServer(): McpServer {
     },
     {
       instructions: "This server renders interactive Highcharts charts inline in AI chat. " +
-        "Three tools available: render_chart (single chart), render_stock_chart (financial/time-series with navigator, range selector, indicators), " +
-        "and render_dashboard (multiple components with layout). " +
+        "Tools available: render_chart (single chart), render_stock_chart (financial/time-series with navigator, range selector, indicators), " +
+        "render_dashboard (multiple components with layout), render_map (geographic/choropleth maps), " +
+        "render_gantt (project timelines), and render_grid (standalone data table/grid). " +
         "Input is any valid Highcharts Options object (https://api.highcharts.com/highcharts/). " +
         "All 119 chart types supported with automatic module loading. " +
         "title and subtitle accept string shorthand. " +

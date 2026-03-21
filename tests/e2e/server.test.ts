@@ -347,6 +347,68 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
     expect(result.isError).toBe(true);
   });
 
+  // ── render_grid (data table) ──
+
+  it("lists render_grid tool", async () => {
+    const { tools } = await client.listTools();
+    const renderGrid = tools.find((t) => t.name === "render_grid");
+    expect(renderGrid).toBeDefined();
+    expect(renderGrid!.description).toContain("Grid");
+  });
+
+  it("renders a data grid with column-oriented data", async () => {
+    const result = await client.callTool({
+      name: "render_grid",
+      arguments: {
+        columns: [
+          { id: "name", header: { text: "Name" } },
+          { id: "value", header: { text: "Value" } },
+        ],
+        data: {
+          columns: {
+            name: ["Alpha", "Beta", "Gamma"],
+            value: [100, 200, 300],
+          },
+        },
+      },
+    });
+    expect(result.isError).toBeFalsy();
+    const parsed = JSON.parse(
+      (result.content as { type: string; text: string }[])[0].text,
+    );
+    expect(parsed.__chartType).toBe("grid");
+    expect(parsed.data.columns.name).toHaveLength(3);
+  });
+
+  it("renders a data grid from rows (convenience format)", async () => {
+    const result = await client.callTool({
+      name: "render_grid",
+      arguments: {
+        rows: [
+          { name: "Alpha", value: 100 },
+          { name: "Beta", value: 200 },
+        ],
+      },
+    });
+    expect(result.isError).toBeFalsy();
+    const parsed = JSON.parse(
+      (result.content as { type: string; text: string }[])[0].text,
+    );
+    expect(parsed.__chartType).toBe("grid");
+    // rows should be converted to data.columns
+    expect(parsed.data.columns.name).toEqual(["Alpha", "Beta"]);
+    expect(parsed.data.columns.value).toEqual([100, 200]);
+    expect(parsed.rows).toBeUndefined();
+  });
+
+  it("rejects render_grid without data", async () => {
+    const result = await client.callTool({
+      name: "render_grid",
+      arguments: { columns: [{ id: "x" }] },
+    });
+    expect(result.isError).toBe(true);
+  });
+
   // ── Validation ──
 
   it("rejects render_chart without series", async () => {
