@@ -3,6 +3,11 @@ import type { McpUiHostContext } from "@modelcontextprotocol/ext-apps";
 // Import Highcharts core
 import Highcharts from "highcharts";
 import type { Options } from "highcharts";
+// Static imports for chart constructors we call directly (mapChart, stockChart, ganttChart)
+// These register on Highcharts via es-modules/masters/ side effects
+import "highcharts/modules/map";
+import "highcharts/modules/stock";
+import "highcharts/modules/gantt";
 import Dashboards from "@highcharts/dashboards";
 import "@highcharts/dashboards/modules/layout";
 import "@highcharts/dashboards/css/dashboards.css";
@@ -149,10 +154,10 @@ async function renderMapChart(opts: Record<string, unknown>) {
   container.style.display = "";
 
   const processed = processOptions(opts);
-  delete (processed as any).__chartType;
 
   try {
     await loadModulesForOptions(processed as Record<string, unknown>);
+    delete (processed as any).__chartType;
     (Highcharts as any).mapChart(container, processed as any);
   } catch (e) {
     showError(container, e);
