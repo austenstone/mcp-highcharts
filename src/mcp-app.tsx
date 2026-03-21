@@ -35,8 +35,6 @@ import "highcharts/modules/lollipop";
 import "highcharts/modules/dumbbell";
 import "highcharts/modules/variwide";
 import "highcharts/modules/variable-pie";
-import "highcharts/modules/waterfall";
-import "highcharts/modules/packed-bubble";
 import "highcharts/modules/drilldown";
 import "highcharts/modules/boost";
 import "highcharts/modules/accessibility";
@@ -47,7 +45,7 @@ import HighchartsReact from "highcharts-react-official";
 
 import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { buildChartOptions, type ChartToolParams } from "./chart-options";
+import { buildChartOptions } from "./chart-options";
 import { getTheme } from "./theme";
 
 // Apply resolved theme (default + any user overrides from env)
@@ -95,7 +93,7 @@ function ChartView({ app, toolResult }: ChartViewProps) {
     if (!text) return;
 
     try {
-      const params: ChartToolParams = JSON.parse(text);
+      const params = JSON.parse(text) as Record<string, unknown>;
       setOptions(buildChartOptions(params));
     } catch (e) {
       console.error("Failed to parse chart data:", e);

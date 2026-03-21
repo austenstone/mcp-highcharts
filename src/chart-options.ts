@@ -1,148 +1,50 @@
 import type { Options } from "highcharts";
 
-/** Shape of the tool call params we receive from the LLM */
-export interface ChartToolParams {
-  chartType?: string;
-  title?: string;
-  subtitle?: string;
-  series: Array<{
-    name: string;
-    data: unknown[];
-    type?: string;
-  }>;
-  xAxisCategories?: string[];
-  xAxisTitle?: string;
-  yAxisTitle?: string;
-  yAxisFormat?: string;
-  stacking?: string;
-  height?: string;
-  tooltipValueSuffix?: string;
-  tooltipValuePrefix?: string;
-  drilldown?: Record<string, unknown>;
-  highchartsOptions?: Record<string, unknown>;
-}
-
-/** Deep merge two objects. Arrays are replaced, not concatenated. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function deepMerge(target: any, source: any): any {
-  const result = { ...target };
-  for (const key of Object.keys(source)) {
-    const srcVal = source[key];
-    const tgtVal = result[key];
-    if (
-      srcVal &&
-      typeof srcVal === "object" &&
-      !Array.isArray(srcVal) &&
-      tgtVal &&
-      typeof tgtVal === "object" &&
-      !Array.isArray(tgtVal)
-    ) {
-      result[key] = deepMerge(tgtVal, srcVal);
-    } else {
-      result[key] = srcVal;
-    }
-  }
-  return result;
-}
+// Types that need markers explicitly enabled since the global theme disables them
+const MARKER_TYPES = new Set(["scatter", "scatter3d", "bubble", "packedbubble", "networkgraph"]);
 
 // Primer data-viz guideline: differentiate lines with stroke style, not just color
 const DASH_STYLES = ["Solid", "ShortDash", "Dot", "DashDot", "LongDash"] as const;
 const MARKER_SYMBOLS = ["circle", "diamond", "square", "triangle", "triangle-down"] as const;
 
-// Height presets matching github-ui chart-card sizes
-const HEIGHT_PRESETS: Record<string, string> = {
-  small: "128px",
-  medium: "256px",
-  large: "320px",
-  xl: "432px",
-  sparkline: "128px",
-};
+/**
+ * Enhance raw Highcharts Options from the LLM with theme-aware defaults:
+ * - Normalize string shorthands for title/subtitle
+ * - Enable markers for scatter/bubble/networkgraph (theme disables globally)
+ * - Apply dash-style differentiation for multi-line charts
+ */
+export function buildChartOptions(params: Record<string, unknown>): Options {
+  const opts = { ...params } as Options & Record<string, unknown>;
 
-/** Resolve height from preset name or raw value */
-function resolveHeight(height?: string): string | number | undefined {
-  if (!height) return undefined;
-  if (height in HEIGHT_PRESETS) return HEIGHT_PRESETS[height];
-  const num = Number(height);
-  return Number.isFinite(num) ? num : height;
-}
+  // Normalize string shorthands: title: "My Chart" → title: { text: "My Chart" }
+  if (typeof opts.title === "string") opts.title = { text: opts.title };
+  if (typeof opts.subtitle === "string") opts.subtitle = { text: opts.subtitle };
 
-/** Build Highcharts Options from tool params */
-export function buildChartOptions(params: ChartToolParams): Options {
-  const chartType = params.chartType ?? "line";
+  const chartType = (opts.chart as Record<string, unknown>)?.type as string ?? "line";
+  const series = opts.series as Array<Record<string, unknown>> | undefined;
+  if (!series?.length) return opts as Options;
+
   const isLineType = chartType === "line" || chartType === "spline";
-  const hasMultipleSeries = params.series.length > 1;
-  const resolvedHeight = resolveHeight(params.height);
-
-  const isScatter = chartType === "scatter";
-  // Types that need markers explicitly enabled since the global theme disables them
-  const MARKER_TYPES = new Set(["scatter", "scatter3d", "bubble", "packedbubble", "networkgraph"]);
+  const hasMultipleSeries = series.length > 1;
   const needsMarkers = MARKER_TYPES.has(chartType);
 
-  const base: Options = {
-    chart: {
-      type: chartType,
-      ...(resolvedHeight ? { height: resolvedHeight } : {}),
-    },
-    title: {
-      text: params.title ?? "",
-    },
-    subtitle: {
-      text: params.subtitle ?? undefined,
-    },
-    xAxis: {
-      categories: params.xAxisCategories,
-      title: params.xAxisTitle ? { text: params.xAxisTitle } : undefined,
-    },
-    yAxis: {
-      title: { text: params.yAxisTitle ?? "" },
-      ...(params.yAxisFormat
-        ? { labels: { format: params.yAxisFormat } }
-        : {}),
-    },
-    ...(params.tooltipValueSuffix || params.tooltipValuePrefix
+  opts.series = series.map((s, i) => ({
+    ...s,
+    // Enable markers for point-based chart types
+    ...(needsMarkers || MARKER_TYPES.has(s.type as string ?? "")
+      ? { marker: { enabled: true, ...(s.marker as object ?? {}) } }
+      : {}),
+    // Primer: cycle dash styles and marker shapes for multi-line differentiation
+    ...(isLineType && hasMultipleSeries && !s.dashStyle
       ? {
-          tooltip: {
-            ...(params.tooltipValueSuffix
-              ? { valueSuffix: params.tooltipValueSuffix }
-              : {}),
-            ...(params.tooltipValuePrefix
-              ? { valuePrefix: params.tooltipValuePrefix }
-              : {}),
+          dashStyle: DASH_STYLES[i % DASH_STYLES.length],
+          marker: {
+            symbol: MARKER_SYMBOLS[i % MARKER_SYMBOLS.length],
+            ...(s.marker as object ?? {}),
           },
         }
       : {}),
-    ...(params.stacking
-      ? {
-          plotOptions: {
-            series: {
-              stacking: params.stacking as "normal" | "percent",
-            },
-          },
-        }
-      : {}),
-    ...(params.drilldown ? { drilldown: params.drilldown } : {}),
-    series: params.series.map((s, i) => ({
-      ...s,
-      type: (s.type ?? undefined) as never,
-      // Types that need markers explicitly enabled since the global theme disables them
-      ...(needsMarkers || MARKER_TYPES.has(s.type ?? "")
-        ? { marker: { enabled: true } }
-        : {}),
-      // Primer: cycle dash styles and marker shapes for multi-line differentiation
-      ...(isLineType && hasMultipleSeries
-        ? {
-            dashStyle: DASH_STYLES[i % DASH_STYLES.length],
-            marker: {
-              symbol: MARKER_SYMBOLS[i % MARKER_SYMBOLS.length],
-            },
-          }
-        : {}),
-    })) as Options["series"],
-  };
+  })) as Options["series"];
 
-  if (params.highchartsOptions) {
-    return deepMerge(base, params.highchartsOptions);
-  }
-
-  return base;
+  return opts as Options;
 }

@@ -35,10 +35,10 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
     const { tools } = await client.listTools();
     const schema = tools.find((t) => t.name === TOOL_NAME)!.inputSchema;
     const props = Object.keys(schema.properties ?? {});
-    expect(props).toContain("chartType");
+    expect(props).toContain("chart");
     expect(props).toContain("title");
     expect(props).toContain("series");
-    expect(props).toContain("highchartsOptions");
+    expect(props).toContain("plotOptions");
   });
 
   // ── Tool invocation ──
@@ -47,17 +47,17 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
     const result = await client.callTool({
       name: TOOL_NAME,
       arguments: {
-        chartType: "bar",
+        chart: { type: "bar" },
         title: "Revenue by Quarter",
         series: [{ name: "Revenue", data: [100, 200, 300, 400] }],
-        xAxisCategories: ["Q1", "Q2", "Q3", "Q4"],
+        xAxis: { categories: ["Q1", "Q2", "Q3", "Q4"] },
       },
     });
 
     expect(result.content).toHaveLength(1);
     const text = (result.content as { type: string; text: string }[])[0].text;
     const parsed = JSON.parse(text);
-    expect(parsed.chartType).toBe("bar");
+    expect(parsed.chart.type).toBe("bar");
     expect(parsed.title).toBe("Revenue by Quarter");
     expect(parsed.series).toHaveLength(1);
     expect(parsed.series[0].data).toEqual([100, 200, 300, 400]);
@@ -67,79 +67,69 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
     const result = await client.callTool({
       name: TOOL_NAME,
       arguments: {
-        chartType: "pie",
+        chart: { type: "pie" },
         title: "Market Share",
-        series: [
-          {
-            name: "Share",
-            data: [
-              { name: "Chrome", y: 65 },
-              { name: "Firefox", y: 20 },
-              { name: "Safari", y: 15 },
-            ],
-          },
-        ],
+        series: [{
+          name: "Share",
+          data: [
+            { name: "Chrome", y: 65 },
+            { name: "Firefox", y: 20 },
+            { name: "Safari", y: 15 },
+          ],
+        }],
       },
     });
 
     const parsed = JSON.parse(
       (result.content as { type: string; text: string }[])[0].text,
     );
-    expect(parsed.chartType).toBe("pie");
+    expect(parsed.chart.type).toBe("pie");
     expect(parsed.series[0].data).toHaveLength(3);
   });
 
-  it("passes through optional formatting options", async () => {
+  it("passes through Highcharts options directly", async () => {
     const result = await client.callTool({
       name: TOOL_NAME,
       arguments: {
-        chartType: "column",
+        chart: { type: "column" },
         title: "Sales",
         series: [{ name: "Units", data: [10, 20, 30] }],
-        stacking: "normal",
-        height: "large",
-        tooltipValueSuffix: " units",
-        tooltipValuePrefix: "~",
-        yAxisTitle: "Units Sold",
-        yAxisFormat: "{value}K",
+        plotOptions: { series: { stacking: "normal" } },
+        tooltip: { valueSuffix: " units", valuePrefix: "~" },
+        yAxis: { title: { text: "Units Sold" }, labels: { format: "{value}K" } },
       },
     });
 
     const parsed = JSON.parse(
       (result.content as { type: string; text: string }[])[0].text,
     );
-    expect(parsed.stacking).toBe("normal");
-    expect(parsed.height).toBe("large");
-    expect(parsed.tooltipValueSuffix).toBe(" units");
-    expect(parsed.tooltipValuePrefix).toBe("~");
-    expect(parsed.yAxisTitle).toBe("Units Sold");
-    expect(parsed.yAxisFormat).toBe("{value}K");
+    expect(parsed.plotOptions.series.stacking).toBe("normal");
+    expect(parsed.tooltip.valueSuffix).toBe(" units");
+    expect(parsed.yAxis.title.text).toBe("Units Sold");
   });
 
-  it("accepts highchartsOptions escape hatch", async () => {
+  it("accepts plotOptions directly", async () => {
     const result = await client.callTool({
       name: TOOL_NAME,
       arguments: {
-        chartType: "line",
+        chart: { type: "line" },
         title: "Custom",
         series: [{ name: "A", data: [1, 2, 3] }],
-        highchartsOptions: {
-          plotOptions: { line: { dashStyle: "Dash" } },
-        },
+        plotOptions: { line: { dashStyle: "Dash" } },
       },
     });
 
     const parsed = JSON.parse(
       (result.content as { type: string; text: string }[])[0].text,
     );
-    expect(parsed.highchartsOptions.plotOptions.line.dashStyle).toBe("Dash");
+    expect(parsed.plotOptions.line.dashStyle).toBe("Dash");
   });
 
   it("renders mixed chart types via per-series type", async () => {
     const result = await client.callTool({
       name: TOOL_NAME,
       arguments: {
-        chartType: "column",
+        chart: { type: "column" },
         title: "Mixed",
         series: [
           { name: "Bars", data: [1, 2, 3], type: "column" },

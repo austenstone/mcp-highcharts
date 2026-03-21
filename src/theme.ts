@@ -255,7 +255,7 @@ function deepMerge(target: any, source: any): any {
 export function getTheme(): Options {
   const userOverrides =
     typeof window !== "undefined" &&
-    (window as Record<string, unknown>).__HIGHCHARTS_THEME__;
+    (window as unknown as Record<string, unknown>).__HIGHCHARTS_THEME__;
   if (userOverrides && typeof userOverrides === "object") {
     return deepMerge(defaultTheme, userOverrides);
   }
