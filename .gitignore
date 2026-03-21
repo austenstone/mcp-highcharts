@@ -3,5 +3,5 @@ dist/
 *.swp
 *.swo
 *.log
-theme-test.html
 src/generated/tree*.json
+.vscode/github-theme.*

@@ -1,4 +1,4 @@
-import Highcharts from "highcharts";
+import "highcharts"; // Side-effect: ensures Highcharts core is loaded before modules
 import moduleMapData from "./generated/module-map.json" with { type: "json" };
 
 const { typeToModule } = moduleMapData;
