@@ -68,8 +68,10 @@ const themeReady = (userOverrides
 function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
   if (!ctx) return;
 
-  // Apply MCP SDK theme helpers
+  // Apply MCP SDK theme helpers — sets all --color-* and font CSS vars on document
   if (ctx.theme) applyDocumentTheme(ctx.theme);
+  if (ctx.styles?.variables) applyHostStyleVariables(ctx.styles.variables);
+  if (ctx.styles?.css?.fonts) applyHostFonts(ctx.styles.css.fonts);
 
   // Toggle Highcharts adaptive theme light/dark
   if (ctx.theme === "dark") {
@@ -80,18 +82,27 @@ function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
     document.documentElement.classList.remove("highcharts-dark");
   }
 
-  if (ctx.styles?.variables) applyHostStyleVariables(ctx.styles.variables);
-  if (ctx.styles?.css?.fonts) applyHostFonts(ctx.styles.css.fonts);
-
   const vars = ctx.styles?.variables;
   if (!vars) return;
 
-  // Bridge host color tokens to Highcharts CSS variables.
-  // Only the "accent" colors — structural colors (backgrounds, grid lines, text)
-  // are handled by the adaptive theme and MUST NOT be overridden.
   const el = document.documentElement;
-  const colorMappings: [string, string | undefined][] = [
-    // Use host's info/ring colors as the highlight color for interactive elements
+
+  // Bridge host tokens → Highcharts CSS variables.
+  // Structural colors: backgrounds, text, grid lines, borders
+  // These are set as CSS vars so the adaptive theme's defaults are overridden
+  // only when the host provides values.
+  const structuralMappings: [string, string | undefined][] = [
+    ["--highcharts-background-color", vars["--color-background-primary"]],
+    ["--highcharts-neutral-color-100", vars["--color-text-primary"]],
+    ["--highcharts-neutral-color-80", vars["--color-text-secondary"]],
+    ["--highcharts-neutral-color-60", vars["--color-text-tertiary"]],
+    ["--highcharts-neutral-color-20", vars["--color-border-secondary"]],
+    ["--highcharts-neutral-color-10", vars["--color-border-tertiary"]],
+    ["--highcharts-neutral-color-5", vars["--color-background-secondary"]],
+  ];
+
+  // Series palette: map host semantic colors to chart series colors
+  const paletteMappings: [string, string | undefined][] = [
     ["--highcharts-color-0", vars["--color-ring-primary"]],
     ["--highcharts-color-1", vars["--color-text-info"]],
     ["--highcharts-color-2", vars["--color-text-success"]],
@@ -99,24 +110,28 @@ function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
     ["--highcharts-color-4", vars["--color-text-danger"]],
   ];
 
-  for (const [hcVar, value] of colorMappings) {
+  for (const [hcVar, value] of [...structuralMappings, ...paletteMappings]) {
     if (value) el.style.setProperty(hcVar, value);
     else el.style.removeProperty(hcVar);
   }
 
   // Font family sync
+  const opts: Highcharts.Options = {};
   const fontFamily = vars["--font-sans"];
   if (fontFamily) {
-    Highcharts.setOptions({
-      chart: { style: { fontFamily } },
-    });
+    opts.chart = { style: { fontFamily } };
   }
+  if (Object.keys(opts).length) Highcharts.setOptions(opts);
 }
 
 function applyThemeAndRedraw(ctx: McpUiHostContext | null | undefined) {
   if (!userOverrides) {
     applyHostTheme(ctx);
-    Highcharts.charts.forEach(c => c?.redraw());
+    // Force charts to re-read CSS variables by triggering a full update
+    Highcharts.charts.forEach(c => {
+      if (!c) return;
+      c.update({}, true, true);
+    });
   }
 }
 
