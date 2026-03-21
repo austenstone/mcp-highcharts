@@ -158,6 +158,20 @@ async function renderMapChart(opts: Record<string, unknown>) {
   }
 }
 
+async function renderGrid(opts: Record<string, unknown>) {
+  const container = document.getElementById("root")!;
+  container.innerHTML = "";
+  container.style.display = "";
+
+  const { __chartType, ...gridOpts } = opts;
+
+  try {
+    GridLite.grid(container, gridOpts as any);
+  } catch (e) {
+    showError(container, e);
+  }
+}
+
 function showError(container: HTMLElement, e: unknown) {
   const msg = e instanceof Error ? e.message : String(e);
   container.innerHTML = `<div style="padding:24px;color:#f85149;font-family:system-ui;font-size:14px;">
@@ -271,6 +285,9 @@ async function init() {
       } else if (opts.__chartType === "gantt") {
         // Gantt chart mode (from render_gantt)
         await renderGanttChart(opts);
+      } else if (opts.__chartType === "grid") {
+        // Grid mode (from render_grid)
+        await renderGrid(opts);
       } else if (opts.components && Array.isArray(opts.components)) {
         // Dashboard mode (from render_dashboard)
         await renderDashboard(opts);
