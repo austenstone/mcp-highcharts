@@ -2,7 +2,14 @@ import { App, PostMessageTransport, applyHostStyleVariables, applyDocumentTheme,
 import type { McpUiHostContext } from "@modelcontextprotocol/ext-apps";
 import Highcharts from "highcharts";
 import type { Options } from "highcharts";
+import * as Dashboards from "@highcharts/dashboards";
+import "@highcharts/dashboards/modules/layout";
+import "@highcharts/dashboards/css/dashboards.css";
 import { loadModulesForOptions } from "./module-loader";
+
+// Connect Highcharts to Dashboards
+Dashboards.HighchartsPlugin.custom.connectHighcharts(Highcharts);
+Dashboards.PluginHandler.addPlugin(Dashboards.HighchartsPlugin);
 
 // Theme name is a runtime value (from env var), so we use import.meta.glob for dynamic loading.
 // Highcharts themes self-register via Highcharts.setOptions() when imported — no manual setup needed.
@@ -161,51 +168,34 @@ async function renderSingleChart(opts: Options & Record<string, unknown>) {
   }
 }
 
-async function renderMultipleCharts(
-  charts: Record<string, unknown>[],
-  layout: string,
-  columns: number
-) {
+async function renderDashboard(config: Record<string, unknown>) {
   const root = document.getElementById("root")!;
   root.innerHTML = "";
+  root.style.display = "";
+  root.style.flexDirection = "";
+  root.style.gap = "";
+  root.style.padding = "";
+  root.style.overflow = "";
+  root.style.gridTemplateColumns = "";
 
-  root.style.display = layout === "horizontal" || layout === "grid" ? "grid" : "flex";
-  root.style.flexDirection = "column";
-  root.style.gap = "4px";
-  root.style.padding = "0";
-  root.style.overflow = "hidden";
-
-  if (layout === "grid") {
-    root.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
-  } else if (layout === "horizontal") {
-    root.style.gridTemplateColumns = `repeat(${charts.length}, 1fr)`;
-  } else {
-    root.style.gridTemplateColumns = "";
+  // Load modules for all Highcharts components' chartOptions
+  const components = config.components as Array<Record<string, unknown>> | undefined;
+  if (components) {
+    for (const comp of components) {
+      if (comp.chartOptions) {
+        try {
+          await loadModulesForOptions(comp.chartOptions as Record<string, unknown>);
+        } catch (e) {
+          console.warn("Module loading for component failed:", e);
+        }
+      }
+    }
   }
 
-  for (const chartOpts of charts) {
-    const container = document.createElement("div");
-    container.style.width = "100%";
-    container.style.minHeight = "0";
-    container.style.overflow = "hidden";
-    root.appendChild(container);
-
-    const processed = processOptions(chartOpts);
-    // Auto-size charts in multi-chart layouts if no explicit height set
-    if (!processed.chart) processed.chart = {};
-    if (!(processed.chart as any).height) {
-      (processed.chart as any).height = layout === "vertical" ? 280 : 220;
-    }
-    // Compact spacing for multi-chart layouts
-    if (!(processed.chart as any).spacing) {
-      (processed.chart as any).spacing = [5, 10, 5, 10];
-    }
-    try {
-      await loadModulesForOptions(processed as Record<string, unknown>);
-      Highcharts.chart(container, processed as Options);
-    } catch (e) {
-      showError(container, e);
-    }
+  try {
+    await Dashboards.board(root, config as any, true);
+  } catch (e) {
+    showError(root, e);
   }
 }
 
@@ -224,11 +214,9 @@ async function init() {
     try {
       const opts = JSON.parse(text) as Record<string, unknown>;
 
-      if (opts.charts && Array.isArray(opts.charts)) {
-        // Multi-chart mode (from render_charts)
-        const layout = (opts.layout as string) || "vertical";
-        const columns = (opts.columns as number) || 2;
-        await renderMultipleCharts(opts.charts, layout, columns);
+      if (opts.components && Array.isArray(opts.components)) {
+        // Dashboard mode (from render_dashboard)
+        await renderDashboard(opts);
       } else {
         // Single chart mode (from render_chart)
         await renderSingleChart(opts as Options & Record<string, unknown>);

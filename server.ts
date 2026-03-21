@@ -25,12 +25,12 @@ export function createServer(): McpServer {
     },
     {
       instructions: "This server renders interactive Highcharts charts inline in AI chat. " +
-        "Two tools available: render_chart (single chart) and render_charts (multiple charts with layout). " +
+        "Two tools available: render_chart (single chart) and render_dashboard (multiple components with layout). " +
         "Input is any valid Highcharts Options object (https://api.highcharts.com/highcharts/). " +
         "All 119 chart types supported with automatic module loading. " +
         "title and subtitle accept string shorthand. " +
         "Combine chart types via per-series type for overlays (e.g., column + spline). " +
-        "Use multiple yAxis for dual-axis charts.",
+        "Use render_dashboard for multi-chart layouts, KPIs, and data grids via @highcharts/dashboards.",
     },
   );
 
@@ -70,28 +70,28 @@ export function createServer(): McpServer {
 
   registerAppTool(
     server,
-    "render_charts",
+    "render_dashboard",
     {
-      title: "Render Multiple Charts",
+      title: "Render Dashboard",
       annotations: { readOnlyHint: true },
       description:
-        "Render multiple Highcharts charts in a single view. " +
-        "Input is an array of Highcharts Options objects. Charts are laid out vertically by default. " +
-        "Use layout option to control arrangement (vertical, horizontal, grid). " +
-        "Each chart in the array is a full Highcharts Options object.",
+        "Render a Highcharts Dashboard with multiple components (charts, KPIs, data grids) in a synced layout. " +
+        "Uses @highcharts/dashboards. Pass the full Dashboards.board() config.",
       inputSchema: {
-        charts: z.array(z.any()).describe("Array of Highcharts Options objects — each one is a complete chart config"),
-        layout: z.enum(["vertical", "horizontal", "grid"]).optional()
-          .describe("Layout arrangement: vertical (stacked), horizontal (side by side), grid (auto-grid)")
-          .meta({ examples: ["vertical", "grid"] }),
-        columns: z.number().optional()
-          .describe("Number of columns for grid layout (default: 2)"),
+        gui: z.object({}).passthrough().optional()
+          .describe("Dashboard layout config with rows and cells"),
+        components: z.array(z.object({}).passthrough())
+          .describe("Array of dashboard components (Highcharts charts, KPIs, Grid, HTML)"),
+        dataPool: z.object({}).passthrough().optional()
+          .describe("Data connectors for shared data between components"),
+        editMode: z.object({}).passthrough().optional()
+          .describe("Edit mode configuration"),
       },
       _meta: { ui: { resourceUri } },
     },
     async (args): Promise<CallToolResult> => {
-      if (!args.charts || !Array.isArray(args.charts)) {
-        return { isError: true, content: [{ type: "text", text: "charts is required and must be an array" }] };
+      if (!args.components || !Array.isArray(args.components)) {
+        return { isError: true, content: [{ type: "text", text: "components is required and must be an array" }] };
       }
       return { content: [{ type: "text", text: JSON.stringify(args) }] };
     },

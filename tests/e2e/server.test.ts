@@ -158,40 +158,56 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
     expect(content.text).toContain("<!DOCTYPE html>");
   });
 
-  // ── render_charts (multi-chart) ──
+  // ── render_dashboard (dashboards) ──
 
-  it("lists render_charts tool", async () => {
+  it("lists render_dashboard tool", async () => {
     const { tools } = await client.listTools();
-    const renderCharts = tools.find((t) => t.name === "render_charts");
-    expect(renderCharts).toBeDefined();
-    expect(renderCharts!.description).toContain("multiple");
+    const renderDashboard = tools.find((t) => t.name === "render_dashboard");
+    expect(renderDashboard).toBeDefined();
+    expect(renderDashboard!.description).toContain("Dashboard");
   });
 
-  it("renders multiple charts with layout", async () => {
+  it("renders a dashboard with multiple components", async () => {
     const result = await client.callTool({
-      name: "render_charts",
+      name: "render_dashboard",
       arguments: {
-        charts: [
-          { chart: { type: "bar" }, title: "Chart 1", series: [{ data: [1, 2, 3] }] },
-          { chart: { type: "pie" }, title: "Chart 2", series: [{ data: [{ name: "A", y: 60 }, { name: "B", y: 40 }] }] },
-        ],
-        layout: "grid",
-        columns: 2,
+        gui: {
+          layouts: [{
+            rows: [{
+              cells: [{ id: 'chart-1' }, { id: 'chart-2' }]
+            }]
+          }]
+        },
+        components: [
+          {
+            type: 'Highcharts',
+            renderTo: 'chart-1',
+            chartOptions: {
+              series: [{ type: 'line', data: [1, 2, 3] }]
+            }
+          },
+          {
+            type: 'Highcharts',
+            renderTo: 'chart-2',
+            chartOptions: {
+              series: [{ type: 'column', data: [4, 5, 6] }]
+            }
+          }
+        ]
       },
     });
 
     const parsed = JSON.parse(
       (result.content as { type: string; text: string }[])[0].text,
     );
-    expect(parsed.charts).toHaveLength(2);
-    expect(parsed.layout).toBe("grid");
-    expect(parsed.columns).toBe(2);
+    expect(parsed.components).toHaveLength(2);
+    expect(parsed.gui.layouts).toHaveLength(1);
   });
 
-  it("rejects render_charts without charts array", async () => {
+  it("rejects render_dashboard without components array", async () => {
     const result = await client.callTool({
-      name: "render_charts",
-      arguments: { layout: "vertical" },
+      name: "render_dashboard",
+      arguments: { gui: { layouts: [] } },
     });
     expect(result.isError).toBe(true);
   });
