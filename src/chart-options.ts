@@ -73,6 +73,8 @@ export function buildChartOptions(params: ChartToolParams): Options {
   const hasMultipleSeries = params.series.length > 1;
   const resolvedHeight = resolveHeight(params.height);
 
+  const isScatter = chartType === "scatter";
+
   const base: Options = {
     chart: {
       type: chartType,
@@ -119,6 +121,10 @@ export function buildChartOptions(params: ChartToolParams): Options {
     series: params.series.map((s, i) => ({
       ...s,
       type: (s.type ?? undefined) as never,
+      // Scatter/networkgraph need markers explicitly enabled since the global theme disables them
+      ...(isScatter || s.type === "scatter" || chartType === "networkgraph" || s.type === "networkgraph"
+        ? { marker: { enabled: true } }
+        : {}),
       // Primer: cycle dash styles and marker shapes for multi-line differentiation
       ...(isLineType && hasMultipleSeries
         ? {

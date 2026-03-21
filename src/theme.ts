@@ -125,7 +125,7 @@ export const theme: Options = {
 
   // Heatmap colorAxis defaults
   colorAxis: {
-    minColor: "#161b22",
+    minColor: "#2d333b",
     maxColor: "#006edb",
     labels: {
       style: {
@@ -178,6 +178,7 @@ export const theme: Options = {
       lineWidth: 2,
     },
     scatter: {
+      lineWidth: 0,
       marker: {
         enabled: true,
         radius: 8,
@@ -187,6 +188,18 @@ export const theme: Options = {
         states: {
           hover: { enabled: true, radius: 10, lineWidth: 2, lineColor: "#ffffff" },
         },
+      },
+    },
+    networkgraph: {
+      layoutAlgorithm: { enableSimulation: false },
+      marker: {
+        enabled: true,
+        radius: 12,
+      },
+      dataLabels: {
+        enabled: true,
+        color: "#e5e7eb",
+        style: { fontSize: "11px", textOutline: "none" },
       },
     },
     column: {
