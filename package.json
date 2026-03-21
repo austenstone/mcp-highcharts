@@ -1,6 +1,6 @@
 {
   "name": "mcp-highcharts",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "Highcharts MCP App — interactive charts rendered inline in AI chat",
   "author": "Austen Stone",

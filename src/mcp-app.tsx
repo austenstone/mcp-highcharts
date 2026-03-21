@@ -24,7 +24,10 @@ const themeReady = (themeModules[themeKey]?.() ?? Promise.resolve()).then(() => 
   if (overrides && typeof overrides === "object") {
     Highcharts.setOptions(overrides as Options);
   }
-  Highcharts.setOptions({ credits: { enabled: false } });
+  Highcharts.setOptions({
+    credits: { enabled: false },
+    exporting: { enabled: false },
+  });
 });
 
 function ChartApp() {
