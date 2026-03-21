@@ -52,7 +52,11 @@ export const theme: Options = {
   xAxis: {
     tickWidth: 0,
     lineWidth: 1,
-    crosshair: true,
+    crosshair: {
+      color: "rgba(139, 148, 158, 0.5)",
+      width: 1,
+      dashStyle: "Dash",
+    },
     gridLineColor: "var(--borderColor-muted, #374151)",
     gridLineDashStyle: "Dash",
     lineColor: "var(--borderColor-default, #4b5563)",
