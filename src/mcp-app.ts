@@ -336,6 +336,16 @@ async function renderDashboard(config: Record<string, unknown>) {
   }
 }
 
+// Module-scoped app reference for use by Highcharts download override and updateModelContext
+let mcpApp: InstanceType<typeof App> | null = null;
+
+function sendChartContext(description: string) {
+  if (!mcpApp || typeof mcpApp.updateModelContext !== "function") return;
+  mcpApp.updateModelContext({
+    content: [{ type: "text", text: description }],
+  }).catch(() => {}); // Silently fail if host doesn't support it
+}
+
 async function init() {
   await themeReady;
 
@@ -343,6 +353,7 @@ async function init() {
     { name: "Highcharts MCP App", version: "2.0.0" },
     {},
   );
+  mcpApp = app;
 
   app.ontoolresult = async (result) => {
     const textContent = result.content?.find((c: any) => c.type === "text") as { text: string } | undefined;
@@ -383,6 +394,43 @@ async function init() {
   app.onerror = console.error;
 
   await app.connect(new PostMessageTransport(window.parent, window.parent));
+  mcpApp = app;
+
+  // Override Highcharts download to use MCP SDK's downloadFile()
+  const origDownloadURL = (Highcharts as any).downloadURL;
+  if (typeof origDownloadURL === "function") {
+    (Highcharts as any).downloadURL = function (dataURL: string, filename: string) {
+      if (!mcpApp) {
+        origDownloadURL(dataURL, filename);
+        return;
+      }
+      try {
+        const mimeMatch = dataURL.match(/^data:([^;,]+)/);
+        const mimeType = mimeMatch?.[1] || "application/octet-stream";
+        const base64 = dataURL.split(",")[1];
+
+        mcpApp
+          .downloadFile({
+            contents: [
+              {
+                type: "resource",
+                resource: {
+                  uri: `file:///${filename}`,
+                  mimeType,
+                  blob: base64,
+                },
+              },
+            ],
+          })
+          .catch((err: Error) => {
+            console.warn("MCP downloadFile failed, falling back:", err);
+            origDownloadURL(dataURL, filename);
+          });
+      } catch {
+        origDownloadURL(dataURL, filename);
+      }
+    };
+  }
 
   // Apply initial host theme
   applyThemeAndRedraw(app.getHostContext());
