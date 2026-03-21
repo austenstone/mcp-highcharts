@@ -1,11 +1,25 @@
 {
   "name": "mcp-highcharts",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "Highcharts MCP App — interactive charts rendered inline in AI chat",
+  "author": "Austen Stone",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/austenstone/mcp-highcharts.git"
+  },
+  "keywords": [
+    "mcp",
+    "highcharts",
+    "charts",
+    "model-context-protocol",
+    "copilot",
+    "vscode"
+  ],
   "main": "dist/server.js",
   "bin": {
-    "mcp-highcharts": "dist/index.js"
+    "mcp-highcharts": "dist/main.js"
   },
   "files": [
     "dist"
@@ -27,7 +41,8 @@
     "test": "vitest run --config vitest.config.ts",
     "test:e2e": "vitest run --config vitest.config.ts tests/e2e",
     "test:visual": "vitest --config vitest.browser.config.ts --ui",
-    "generate:schema": "tsx scripts/generate-schema.ts"
+    "generate:schema": "tsx scripts/generate-schema.ts",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "^1.2.2",

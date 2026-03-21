@@ -40,7 +40,7 @@ async function loadUserTheme(): Promise<string | null> {
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "Highcharts MCP App Server",
-    version: "0.1.0",
+    version: "1.0.0",
   });
 
   const resourceUri = "ui://highcharts/mcp-app.html";

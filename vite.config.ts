@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import path from "node:path";
 import fs from "node:fs";
+import { highchartsModulesPlugin } from "./vite-plugin-highcharts-modules";
 
 const INPUT = process.env.INPUT;
 if (!INPUT) {
@@ -25,7 +26,7 @@ const hcModules = fs.readdirSync(path.resolve("node_modules/highcharts/esm/modul
   }, {} as Record<string, string>);
 
 export default defineConfig({
-  plugins: [react(), viteSingleFile()],
+  plugins: [react(), viteSingleFile(), highchartsModulesPlugin()],
   resolve: {
     alias: {
       "highcharts/highcharts-more": hcEsm("highcharts-more.src.js"),

@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
 import path from "node:path";
 import fs from "node:fs";
+import { highchartsModulesPlugin } from "./vite-plugin-highcharts-modules";
 
 // Use Highcharts packed ESM bundles (v12.2+) which handle init order correctly
 const hcEsm = (p: string) =>
@@ -18,7 +19,7 @@ const hcModules = fs.readdirSync(path.resolve("node_modules/highcharts/esm/modul
   }, {} as Record<string, string>);
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), highchartsModulesPlugin()],
   resolve: {
     alias: {
       "highcharts/highcharts-more": hcEsm("highcharts-more.src.js"),

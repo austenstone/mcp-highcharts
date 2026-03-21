@@ -1,6 +1,7 @@
+#!/usr/bin/env node
 /**
  * Entry point — supports both stdio and Streamable HTTP transports.
- * Run with: node dist/index.js [--stdio]
+ * Run with: npx mcp-highcharts [--stdio]
  */
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";

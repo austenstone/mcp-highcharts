@@ -1,74 +1,61 @@
 # mcp-highcharts
 
-Interactive Highcharts MCP App for VS Code — render charts inline in AI chat conversations.
+Render interactive [Highcharts](https://www.highcharts.com/) charts inline in AI chat — right inside VS Code, GitHub Copilot, Claude Desktop, or any MCP client that supports [MCP Apps](https://github.com/modelcontextprotocol/ext-apps).
 
-Built with [MCP Apps SDK](https://github.com/modelcontextprotocol/ext-apps) + React + [Highcharts](https://www.highcharts.com/).
+Just ask your AI to make a chart. It does the rest.
 
-## Features
+<!-- TODO: add screenshot/gif here -->
 
-- **17 chart types**: line, bar, column, area, pie, spline, areaspline, scatter, heatmap, gauge, solidgauge, treemap, sunburst, sankey, funnel, networkgraph + any type via `highchartsOptions`
-- **GitHub Primer theme**: Colors, typography, axes, and tooltips match [Primer data visualization](https://primer.style/product/ui-patterns/data-visualization/) patterns
-- **Primer data-viz accessibility**: Auto-cycling dash styles + marker shapes per [primer.style/product/ui-patterns/data-visualization](https://primer.style/product/ui-patterns/data-visualization/)
-- **Stacking**: `normal` and `percentage` stacked bar/area/column
-- **Height presets**: `small`, `medium`, `large`, `xl` (matching chart-card sizes)
-- **Y-axis formatting**: `${value}`, `{value}%`, `{value}K`
-- **Drilldown**: Click-to-drill sub-category data
-- **Export**: PNG, SVG, CSV, data table (via Highcharts modules)
-- **Accessibility**: Screen reader support, keyboard navigation, ARIA
-- **Boost**: WebGL rendering for 100K+ data points
-- **Dark/light mode**: Adapts via `prefers-color-scheme`
-- **`highchartsOptions` escape hatch**: Deep-merge any valid Highcharts config
-- **Combined chart types**: Set `type` per-series to mix line + column, area + scatter, etc.
+## Quick Start
 
-## Setup
-
-Add to your VS Code MCP config (`.vscode/mcp.json` or user `mcp.json`):
+Add to your MCP config (`.vscode/mcp.json`, Claude Desktop, etc.):
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "highcharts": {
-      "command": "bash",
-      "args": ["-c", "cd ~/source/mcp-highcharts && npm run build >&2 && node dist/main.js --stdio"]
+      "command": "npx",
+      "args": ["-y", "mcp-highcharts@latest", "--stdio"]
     }
   }
 }
 ```
 
+That's it. No API keys, no build steps, no config.
+
 ## Usage
 
-Just ask your AI agent to render a chart:
+Ask your AI agent to render a chart in natural language:
 
-> "Render a line chart of monthly revenue by quarter"
+- *"Show a bar chart of Q1-Q4 revenue"*
+- *"Pie chart of browser market share"*
+- *"Line chart comparing 2025 vs 2026 sales with a trend line"*
+- *"Render a sankey diagram of our deployment pipeline"*
+- *"Heatmap of commits by day of week and hour"*
 
-The LLM calls `render-chart` with series data and the chart renders inline.
+The LLM calls the `render-chart` tool with Highcharts options, and the chart renders inline in chat.
 
-## Tool Schema
+### 50+ Chart Types
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `chartType` | string | Chart type (default: `line`) |
-| `title` | string | Chart title |
-| `subtitle` | string | Chart subtitle |
-| `series` | array | Highcharts series objects `[{name, data, type?}]` |
-| `xAxisCategories` | string[] | X axis category labels |
-| `xAxisTitle` | string | X axis title |
-| `yAxisTitle` | string | Y axis title |
-| `yAxisFormat` | string | Y axis label format (e.g. `${value}`, `{value}%`) |
-| `stacking` | string | `normal` or `percentage` |
-| `height` | string | `small`, `medium`, `large`, `xl`, or px number |
-| `tooltipValueSuffix` | string | Suffix for tooltip values (e.g. ` USD`, `%`) |
-| `tooltipValuePrefix` | string | Prefix for tooltip values (e.g. `$`) |
-| `drilldown` | object | Highcharts drilldown config |
-| `highchartsOptions` | object | Any Highcharts options (deep-merged) |
+Every Highcharts series type is supported — including all extension modules:
 
-### Combined Chart Types
+| Category | Types |
+|----------|-------|
+| **Core** | line, area, spline, areaspline, column, bar, scatter, pie |
+| **More** | arearange, areasplinerange, boxplot, bubble, columnrange, columnpyramid, errorbar, gauge, packedbubble, polygon, waterfall |
+| **Maps** | map, mapbubble, mapline, mappoint, flowmap, geoheatmap, tiledwebmap |
+| **Flow** | sankey, dependency-wheel, arc-diagram, organization |
+| **Specialized** | wordcloud, timeline, treegraph, treemap, sunburst, networkgraph, funnel, solid-gauge, venn, variwide, heatmap, histogram, bellcurve, bullet, dumbbell, lollipop, streamgraph, tilemap, xrange, pictorial, pareto, item-series, windbarb, vector |
 
-Set `type` on individual series to mix chart types:
+### Mix Chart Types
 
-```json
+Set `type` per-series to combine different visualizations:
+
+```jsonc
+// The LLM generates this — you just ask for it
 {
-  "chartType": "column",
+  "chart": { "type": "column" },
+  "title": "Revenue vs Trend",
   "series": [
     { "name": "Revenue", "data": [10, 20, 30], "type": "column" },
     { "name": "Trend", "data": [12, 18, 28], "type": "spline" }
@@ -76,16 +63,84 @@ Set `type` on individual series to mix chart types:
 }
 ```
 
-## Theme
+## Tool Schema
 
-Edit [`src/theme.ts`](src/theme.ts) to customize globally. Colors use GitHub Primer `data-*-color-emphasis` tokens following [Primer data visualization](https://primer.style/product/ui-patterns/data-visualization/) ordering.
+The `render-chart` tool accepts any valid [Highcharts Options](https://api.highcharts.com/highcharts/) object. Key properties:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `chart` | object | `{ type, height }` — chart type and dimensions |
+| `title` | string \| object | Chart title (string shorthand or `{ text, style }`) |
+| `subtitle` | string \| object | Chart subtitle |
+| `series` | array | `[{ type?, name, data, color? }]` — the data |
+| `xAxis` | object | Categories, datetime, labels, title |
+| `yAxis` | object | Title, format (`{value}%`, `${value}`), min/max |
+| `tooltip` | object | `{ valueSuffix, valuePrefix, shared }` |
+| `plotOptions` | object | Stacking (`normal`, `percentage`), data labels |
+| `legend` | object | Position, layout, enabled |
+| `colors` | string[] | Custom color palette |
+| `colorAxis` | object | For heatmaps, choropleth |
+| `pane` | object | For gauges, polar charts |
+| `drilldown` | object | Click-to-drill sub-category data |
+
+Any valid Highcharts config property works — the schema is intentionally open to give the LLM full access to the Highcharts API.
+
+## Features
+
+- **GitHub Primer theme** — Colors, typography, and axes match [Primer data visualization](https://primer.style/product/ui-patterns/data-visualization/) patterns out of the box
+- **Accessibility built-in** — Auto-cycling dash styles + marker shapes per series, screen reader support, keyboard navigation
+- **Dark/light mode** — Adapts automatically via `prefers-color-scheme`
+- **Export** — PNG, SVG, CSV, data table via Highcharts exporting module
+- **Boost** — WebGL rendering for 100K+ data points
+- **Custom themes** — Override via `HIGHCHARTS_THEME` env var (inline JSON or file path)
+
+## Custom Theme
+
+You can override the default Primer theme by setting `HIGHCHARTS_THEME` in your MCP config:
+
+```json
+{
+  "servers": {
+    "highcharts": {
+      "command": "npx",
+      "args": ["-y", "mcp-highcharts@latest", "--stdio"],
+      "env": {
+        "HIGHCHARTS_THEME": "{\"colors\":[\"#ff6384\",\"#36a2eb\",\"#ffce56\"]}"
+      }
+    }
+  }
+}
+```
+
+Or point to a JSON file:
+
+```json
+{
+  "env": {
+    "HIGHCHARTS_THEME": "/path/to/my-theme.json"
+  }
+}
+```
+
+The theme object is any valid [Highcharts.setOptions()](https://api.highcharts.com/class-reference/Highcharts#.setOptions) config.
+
+## Transports
+
+| Transport | Usage |
+|-----------|-------|
+| **stdio** (default) | `npx mcp-highcharts --stdio` |
+| **Streamable HTTP** | `npx mcp-highcharts` → listens on `http://localhost:3001/mcp` |
+
+Set the HTTP port with `PORT` env var.
 
 ## Development
 
 ```bash
 npm install
-npm run dev     # watch mode + HTTP server
-npm run build   # production build
+npm run dev       # watch + HTTP server
+npm run build     # production build
+npm run test      # run tests
+npm run test:e2e  # e2e tests
 ```
 
 ## License
