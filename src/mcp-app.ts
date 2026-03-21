@@ -111,16 +111,13 @@ function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
     ["--highcharts-neutral-color-5", vars["--color-background-secondary"]],
   ];
 
-  // Series palette: map host semantic colors to chart series colors
-  const paletteMappings: [string, string | undefined][] = [
-    ["--highcharts-color-0", vars["--color-ring-primary"]],
-    ["--highcharts-color-1", vars["--color-text-info"]],
-    ["--highcharts-color-2", vars["--color-text-success"]],
-    ["--highcharts-color-3", vars["--color-text-warning"]],
-    ["--highcharts-color-4", vars["--color-text-danger"]],
-  ];
+  // Series palette: leave to the adaptive theme by default.
+  // The adaptive theme's 10 colors are designed for contrast.
+  // Host semantic tokens (ring, info, success) tend to be too similar
+  // (e.g. ring-primary and text-info are both blue in most VS Code themes).
+  // Users can override via colorMode or explicit colors[] in chart options.
 
-  for (const [hcVar, value] of [...structuralMappings, ...paletteMappings]) {
+  for (const [hcVar, value] of structuralMappings) {
     if (value) el.style.setProperty(hcVar, value);
     else el.style.removeProperty(hcVar);
   }
