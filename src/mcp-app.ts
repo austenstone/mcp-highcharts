@@ -141,7 +141,7 @@ async function renderMultipleCharts(
 
   root.style.display = layout === "horizontal" || layout === "grid" ? "grid" : "flex";
   root.style.flexDirection = "column";
-  root.style.gap = "8px";
+  root.style.gap = "4px";
   root.style.padding = "0";
   root.style.overflow = "hidden";
 
@@ -164,7 +164,11 @@ async function renderMultipleCharts(
     // Auto-size charts in multi-chart layouts if no explicit height set
     if (!processed.chart) processed.chart = {};
     if (!(processed.chart as any).height) {
-      (processed.chart as any).height = layout === "vertical" ? 300 : 250;
+      (processed.chart as any).height = layout === "vertical" ? 280 : 220;
+    }
+    // Compact spacing for multi-chart layouts
+    if (!(processed.chart as any).spacing) {
+      (processed.chart as any).spacing = [5, 10, 5, 10];
     }
     try {
       await loadModulesForOptions(processed as Record<string, unknown>);
