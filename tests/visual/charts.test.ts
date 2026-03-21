@@ -1,15 +1,26 @@
 import Highcharts from "highcharts";
 import type { Options } from "highcharts";
-import "virtual:highcharts-modules";
-import HighchartsReact from "highcharts-react-official";
-import { createRoot } from "react-dom/client";
+import { loadModulesForOptions } from "../../src/module-loader";
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
 
-function buildChartOptions(params: Record<string, unknown>): Options {
-  const opts = { ...params } as Options & Record<string, unknown>;
-  if (typeof opts.title === "string") opts.title = { text: opts.title };
-  if (typeof opts.subtitle === "string") opts.subtitle = { text: opts.subtitle };
-  return opts as Options;
+// Track errors
+const errors: string[] = [];
+const origConsoleError = console.error;
+
+function captureErrors() {
+  errors.length = 0;
+  console.error = (...args: unknown[]) => {
+    errors.push(args.map(String).join(" "));
+    origConsoleError.apply(console, args);
+  };
+  window.onerror = (msg) => {
+    errors.push(String(msg));
+  };
+}
+
+function stopCapture() {
+  console.error = origConsoleError;
+  window.onerror = null;
 }
 
 Highcharts.setOptions({
@@ -17,25 +28,77 @@ Highcharts.setOptions({
   exporting: { enabled: false },
 });
 
-function renderChart(params: Record<string, unknown>): Promise<HTMLElement> {
-  return new Promise((resolve) => {
-    const container = document.createElement("div");
-    container.style.cssText = "width:100%;max-width:800px;height:400px;background:#0d1117;padding:16px;box-sizing:border-box;";
-    document.body.appendChild(container);
+async function renderChart(params: Record<string, unknown>): Promise<HTMLElement> {
+  const container = document.createElement("div");
+  container.style.cssText = "width:800px;height:400px;";
+  document.body.appendChild(container);
 
-    const options = buildChartOptions(params);
-    createRoot(container).render(
-      <HighchartsReact
-        highcharts={Highcharts}
-        options={options}
-        callback={() => setTimeout(() => resolve(container), 200)}
-      />,
-    );
-  });
+  const opts = { ...params } as Options & Record<string, unknown>;
+  if (typeof opts.title === "string") opts.title = { text: opts.title };
+  if (typeof opts.subtitle === "string") opts.subtitle = { text: opts.subtitle };
+
+  // Lazy load needed modules
+  await loadModulesForOptions(opts as Record<string, unknown>);
+
+  // Render
+  Highcharts.chart(container, opts as Options);
+
+  // Small delay for rendering
+  await new Promise(r => setTimeout(r, 200));
+
+  return container;
 }
 
+function getTestDataForType(type: string): Record<string, unknown> {
+  const map: Record<string, Record<string, unknown>> = {
+    heatmap: {
+      chart: { type: "heatmap" },
+      series: [{ data: [[0, 0, 10], [0, 1, 19], [1, 0, 8], [1, 1, 24]] }],
+      colorAxis: { min: 0 },
+    },
+    sankey: {
+      chart: { type: "sankey" },
+      series: [{ data: [{ from: "A", to: "B", weight: 5 }, { from: "B", to: "C", weight: 3 }] }],
+    },
+    treemap: {
+      chart: { type: "treemap" },
+      series: [{ data: [{ name: "A", value: 10 }, { name: "B", value: 20 }] }],
+    },
+    wordcloud: {
+      chart: { type: "wordcloud" },
+      series: [{ data: [{ name: "hello", weight: 10 }, { name: "world", weight: 5 }] }],
+    },
+    gauge: {
+      chart: { type: "gauge" },
+      series: [{ data: [50] }],
+      pane: { startAngle: -150, endAngle: 150, background: [{ backgroundColor: "#EEE", innerRadius: "60%", outerRadius: "100%", shape: "arc" }] },
+      yAxis: { min: 0, max: 100 },
+    },
+    funnel: {
+      chart: { type: "funnel" },
+      series: [{ data: [{ name: "A", y: 100 }, { name: "B", y: 50 }] }],
+    },
+    networkgraph: {
+      chart: { type: "networkgraph" },
+      series: [{ data: [{ from: "A", to: "B" }, { from: "B", to: "C" }] }],
+    },
+    timeline: {
+      chart: { type: "timeline" },
+      series: [{ data: [{ name: "Event 1", label: "2024" }, { name: "Event 2", label: "2025" }] }],
+    },
+  };
+  return map[type] ?? { chart: { type }, series: [{ data: [1, 2, 3] }] };
+}
+
+beforeEach(() => {
+  captureErrors();
+});
+
 afterEach(() => {
-  document.querySelectorAll("[data-test-chart]").forEach((el) => el.remove());
+  stopCapture();
+  document.querySelectorAll("div[style*='800px']").forEach(el => el.remove());
+  document.querySelectorAll("div[style*='400px']").forEach(el => el.remove());
+  expect(errors, `Client errors detected: ${errors.join("; ")}`).toEqual([]);
 });
 
 describe("Visual Chart Rendering", () => {
@@ -1052,8 +1115,6 @@ describe("GitHub Theme", () => {
   });
 
   afterEach(() => {
-    // Reset Highcharts global options to pre-test state.
-    // setOptions is additive with no built-in reset, so we overwrite the internal object.
     (Highcharts as unknown as Record<string, unknown>).defaultOptions = savedDefaults;
   });
 
@@ -1090,5 +1151,48 @@ describe("GitHub Theme", () => {
     Highcharts.setOptions(theme);
     const el = await renderChart({ ...chartConfig });
     assertThemeDOM(el);
+  });
+});
+
+describe("Error Detection", () => {
+  it("fails on invalid chart type gracefully", async () => {
+    captureErrors();
+    const container = document.createElement("div");
+    container.style.cssText = "width:800px;height:400px;";
+    document.body.appendChild(container);
+
+    await loadModulesForOptions({ chart: { type: "nonexistent" }, series: [{ data: [1, 2, 3] }] });
+    Highcharts.chart(container, { chart: { type: "nonexistent" as any }, series: [{ data: [1, 2, 3] }] } as any);
+    await new Promise(r => setTimeout(r, 200));
+
+    expect(container.querySelector(".highcharts-root")).toBeTruthy();
+    stopCapture();
+  });
+
+  it("renders without errors when no chart type specified", async () => {
+    const el = await renderChart({
+      title: "No Type",
+      series: [{ name: "Data", data: [1, 2, 3] }],
+    });
+    expect(el.querySelector(".highcharts-root")).toBeTruthy();
+  });
+
+  it("loads module correctly for each specialty chart type", async () => {
+    const specialtyTypes = ["heatmap", "sankey", "treemap", "wordcloud", "gauge", "funnel", "networkgraph", "timeline"];
+
+    for (const type of specialtyTypes) {
+      errors.length = 0;
+      const container = document.createElement("div");
+      container.style.cssText = "width:400px;height:300px;";
+      document.body.appendChild(container);
+
+      const testData = getTestDataForType(type);
+      await loadModulesForOptions(testData);
+      Highcharts.chart(container, testData as Options);
+      await new Promise(r => setTimeout(r, 200));
+
+      expect(container.querySelector(".highcharts-root"), `${type} should render`).toBeTruthy();
+      expect(errors, `${type} should not produce errors: ${errors.join("; ")}`).toEqual([]);
+    }
   });
 });
