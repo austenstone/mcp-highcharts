@@ -204,24 +204,44 @@ export function createServer(): McpServer {
       annotations: { readOnlyHint: true },
       description:
         "Render an interactive Highcharts Map for geographic data visualization. " +
-        "Uses Highcharts.mapChart() under the hood. Supports choropleth maps, map bubbles, " +
-        "map lines, map points, and projections. Pass GeoJSON/TopoJSON inline via series[].mapData. " +
-        "Key properties: title, series (with type: 'map'/'mapline'/'mappoint'/'mapbubble'), " +
-        "colorAxis (for choropleth), mapNavigation (zoom controls), mapView (projection settings).\n\n" +
-        "Example — choropleth:\n" +
-        '{ title: "Population by Country", colorAxis: { min: 0 }, ' +
-        'series: [{ type: "map", mapData: geoJson, data: [{ "hc-key": "us", value: 331 }], ' +
-        'joinBy: "hc-key", name: "Population" }] }',
+        "Uses Highcharts.mapChart(). Supports choropleth maps, map bubbles, map lines, and map points.\n\n" +
+        "MAP DATA: Pass a map key string (NOT raw GeoJSON) via chart.map or series[].mapData. " +
+        "Map data is auto-fetched from the Highcharts CDN. If no map is specified, defaults to 'custom/world'.\n\n" +
+        "Common map keys:\n" +
+        "  - 'custom/world' — world map\n" +
+        "  - 'custom/europe' — Europe\n" +
+        "  - 'custom/north-america' — North America\n" +
+        "  - 'custom/asia' — Asia\n" +
+        "  - 'countries/us/us-all' — US states\n" +
+        "  - 'countries/gb/gb-all' — UK regions\n" +
+        "  - 'countries/de/de-all' — Germany states\n" +
+        "  - 'countries/fr/fr-all' — France regions\n" +
+        "  - 'countries/cn/cn-all' — China provinces\n" +
+        "  - 'countries/in/in-all' — India states\n" +
+        "Full list: https://code.highcharts.com/mapdata/\n\n" +
+        "Data: use hc-key values to join data to map regions. " +
+        "hc-key is typically the 2-letter code (us-ca, gb-eng, de-by, etc.).\n\n" +
+        "Example — world choropleth:\n" +
+        '{ chart: { map: "custom/world" }, title: "Population", colorAxis: { min: 0 }, ' +
+        'series: [{ type: "map", data: [{ "hc-key": "us", value: 331 }, { "hc-key": "cn", value: 1412 }], ' +
+        'joinBy: "hc-key", name: "Population (M)" }] }\n\n' +
+        "Example — US state map:\n" +
+        '{ chart: { map: "countries/us/us-all" }, title: "US Sales", colorAxis: { min: 0 }, ' +
+        'series: [{ type: "map", data: [{ "hc-key": "us-ca", value: 500 }, { "hc-key": "us-tx", value: 300 }], ' +
+        'joinBy: "hc-key", name: "Sales ($K)" }] }',
       inputSchema: {
-        chart: z.object({}).passthrough().optional()
-          .describe("Chart configuration"),
+        chart: z.object({
+          map: z.union([z.string(), z.object({}).passthrough()]).optional()
+            .describe("Base map — string key (e.g. 'custom/world', 'countries/us/us-all') auto-fetched from CDN, or inline GeoJSON/TopoJSON"),
+        }).passthrough().optional()
+          .describe("Chart configuration — use chart.map to set the base map for all series"),
         title: z.union([z.string(), z.object({}).passthrough()]).optional()
           .describe("Map title — string shorthand or {text, align, style}"),
         subtitle: z.union([z.string(), z.object({}).passthrough()]).optional()
           .describe("Map subtitle"),
         series: z.array(z.object({
           type: z.string().optional().describe("Series type: map, mapline, mappoint, mapbubble"),
-          mapData: z.any().optional().describe("GeoJSON/TopoJSON FeatureCollection for map geometry"),
+          mapData: z.any().optional().describe("Map key string (e.g. 'custom/world', 'countries/us/us-all') — auto-fetched from CDN. Or pass inline GeoJSON/TopoJSON."),
           data: z.any().optional().describe("Data array: [{hc-key, value}] or [{lat, lon, name}]"),
           joinBy: z.union([z.string(), z.array(z.string())]).optional()
             .describe("Property to join data to mapData. String for same key on both, or [mapDataKey, dataKey] array."),

@@ -150,6 +150,60 @@ function processOptions(opts: Record<string, unknown>): Options & Record<string,
   return processed;
 }
 
+/**
+ * Fetch map TopoJSON from Highcharts CDN by map key.
+ * Map keys follow the pattern: "custom/world", "countries/us/us-all", "countries/gb/gb-all", etc.
+ * @see https://code.highcharts.com/mapdata/
+ */
+const mapCache = new Map<string, unknown>();
+async function fetchMapData(mapKey: string): Promise<unknown> {
+  if (mapCache.has(mapKey)) return mapCache.get(mapKey)!;
+  const url = `https://code.highcharts.com/mapdata/${mapKey}.topo.json`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`Failed to fetch map "${mapKey}" from CDN (${resp.status})`);
+  const data = await resp.json();
+  mapCache.set(mapKey, data);
+  return data;
+}
+
+/**
+ * Resolve map data for all series in a map chart.
+ * If a series has `mapData` as a string (map key), fetch it from CDN.
+ * If `chart.map` is a string, fetch it as the base map.
+ * If no mapData is provided anywhere, defaults to "custom/world".
+ */
+async function resolveMapData(opts: Record<string, unknown>): Promise<void> {
+  // Handle chart.map as string
+  const chart = opts.chart as Record<string, unknown> | undefined;
+  if (chart?.map && typeof chart.map === "string") {
+    chart.map = await fetchMapData(chart.map);
+  }
+
+  const series = opts.series as Array<Record<string, unknown>> | undefined;
+  if (!Array.isArray(series)) return;
+
+  let hasMapData = !!chart?.map;
+
+  for (const s of series) {
+    if (typeof s.mapData === "string") {
+      s.mapData = await fetchMapData(s.mapData);
+      hasMapData = true;
+    } else if (s.mapData && typeof s.mapData === "object") {
+      hasMapData = true;
+    }
+  }
+
+  // If no map data provided anywhere, fetch world map as default for the first map series
+  if (!hasMapData) {
+    const worldMap = await fetchMapData("custom/world");
+    if (chart) {
+      chart.map = worldMap;
+    } else {
+      opts.chart = { map: worldMap };
+    }
+  }
+}
+
 async function renderMapChart(opts: Record<string, unknown>) {
   const container = document.getElementById("root")!;
   container.innerHTML = "";
@@ -159,6 +213,7 @@ async function renderMapChart(opts: Record<string, unknown>) {
 
   try {
     await loadModulesForOptions(processed as Record<string, unknown>);
+    await resolveMapData(processed as Record<string, unknown>);
     delete (processed as any).__chartType;
     Highcharts.mapChart(container, processed as Options);
   } catch (e) {
