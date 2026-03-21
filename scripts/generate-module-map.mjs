@@ -11,11 +11,14 @@
 import Highcharts from "../node_modules/highcharts/esm/highcharts.src.js";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const HC_ESM = path.resolve("node_modules/highcharts/esm");
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(__dirname, "..");
+const HC_ESM = path.join(ROOT, "node_modules/highcharts/esm");
 const MODULES_DIR = path.join(HC_ESM, "modules");
 const THEMES_DIR = path.join(HC_ESM, "themes");
-const GENERATED_DIR = path.resolve("src/generated");
+const GENERATED_DIR = path.join(ROOT, "src/generated");
 
 fs.mkdirSync(GENERATED_DIR, { recursive: true });
 
