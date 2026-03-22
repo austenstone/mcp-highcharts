@@ -1,0 +1,359 @@
+{
+  "typeToModule": {
+    "arearange": [
+      "highcharts-more"
+    ],
+    "areasplinerange": [
+      "highcharts-more"
+    ],
+    "boxplot": [
+      "highcharts-more"
+    ],
+    "bubble": [
+      "highcharts-more"
+    ],
+    "columnrange": [
+      "highcharts-more"
+    ],
+    "columnpyramid": [
+      "highcharts-more"
+    ],
+    "errorbar": [
+      "highcharts-more"
+    ],
+    "gauge": [
+      "highcharts-more"
+    ],
+    "packedbubble": [
+      "highcharts-more"
+    ],
+    "polygon": [
+      "highcharts-more"
+    ],
+    "waterfall": [
+      "highcharts-more"
+    ],
+    "scatter3d": [
+      "highcharts-3d"
+    ],
+    "sankey": [
+      "modules/sankey"
+    ],
+    "arcdiagram": [
+      "modules/sankey",
+      "modules/arc-diagram"
+    ],
+    "bullet": [
+      "modules/bullet"
+    ],
+    "cylinder": [
+      "highcharts-3d",
+      "modules/cylinder"
+    ],
+    "dependencywheel": [
+      "modules/sankey",
+      "modules/dependency-wheel"
+    ],
+    "dotplot": [
+      "modules/dotplot"
+    ],
+    "dumbbell": [
+      "modules/dumbbell"
+    ],
+    "funnel": [
+      "modules/funnel"
+    ],
+    "pyramid": [
+      "modules/funnel"
+    ],
+    "funnel3d": [
+      "highcharts-3d",
+      "modules/cylinder",
+      "modules/funnel3d"
+    ],
+    "xrange": [
+      "modules/gantt"
+    ],
+    "gantt": [
+      "modules/gantt"
+    ],
+    "heatmap": [
+      "modules/heatmap"
+    ],
+    "histogram": [
+      "modules/histogram-bellcurve"
+    ],
+    "bellcurve": [
+      "modules/histogram-bellcurve"
+    ],
+    "item": [
+      "modules/item-series"
+    ],
+    "lollipop": [
+      "modules/dumbbell",
+      "modules/lollipop"
+    ],
+    "map": [
+      "modules/map"
+    ],
+    "mapline": [
+      "modules/map"
+    ],
+    "mappoint": [
+      "modules/map"
+    ],
+    "mapbubble": [
+      "modules/map"
+    ],
+    "networkgraph": [
+      "modules/networkgraph"
+    ],
+    "organization": [
+      "modules/sankey",
+      "modules/organization"
+    ],
+    "pareto": [
+      "modules/pareto"
+    ],
+    "pictorial": [
+      "modules/pictorial"
+    ],
+    "pointandfigure": [
+      "modules/pointandfigure"
+    ],
+    "pyramid3d": [
+      "highcharts-3d",
+      "modules/cylinder",
+      "modules/funnel3d",
+      "modules/pyramid3d"
+    ],
+    "renko": [
+      "modules/renko"
+    ],
+    "hlc": [
+      "modules/stock"
+    ],
+    "ohlc": [
+      "modules/stock"
+    ],
+    "candlestick": [
+      "modules/stock"
+    ],
+    "flags": [
+      "modules/stock"
+    ],
+    "streamgraph": [
+      "modules/streamgraph"
+    ],
+    "treemap": [
+      "modules/sunburst"
+    ],
+    "sunburst": [
+      "modules/sunburst"
+    ],
+    "tiledwebmap": [
+      "modules/tiledwebmap"
+    ],
+    "tilemap": [
+      "modules/heatmap",
+      "modules/tilemap"
+    ],
+    "timeline": [
+      "modules/timeline"
+    ],
+    "treegraph": [
+      "modules/treegraph"
+    ],
+    "variablepie": [
+      "modules/variable-pie"
+    ],
+    "variwide": [
+      "modules/variwide"
+    ],
+    "vector": [
+      "modules/vector"
+    ],
+    "windbarb": [
+      "modules/windbarb"
+    ],
+    "wordcloud": [
+      "modules/wordcloud"
+    ]
+  },
+  "availableModules": [
+    "highcharts-3d",
+    "highcharts-more",
+    "modules/accessibility",
+    "modules/annotations",
+    "modules/annotations-advanced",
+    "modules/arc-diagram",
+    "modules/arrow-symbols",
+    "modules/boost",
+    "modules/boost-canvas",
+    "modules/broken-axis",
+    "modules/bullet",
+    "modules/coloraxis",
+    "modules/current-date-indicator",
+    "modules/cylinder",
+    "modules/data",
+    "modules/data-tools",
+    "modules/datagrouping",
+    "modules/debugger",
+    "modules/dependency-wheel",
+    "modules/dotplot",
+    "modules/drag-panes",
+    "modules/draggable-points",
+    "modules/drilldown",
+    "modules/dumbbell",
+    "modules/export-data",
+    "modules/exporting",
+    "modules/flowmap",
+    "modules/full-screen",
+    "modules/funnel",
+    "modules/funnel3d",
+    "modules/gantt",
+    "modules/geoheatmap",
+    "modules/grid-axis",
+    "modules/heatmap",
+    "modules/heikinashi",
+    "modules/histogram-bellcurve",
+    "modules/hollowcandlestick",
+    "modules/item-series",
+    "modules/lollipop",
+    "modules/map",
+    "modules/marker-clusters",
+    "modules/mouse-wheel-zoom",
+    "modules/navigator",
+    "modules/networkgraph",
+    "modules/no-data-to-display",
+    "modules/non-cartesian-zoom",
+    "modules/offline-exporting",
+    "modules/organization",
+    "modules/parallel-coordinates",
+    "modules/pareto",
+    "modules/pathfinder",
+    "modules/pattern-fill",
+    "modules/pictorial",
+    "modules/pointandfigure",
+    "modules/price-indicator",
+    "modules/pyramid3d",
+    "modules/renko",
+    "modules/sankey",
+    "modules/series-label",
+    "modules/series-on-point",
+    "modules/solid-gauge",
+    "modules/sonification",
+    "modules/static-scale",
+    "modules/stock",
+    "modules/stock-tools",
+    "modules/streamgraph",
+    "modules/sunburst",
+    "modules/textpath",
+    "modules/tiledwebmap",
+    "modules/tilemap",
+    "modules/timeline",
+    "modules/treegraph",
+    "modules/treegrid",
+    "modules/treemap",
+    "modules/variable-pie",
+    "modules/variwide",
+    "modules/vector",
+    "modules/venn",
+    "modules/windbarb",
+    "modules/wordcloud",
+    "modules/xrange"
+  ],
+  "availableThemes": [
+    "adaptive",
+    "avocado",
+    "brand-dark",
+    "brand-light",
+    "dark-blue",
+    "dark-green",
+    "dark-unica",
+    "gray",
+    "grid",
+    "grid-light",
+    "high-contrast-dark",
+    "high-contrast-light",
+    "sand-signika",
+    "skies",
+    "sunset"
+  ],
+  "chartTypes": [
+    "arcdiagram",
+    "area",
+    "arearange",
+    "areaspline",
+    "areasplinerange",
+    "bar",
+    "bellcurve",
+    "boxplot",
+    "bubble",
+    "bullet",
+    "candlestick",
+    "column",
+    "columnpyramid",
+    "columnrange",
+    "cylinder",
+    "dependencywheel",
+    "dotplot",
+    "dumbbell",
+    "errorbar",
+    "flags",
+    "funnel",
+    "funnel3d",
+    "gantt",
+    "gauge",
+    "heatmap",
+    "histogram",
+    "hlc",
+    "item",
+    "line",
+    "lollipop",
+    "map",
+    "mapbubble",
+    "mapline",
+    "mappoint",
+    "networkgraph",
+    "ohlc",
+    "organization",
+    "packedbubble",
+    "pareto",
+    "pictorial",
+    "pie",
+    "pointandfigure",
+    "polygon",
+    "pyramid",
+    "pyramid3d",
+    "renko",
+    "sankey",
+    "scatter",
+    "scatter3d",
+    "spline",
+    "streamgraph",
+    "sunburst",
+    "tiledwebmap",
+    "tilemap",
+    "timeline",
+    "treegraph",
+    "treemap",
+    "variablepie",
+    "variwide",
+    "vector",
+    "waterfall",
+    "windbarb",
+    "wordcloud",
+    "xrange"
+  ],
+  "coreTypes": [
+    "area",
+    "areaspline",
+    "bar",
+    "column",
+    "line",
+    "pie",
+    "scatter",
+    "spline"
+  ]
+}

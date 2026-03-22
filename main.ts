@@ -3,22 +3,29 @@
  * Entry point — supports both stdio and Streamable HTTP transports.
  * Run with: npx mcp-highcharts [--stdio]
  */
-import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import cors from "cors";
-import type { Request, Response } from "express";
 import { createServer } from "./server.js";
 
 async function startStreamableHTTPServer(
   factory: () => McpServer,
 ): Promise<void> {
   const port = parseInt(process.env.PORT ?? "3001", 10);
-  const app = createMcpExpressApp({ host: "0.0.0.0" });
-  app.use(cors());
+  if (isNaN(port) || port < 1 || port > 65535) {
+    throw new Error(`Invalid PORT: ${process.env.PORT}`);
+  }
 
-  app.all("/mcp", async (req: Request, res: Response) => {
+  // Lazy-load Express and dependencies only for HTTP mode
+  const [{ createMcpExpressApp }, { StreamableHTTPServerTransport }, { default: cors }] = await Promise.all([
+    import("@modelcontextprotocol/sdk/server/express.js"),
+    import("@modelcontextprotocol/sdk/server/streamableHttp.js"),
+    import("cors"),
+  ]);
+
+  const app = createMcpExpressApp({ host: "0.0.0.0" });
+  app.use(cors({ origin: /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/ }));
+
+  app.all("/mcp", async (req: any, res: any) => {
     const server = factory();
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
@@ -44,7 +51,7 @@ async function startStreamableHTTPServer(
     }
   });
 
-  const httpServer = app.listen(port, (err) => {
+  const httpServer = app.listen(port, (err?: Error) => {
     if (err) {
       console.error("Failed to start server:", err);
       process.exit(1);

@@ -7,26 +7,14 @@
   <title>Highcharts MCP App</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
-    body { margin: 0; padding: 0; color-scheme: light dark; background: transparent; }
+    html, body { margin: 0; padding: 0; height: 100%; color-scheme: light dark; background: transparent; }
+    #root { min-height: 100%; }
+    /* Reduce dashboard outer padding — MCP App is already in a compact container */
+    .highcharts-dashboards, .highcharts-dashboards-wrapper { padding: 4px 2px; }
   </style>
 </head>
 <body>
   <div id="root"></div>
-  <script>
-    // Set dark/light class before any chart renders to avoid FOUC.
-    // The adaptive theme reads .highcharts-dark/.highcharts-light on <html>.
-    // prefers-color-scheme may not propagate into sandboxed iframes, so we
-    // also check for VS Code's data-vscode-theme-kind attribute if present.
-    (function() {
-      var dk = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      var el = document.documentElement;
-      if (dk) {
-        el.classList.add('highcharts-dark');
-      } else {
-        el.classList.add('highcharts-light');
-      }
-    })();
-  </script>
-  <script type="module" src="/src/mcp-app.tsx"></script>
+  <script type="module" src="/src/mcp-app.ts"></script>
 </body>
 </html>
