@@ -81,6 +81,14 @@ export function validateOptions(opts: Record<string, unknown>): ValidationWarnin
       for (let i = 0; i < series.length; i++) {
         const s = series[i];
         if (s && typeof s === "object") {
+          // data must be an array if present
+          if (s.data !== undefined && !Array.isArray(s.data)) {
+            warnings.push({
+              field: `series[${i}].data`,
+              message: `data must be an array, got ${typeof s.data}. Use number[], [x,y][], or {name,y}[] format.`,
+              suggestion: "series: [{ data: [1, 2, 3] }] or series: [{ data: [[0,1], [1,2]] }]",
+            });
+          }
           // Empty data array with data module active → we handle this, but warn
           if (Array.isArray(s.data) && s.data.length === 0 && !opts.data) {
             warnings.push({
