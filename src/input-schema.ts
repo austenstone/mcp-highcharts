@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import chartTypes from "./generated/chart-types.json" with { type: "json" };
 import optionsFields from "./generated/options-fields.json" with { type: "json" };
 
