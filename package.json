@@ -42,17 +42,11 @@
     "build": "eslint . && tsc --noEmit && cross-env INPUT=mcp-app.html vite build && tsc -p tsconfig.server.json",
     "watch": "cross-env INPUT=mcp-app.html vite build --watch",
     "serve": "tsx watch main.ts",
-    "serve:stdio": "tsx main.ts --stdio",
-    "start": "cross-env NODE_ENV=development npm run build && npm run serve",
-    "start:stdio": "cross-env NODE_ENV=development npm run build 1>&2 && npm run serve:stdio",
     "dev": "cross-env NODE_ENV=development concurrently \"npm run watch\" \"npm run serve\"",
     "test": "vitest run --config vitest.config.ts",
     "test:e2e": "vitest run --config vitest.config.ts tests/e2e",
     "test:visual": "vitest --config vitest.browser.config.ts --ui",
-    "generate:schema": "tsx scripts/generate-schema.ts",
-    "generate:tree": "tsx scripts/generate-schema-from-tree.ts",
     "prepublishOnly": "npm run build",
-    "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {

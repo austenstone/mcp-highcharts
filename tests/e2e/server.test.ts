@@ -12,7 +12,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
   beforeAll(async () => {
     transport = new StdioClientTransport({
       command: "tsx",
-      args: ["main.ts", "--stdio"],
+      args: ["main.ts"],
     });
     client = new Client({ name: "e2e-test-client", version: "1.0.0" });
     await client.connect(transport);
