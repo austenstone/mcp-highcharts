@@ -65,9 +65,15 @@ export function createServer(): McpServer {
     } else {
       // CSV/TSV → inject as data.csv for Highcharts' built-in data module
       args.data = { ...(args.data as object || {}), csv: content };
+    }
 
-      // Strip empty data arrays from series — LLMs often send data:[] placeholders
-      // which would override the CSV data module
+    return stripEmptySeries(args);
+  }
+
+  /** Strip empty data arrays from series when the data module will generate data */
+  function stripEmptySeries(args: Record<string, unknown>): Record<string, unknown> {
+    const dataObj = args.data as Record<string, unknown> | undefined;
+    if (dataObj && (dataObj.csvURL || dataObj.csv || dataObj.rowsURL || dataObj.columnsURL || dataObj.enablePolling || dataObj.googleSpreadsheetKey)) {
       const series = args.series as any[] | undefined;
       if (Array.isArray(series)) {
         for (const s of series) {
@@ -77,7 +83,6 @@ export function createServer(): McpServer {
         }
       }
     }
-
     return args;
   }
 
@@ -86,11 +91,12 @@ export function createServer(): McpServer {
     const series = args.series as any[] | undefined;
     const data = args.data as Record<string, unknown> | undefined;
     const seriesCount = Array.isArray(series) ? series.length : 0;
-    const hasDataModule = !!data?.csv;
+    const hasDataModule = !!(data?.csv || data?.csvURL || data?.rowsURL || data?.columnsURL || data?.googleSpreadsheetKey);
+    const isLive = !!data?.enablePolling;
     const type = chartType || (args.chart as any)?.type || series?.[0]?.type || "line";
     const title = typeof args.title === "string" ? args.title : (args.title as any)?.text || "";
     const titleStr = title ? ` "${title}"` : "";
-    const dataInfo = hasDataModule ? " from CSV data" : ` with ${seriesCount} series`;
+    const dataInfo = isLive ? " with live polling" : hasDataModule ? " from data module" : ` with ${seriesCount} series`;
     return `Rendered ${type} chart${titleStr}${dataInfo}`;
   }
 
@@ -140,7 +146,7 @@ export function createServer(): McpServer {
       _meta: { ui: { resourceUri } },
     },
     async (args): Promise<CallToolResult> => {
-      const processed = await resolveDataSource(args as Record<string, unknown>);
+      const processed = stripEmptySeries(await resolveDataSource(args as Record<string, unknown>));
       if (!processed.series && !processed.data) {
         return {
           isError: true,
