@@ -36,11 +36,40 @@ export function createServer(options?: ServerOptions): McpServer {
     : schemaDetail === "minimal"
       ? inputSchemaMinimal
       : inputSchemaBasic;
+  /** Default responsive rules: simplify charts in narrow panels */
+  const defaultResponsiveRules = [
+    {
+      condition: { maxWidth: 400 },
+      chartOptions: {
+        legend: { enabled: false },
+        credits: { enabled: false },
+        subtitle: { text: undefined },
+        yAxis: { title: { text: undefined } },
+      },
+    },
+    {
+      condition: { maxWidth: 300 },
+      chartOptions: {
+        title: { style: { fontSize: "12px" } },
+        xAxis: { labels: { style: { fontSize: "9px" } } },
+        yAxis: { labels: { style: { fontSize: "9px" } } },
+      },
+    },
+  ];
+
+  /** Inject default responsive rules if none provided */
+  function applyDefaults(config: Record<string, unknown>): Record<string, unknown> {
+    if (!config.responsive) {
+      config.responsive = { rules: defaultResponsiveRules };
+    }
+    return config;
+  }
+
   /** Build a successful tool result with text summary and structured chart config */
   function chartResult(summary: string, config: Record<string, unknown>): CallToolResult {
     return {
       content: [{ type: "text", text: summary }],
-      structuredContent: config as any,
+      structuredContent: applyDefaults(config) as any,
     };
   }
 
@@ -151,7 +180,10 @@ export function createServer(options?: ServerOptions): McpServer {
         '{ title: "Monthly Revenue", xAxis: { categories: ["Jan","Feb","Mar"] }, ' +
         'series: [{ name: "2026", data: [100, 200, 150] }] }\n\n' +
         "Example — pie chart:\n" +
-        '{ title: "Market Share", series: [{ type: "pie", data: [{ name: "A", y: 60 }, { name: "B", y: 40 }] }] }',
+        '{ title: "Market Share", series: [{ type: "pie", data: [{ name: "A", y: 60 }, { name: "B", y: 40 }] }] }\n\n' +
+        "Token-saving tip for time-series: use pointStart + pointInterval instead of explicit timestamps. " +
+        "e.g. { series: [{ data: [1,2,3], pointStart: Date.UTC(2026,0,1), pointInterval: 86400000 }] } " +
+        "instead of [[1735689600000,1],[1735776000000,2],...]. For irregular intervals, add relativeXValue: true.",
       inputSchema: chartInputSchema,
       _meta: { ui: { resourceUri } },
     },
@@ -183,7 +215,8 @@ export function createServer(options?: ServerOptions): McpServer {
         '{ series: [{ type: "candlestick", name: "AAPL", data: [[ts,o,h,l,c], ...] }, ' +
         '{ type: "column", name: "Volume", data: [[ts,vol], ...], yAxis: 1 }], ' +
         'yAxis: [{ height: "70%" }, { top: "75%", height: "25%", offset: 0 }], ' +
-        'rangeSelector: { selected: 1 } }',
+        'rangeSelector: { selected: 1 } }\n\n' +
+        "Token-saving tip: use pointStart + pointInterval for regular time-series instead of explicit timestamps per point.",
       inputSchema: {
         ...chartInputSchema,
         navigator: z.object({
@@ -235,7 +268,11 @@ export function createServer(options?: ServerOptions): McpServer {
         "Example — two charts side by side:\n" +
         '{ gui: { layouts: [{ rows: [{ cells: [{ id: "left" }, { id: "right" }] }] }] }, ' +
         'components: [{ renderTo: "left", type: "Highcharts", chartOptions: { series: [{ data: [1,2,3] }] } }, ' +
-        '{ renderTo: "right", type: "KPI", title: "Total", value: 42 }] }',
+        '{ renderTo: "right", type: "KPI", title: "Total", value: 42 }] }\n\n' +
+        "Google Sheets integration: use dataPool with a GoogleSheets connector for live data. " +
+        'dataPool: { connectors: [{ id: "gsheet", type: "GoogleSheets", options: { ' +
+        'googleSpreadsheetKey: "SPREADSHEET_ID", worksheet: "Sheet1" } }] }. ' +
+        "Components reference it via connector: { id: \"gsheet\" }.",
       inputSchema: {
         gui: z.object({
           layouts: z.array(z.object({
@@ -617,7 +654,7 @@ export function createServer(options?: ServerOptions): McpServer {
         role: "assistant",
         content: {
           type: "text",
-          text: `Analyze this data and create the most appropriate chart:\n\n\`\`\`\n${data}\n\`\`\`\n\nInstructions:\n1. Identify the data structure (time-series, categorical, hierarchical, geographic, relational)\n2. Count dimensions and measures\n3. Pick the best chart type:\n   - Time-series → line/area/spline (or render_stock_chart for financial data)\n   - Categories with values → bar/column\n   - Parts of a whole → pie/treemap/sunburst\n   - Correlation → scatter/bubble\n   - Distribution → boxplot/histogram\n   - Flow → sankey/networkgraph\n   - Geographic → render_map\n4. Use the appropriate render_* tool with well-formatted Highcharts options\n5. Add a clear title, axis labels, and tooltip formatting`,
+          text: `Analyze this data and create the most appropriate chart:\n\n\`\`\`\n${data}\n\`\`\`\n\nInstructions:\n1. Identify the data structure (time-series, categorical, hierarchical, geographic, relational)\n2. Count dimensions and measures\n3. Pick the best chart type:\n   - Time-series → line/area/spline (or render_stock_chart for financial data)\n   - Categories with values → bar/column\n   - Parts of a whole → pie/treemap/sunburst\n   - Correlation → scatter/bubble\n   - Distribution → boxplot/histogram\n   - Flow → sankey/networkgraph\n   - Geographic → render_map\n4. Use the appropriate render_* tool with well-formatted Highcharts options\n5. Add a clear title, axis labels, and tooltip formatting\n6. For time-series: use pointStart + pointInterval instead of explicit timestamps to save tokens`,
         },
       }],
     }),
@@ -632,7 +669,7 @@ export function createServer(options?: ServerOptions): McpServer {
         role: "assistant",
         content: {
           type: "text",
-          text: `Create a Highcharts Dashboard for: "${topic}"\n\nUse render_dashboard with this structure:\n\n1. **Layout (gui):** Define rows and cells. Typical pattern:\n   - Row 1: 3-4 KPI cells across the top\n   - Row 2: 1 large chart (full width or 2/3) + 1 smaller chart or grid\n   - Row 3: Data grid with details\n\n2. **KPI components:** Use type:'KPI' with value, subtitle, and threshold colors\n\n3. **Chart components:** Use type:'Highcharts' with chartOptions containing full Highcharts config\n\n4. **Data Grid:** Use type:'DataGrid' for tabular drill-down\n\n5. **DataPool:** Define shared connectors so components sync (filtering one updates others)\n\nExample component structure:\n\`\`\`json\n{\n  "components": [\n    { "type": "KPI", "renderTo": "kpi-1", "value": 1234, "title": "Total", "subtitle": "This month" },\n    { "type": "Highcharts", "renderTo": "chart-1", "chartOptions": { "series": [...] } },\n    { "type": "DataGrid", "renderTo": "grid-1", "dataGridOptions": { "columns": [...] } }\n  ]\n}\n\`\`\`\n\nGenerate realistic sample data relevant to "${topic}" and call render_dashboard.`,
+          text: `Create a Highcharts Dashboard for: "${topic}"\n\nUse render_dashboard with this structure:\n\n1. **Layout (gui):** Define rows and cells. Typical pattern:\n   - Row 1: 3-4 KPI cells across the top\n   - Row 2: 1 large chart (full width or 2/3) + 1 smaller chart or grid\n   - Row 3: Data grid with details\n\n2. **KPI components:** Use type:'KPI' with value, subtitle, and threshold colors\n\n3. **Chart components:** Use type:'Highcharts' with chartOptions containing full Highcharts config\n\n4. **Data Grid:** Use type:'DataGrid' for tabular drill-down\n\n5. **DataPool:** Define shared connectors so components sync (filtering one updates others)\n   - For live data from Google Sheets: { type: "GoogleSheets", options: { googleSpreadsheetKey: "...", worksheet: "Sheet1" } }\n   - For CSV URLs: { type: "CSV", options: { csvURL: "..." } }\n   - For JSON: { type: "JSON", options: { data: [...] } }\n\nExample component structure:\n\`\`\`json\n{\n  "components": [\n    { "type": "KPI", "renderTo": "kpi-1", "value": 1234, "title": "Total", "subtitle": "This month" },\n    { "type": "Highcharts", "renderTo": "chart-1", "chartOptions": { "series": [...] } },\n    { "type": "DataGrid", "renderTo": "grid-1", "dataGridOptions": { "columns": [...] } }\n  ]\n}\n\`\`\`\n\nGenerate realistic sample data relevant to "${topic}" and call render_dashboard.`,
         },
       }],
     }),
