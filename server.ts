@@ -111,28 +111,8 @@ export function createServer(options?: ServerOptions): McpServer {
         readOnlyHint: true,
       },
       description:
-<<<<<<< HEAD
         "Render an interactive Highcharts chart inline. " +
         "Input is a Highcharts Options object (https://api.highcharts.com/highcharts/).",
-=======
-        "Render an interactive Highcharts chart inline. Input is a Highcharts Options object " +
-        "(https://api.highcharts.com/highcharts/) — pass any valid config directly. " +
-        "Key properties: chart (type, height), title, subtitle, series (array of {type, name, data}), " +
-        "xAxis, yAxis, tooltip, plotOptions, legend, colors, colorAxis, pane, drilldown. " +
-        "dataSource is a TOP-LEVEL parameter only (not per-series) — it loads one file for the whole chart. " +
-        "For multi-series, put data inline in each series[].data array. " +
-        "Series types: line, bar, column, area, pie, spline, scatter, heatmap, gauge, " +
-        "treemap, sankey, funnel, networkgraph, waterfall, boxplot, timeline, wordcloud, and more. " +
-        "title/subtitle accept string shorthand.\n\n" +
-        "Example — line chart:\n" +
-        '{ title: "Monthly Revenue", xAxis: { categories: ["Jan","Feb","Mar"] }, ' +
-        'series: [{ name: "2026", data: [100, 200, 150] }] }\n\n' +
-        "Example — pie chart:\n" +
-        '{ title: "Market Share", series: [{ type: "pie", data: [{ name: "A", y: 60 }, { name: "B", y: 40 }] }] }\n\n' +
-        "Token-saving tip for time-series: use pointStart + pointInterval instead of explicit timestamps. " +
-        "e.g. { series: [{ data: [1,2,3], pointStart: Date.UTC(2026,0,1), pointInterval: 86400000 }] } " +
-        "instead of [[1735689600000,1],[1735776000000,2],...]. For irregular intervals, add relativeXValue: true.",
->>>>>>> 737caf4cbef4c032ee063603f4db9e631a7c9d76
       inputSchema: chartInputSchema,
       _meta: { ui: { resourceUri } },
     },
