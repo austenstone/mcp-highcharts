@@ -173,6 +173,8 @@ export function createServer(options?: ServerOptions): McpServer {
         "(https://api.highcharts.com/highcharts/) — pass any valid config directly. " +
         "Key properties: chart (type, height), title, subtitle, series (array of {type, name, data}), " +
         "xAxis, yAxis, tooltip, plotOptions, legend, colors, colorAxis, pane, drilldown. " +
+        "dataSource is a TOP-LEVEL parameter only (not per-series) — it loads one file for the whole chart. " +
+        "For multi-series, put data inline in each series[].data array. " +
         "Series types: line, bar, column, area, pie, spline, scatter, heatmap, gauge, " +
         "treemap, sankey, funnel, networkgraph, waterfall, boxplot, timeline, wordcloud, and more. " +
         "title/subtitle accept string shorthand.\n\n" +
