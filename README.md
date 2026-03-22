@@ -2,8 +2,8 @@
 
 Render interactive [Highcharts](https://www.highcharts.com/) charts inline in AI chat — VS Code, GitHub Copilot, Claude Desktop, or any MCP client with [MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview) support.
 
-[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_MCP_Server-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=mcp-highcharts&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-highcharts%40latest%22%2C%22--stdio%22%5D%7D)
-[![Install in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Install_MCP_Server-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=mcp-highcharts&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-highcharts%40latest%22%2C%22--stdio%22%5D%7D&quality=insider)
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_MCP_Server-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=mcp-highcharts&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-highcharts%40latest%22%5D%7D)
+[![Install in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Install_MCP_Server-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=mcp-highcharts&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-highcharts%40latest%22%5D%7D&quality=insider)
 [![npm](https://img.shields.io/npm/v/mcp-highcharts?style=flat-square)](https://www.npmjs.com/package/mcp-highcharts)
 
 ![Code_-_Insiders_15uBYM8FHt](https://github.com/user-attachments/assets/39b9dc4b-1c12-455d-8e14-f6e87d1d1e3a)
@@ -18,7 +18,7 @@ Click a badge above, or add to your MCP config:
     "servers": {
       "highcharts": {
         "command": "npx",
-        "args": ["-y", "mcp-highcharts@latest", "--stdio"]
+        "args": ["-y", "mcp-highcharts@latest"]
       }
     }
   }
@@ -35,7 +35,7 @@ Add to `claude_desktop_config.json`:
   "mcpServers": {
     "highcharts": {
       "command": "npx",
-      "args": ["-y", "mcp-highcharts@latest", "--stdio"]
+      "args": ["-y", "mcp-highcharts@latest"]
     }
   }
 }
@@ -46,8 +46,8 @@ Add to `claude_desktop_config.json`:
 <summary>HTTP mode</summary>
 
 ```bash
-npx mcp-highcharts@latest          # http://localhost:3001/mcp
-PORT=8080 npx mcp-highcharts@latest  # custom port
+npx mcp-highcharts@latest --http          # http://localhost:3001/mcp
+PORT=8080 npx mcp-highcharts@latest --http  # custom port
 ```
 </details>
 

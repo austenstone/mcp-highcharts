@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Entry point — supports both stdio and Streamable HTTP transports.
- * Run with: npx mcp-highcharts [--stdio]
+ * Entry point — supports both stdio (default) and Streamable HTTP transports.
+ * Run with: npx mcp-highcharts [--http]
  */
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -72,10 +72,10 @@ async function startStdioServer(factory: () => McpServer): Promise<void> {
 }
 
 async function main() {
-  if (process.argv.includes("--stdio")) {
-    await startStdioServer(createServer);
-  } else {
+  if (process.argv.includes("--http")) {
     await startStreamableHTTPServer(createServer);
+  } else {
+    await startStdioServer(createServer);
   }
 }
 
