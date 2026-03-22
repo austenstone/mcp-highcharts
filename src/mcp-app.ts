@@ -151,8 +151,14 @@ function ensureMinHeight(opts: Record<string, unknown>, minHeight: number) {
  */
 function applyColorPalette(colors: string[]) {
   const el = document.documentElement;
-  for (let i = 0; i < colors.length; i++) {
-    el.style.setProperty(`--highcharts-color-${i}`, colors[i]);
+  // Apply provided colors and clear any stale vars beyond the palette length
+  const maxSlots = Math.max(colors.length, 10);
+  for (let i = 0; i < maxSlots; i++) {
+    if (i < colors.length) {
+      el.style.setProperty(`--highcharts-color-${i}`, colors[i]);
+    } else {
+      el.style.removeProperty(`--highcharts-color-${i}`);
+    }
   }
 }
 

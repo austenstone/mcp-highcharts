@@ -87,7 +87,7 @@ export function createServer(): McpServer {
         "render_dashboard (multiple components with layout), render_map (geographic/choropleth maps), " +
         "render_gantt (project timelines), and render_grid (standalone data table/grid). " +
         "Input is any valid Highcharts Options object (https://api.highcharts.com/highcharts/). " +
-        "All 119 chart types supported with automatic module loading. " +
+        "All 64 chart types supported with automatic module loading. " +
         "title and subtitle accept string shorthand. " +
         "Combine chart types via per-series type for overlays (e.g., column + spline). " +
         "Use render_dashboard for multi-chart layouts, KPIs, and data grids via @highcharts/dashboards.",
@@ -282,7 +282,7 @@ export function createServer(): McpServer {
       description:
         "Render an interactive Highcharts Map for geographic data visualization. " +
         "Uses Highcharts.mapChart(). Supports choropleth maps, map bubbles, map lines, and map points.\n\n" +
-        "MAP DATA: Pass a map key string (NOT raw GeoJSON) via chart.map or series[].mapData. " +
+        "MAP DATA: Pass a map key string (preferred) via chart.map or series[].mapData — auto-fetched from the Highcharts CDN. Inline GeoJSON/TopoJSON objects are also accepted. " +
         "Map data is auto-fetched from the Highcharts CDN. If no map is specified, defaults to 'custom/world'.\n\n" +
         "Common map keys:\n" +
         "  - 'custom/world' — world map\n" +

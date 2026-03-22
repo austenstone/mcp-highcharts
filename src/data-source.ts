@@ -16,7 +16,9 @@ export async function readDataSource(source: string): Promise<string> {
     if (url.protocol !== "https:") {
       throw new Error("Only HTTPS URLs are allowed for dataSource");
     }
-    // Block private/link-local IPs (basic SSRF protection)
+    // Basic SSRF protection — blocks obvious private/link-local IPs.
+    // Note: DNS rebinding can bypass hostname checks. This is defense-in-depth
+    // for an MCP server that typically runs on localhost only.
     const host = url.hostname;
     if (
       host === "localhost" ||

@@ -3,7 +3,9 @@ import { playwright } from "@vitest/browser-playwright";
 import path from "node:path";
 import fs from "node:fs";
 
-// Use Highcharts packed ESM bundles (v12.2+) which handle init order correctly
+// Browser tests use packed ESM bundles (highcharts/esm/) which pre-initialize all constructors.
+// This differs from the app which uses granular ESM (es-modules/masters/) via import.meta.glob.
+// Both paths register on the same Highcharts instance — packed is simpler for test context.
 const hcEsm = (p: string) =>
   path.resolve("node_modules/highcharts/esm", p);
 
