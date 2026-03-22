@@ -30,7 +30,7 @@ const loaded = new Set<string>();
 const ALWAYS_LOAD = [
   "modules/accessibility",
   "modules/drilldown",
-  "modules/data",                // CSV/HTML table/Google Sheets data import
+  "modules/data",
   "modules/no-data-to-display",
 ];
 
