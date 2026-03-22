@@ -39,7 +39,8 @@ const themeKey = `/node_modules/highcharts/es-modules/masters/themes/${themeName
 const themeReady = (userOverrides
   ? Promise.resolve()
   : themeModules[themeKey]?.() ?? Promise.resolve()
-).then(() => {
+).catch(e => console.warn(`Theme "${themeName}" failed to load:`, e))
+.then(() => {
   Highcharts.setOptions({
     credits: { enabled: false },
     exporting: { enabled: false },
@@ -133,7 +134,6 @@ function applyThemeAndRedraw(ctx: McpUiHostContext | null | undefined) {
     });
   }
 }
-
 
 /** Set a minimum chart height if not explicitly specified */
 function ensureMinHeight(opts: Record<string, unknown>, minHeight: number) {
@@ -417,7 +417,80 @@ async function renderDashboard(config: Record<string, unknown>) {
   }
 }
 
-// Module-scoped app reference for use by Highcharts download override, updateModelContext, and openLink
+/** Extract chart options from a tool result (structuredContent or text fallback) */
+function extractOptions(result: any): Record<string, unknown> | undefined {
+  if (result.structuredContent && typeof result.structuredContent === "object") {
+    return result.structuredContent as Record<string, unknown>;
+  }
+  const textContent = result.content?.find((c: any) => c.type === "text") as { text: string } | undefined;
+  if (!textContent?.text) return undefined;
+  try {
+    return JSON.parse(textContent.text) as Record<string, unknown>;
+  } catch {
+    showError(document.getElementById("root")!, new Error("Failed to parse chart data"));
+    return undefined;
+  }
+}
+
+/** Get series array from options, safely */
+function getSeries(opts: Record<string, unknown>): Array<Record<string, unknown>> {
+  return (opts.series as Array<Record<string, unknown>>) || [];
+}
+
+/** Get title text from options (handles string shorthand and object) */
+function getTitle(opts: Record<string, unknown>): string {
+  return typeof opts.title === "string" ? opts.title : (opts.title as any)?.text || "";
+}
+
+/** Count data points across all series */
+function countDataPoints(series: Array<Record<string, unknown>>): number {
+  return series.reduce((n, s) => n + (Array.isArray(s.data) ? s.data.length : 0), 0);
+}
+
+/** Route options to the appropriate renderer and send context */
+async function renderByType(opts: Record<string, unknown>): Promise<void> {
+  const series = getSeries(opts);
+
+  switch (opts.__chartType) {
+    case "stock": {
+      await renderStockChart(opts);
+      const types = [...new Set(series.map(s => (s.type as string) || "line"))].join(", ");
+      sendChartContext(`Rendered stock chart "${getTitle(opts)}" with ${series.length} series (${types}).`);
+      break;
+    }
+    case "map": {
+      const mapKey = typeof (opts.chart as any)?.map === "string" ? (opts.chart as any).map : "custom/world";
+      await renderMapChart(opts);
+      sendChartContext(`Rendered map chart (map: ${mapKey}) with ${countDataPoints(series)} data points across ${series.length} series.`);
+      break;
+    }
+    case "gantt": {
+      await renderGanttChart(opts);
+      sendChartContext(`Rendered Gantt chart with ${countDataPoints(series)} tasks across ${series.length} series.`);
+      break;
+    }
+    case "grid": {
+      await renderGrid(opts);
+      const cols = Array.isArray((opts as any).columns) ? (opts as any).columns.length : 0;
+      const dataObj = (opts as any).data?.columns as Record<string, unknown[]> | undefined;
+      const rows = dataObj ? Math.max(0, ...Object.values(dataObj).map(a => Array.isArray(a) ? a.length : 0)) : 0;
+      sendChartContext(`Rendered data grid with ${rows} rows and ${cols} columns.`);
+      break;
+    }
+    default: {
+      if (opts.components && Array.isArray(opts.components)) {
+        await renderDashboard(opts);
+        const types = [...new Set(opts.components.map((c: any) => (c.type as string) || "unknown"))].join(", ");
+        sendChartContext(`Rendered dashboard with ${opts.components.length} components (${types}).`);
+      } else {
+        await renderSingleChart(opts as Options & Record<string, unknown>);
+        const chartType = (opts.chart as any)?.type || series[0]?.type || "line";
+        sendChartContext(`Rendered ${chartType} chart "${getTitle(opts)}" with ${series.length} series.`);
+      }
+    }
+  }
+}
+
 let appInstance: InstanceType<typeof App> | null = null;
 let streamDebounce: ReturnType<typeof setTimeout>;
 
@@ -443,70 +516,13 @@ async function init() {
     // Cancel any pending streaming preview to avoid overwriting the final render
     clearTimeout(streamDebounce);
 
-    let opts: Record<string, unknown> | undefined;
-
-    // Prefer structuredContent (full processed config from server)
-    if (result.structuredContent && typeof result.structuredContent === "object") {
-      opts = result.structuredContent as Record<string, unknown>;
-    } else {
-      // Fall back to parsing text content (legacy behavior)
-      const textContent = result.content?.find((c: any) => c.type === "text") as { text: string } | undefined;
-      const text = textContent?.text;
-      if (!text) return;
-      try {
-        opts = JSON.parse(text) as Record<string, unknown>;
-      } catch (e) {
-        const container = document.getElementById("root")!;
-        showError(container, e instanceof Error ? e : new Error("Failed to parse chart data"));
-        return;
-      }
-    }
-
+    const opts = extractOptions(result);
     if (!opts) return;
 
     try {
-
-      if (opts.__chartType === "stock") {
-        await renderStockChart(opts);
-        const series = (opts.series as Array<Record<string, unknown>>) || [];
-        const types = [...new Set(series.map(s => (s.type as string) || "line"))].join(", ");
-        const title = typeof opts.title === "string" ? opts.title : (opts.title as any)?.text || "";
-        sendChartContext(`Rendered stock chart "${title}" with ${series.length} series (${types}).`);
-      } else if (opts.__chartType === "map") {
-        // Capture map key before resolveMapData replaces it with TopoJSON object
-        const mapKey = (opts.chart as any)?.map && typeof (opts.chart as any).map === "string"
-          ? (opts.chart as any).map : "custom/world";
-        await renderMapChart(opts);
-        const series = (opts.series as Array<Record<string, unknown>>) || [];
-        const dataPoints = series.reduce((n, s) => n + (Array.isArray(s.data) ? s.data.length : 0), 0);
-        sendChartContext(`Rendered map chart (map: ${mapKey}) with ${dataPoints} data points across ${series.length} series.`);
-      } else if (opts.__chartType === "gantt") {
-        await renderGanttChart(opts);
-        const series = (opts.series as Array<Record<string, unknown>>) || [];
-        const tasks = series.reduce((n, s) => n + (Array.isArray(s.data) ? s.data.length : 0), 0);
-        sendChartContext(`Rendered Gantt chart with ${tasks} tasks across ${series.length} series.`);
-      } else if (opts.__chartType === "grid") {
-        await renderGrid(opts);
-        const cols = Array.isArray((opts as any).columns) ? (opts as any).columns.length : 0;
-        const dataObj = (opts as any).data?.columns as Record<string, unknown[]> | undefined;
-        const rows = dataObj ? Math.max(0, ...Object.values(dataObj).map(a => Array.isArray(a) ? a.length : 0)) : 0;
-        sendChartContext(`Rendered data grid with ${rows} rows and ${cols} columns.`);
-      } else if (opts.components && Array.isArray(opts.components)) {
-        await renderDashboard(opts);
-        const components = opts.components as Array<Record<string, unknown>>;
-        const types = [...new Set(components.map(c => (c.type as string) || "unknown"))].join(", ");
-        sendChartContext(`Rendered dashboard with ${components.length} components (${types}).`);
-      } else {
-        await renderSingleChart(opts as Options & Record<string, unknown>);
-        const processed = opts as Options & Record<string, unknown>;
-        const chartType = (processed.chart as any)?.type || ((processed.series as any)?.[0]?.type) || "line";
-        const seriesCount = Array.isArray(processed.series) ? processed.series.length : 0;
-        const title = typeof processed.title === "string" ? processed.title : (processed.title as any)?.text || "";
-        sendChartContext(`Rendered ${chartType} chart "${title}" with ${seriesCount} series.`);
-      }
+      await renderByType(opts);
     } catch (e) {
-      const container = document.getElementById("root")!;
-      showError(container, e instanceof Error ? e : new Error("Failed to parse chart data"));
+      showError(document.getElementById("root")!, e instanceof Error ? e : new Error("Render failed"));
     }
   };
 
@@ -517,7 +533,6 @@ async function init() {
   app.onerror = console.error;
 
   await app.connect(new PostMessageTransport(window.parent, window.parent));
-  appInstance = app;
 
   // Check host capabilities — only enable features the host supports
   const caps = app.getHostCapabilities?.() ?? {};

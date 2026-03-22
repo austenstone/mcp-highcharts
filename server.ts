@@ -20,6 +20,14 @@ const DIST_DIR = import.meta.filename.endsWith(".ts")
   : import.meta.dirname;
 
 export function createServer(): McpServer {
+  /** Build a successful tool result with text summary and structured chart config */
+  function chartResult(summary: string, config: Record<string, unknown>): CallToolResult {
+    return {
+      content: [{ type: "text", text: summary }],
+      structuredContent: config as any,
+    };
+  }
+
   /**
    * Process dataSource: read file, auto-generate series if needed, merge into args.
    * Returns the processed args (mutated in place).
@@ -128,10 +136,7 @@ export function createServer(): McpServer {
           content: [{ type: "text", text: "series or dataSource is required" }],
         };
       }
-      return {
-        content: [{ type: "text", text: chartSummary(processed) }],
-        structuredContent: processed as any,
-      };
+      return chartResult(chartSummary(processed), processed);
     },
   );
 
@@ -189,10 +194,7 @@ export function createServer(): McpServer {
         };
       }
       const full = { ...processed, __chartType: "stock" };
-      return {
-        content: [{ type: "text", text: chartSummary(processed, "stock") }],
-        structuredContent: full as any,
-      };
+      return chartResult(chartSummary(processed, "stock"), full);
     },
   );
 
@@ -266,10 +268,7 @@ export function createServer(): McpServer {
       }
       const components = args.components as Array<Record<string, unknown>>;
       const types = [...new Set(components.map(c => (c.type as string) || "unknown"))].join(", ");
-      return {
-        content: [{ type: "text", text: `Rendered dashboard with ${components.length} components (${types})` }],
-        structuredContent: args as any,
-      };
+      return chartResult(`Rendered dashboard with ${components.length} components (${types})`, args);
     },
   );
 
@@ -365,10 +364,7 @@ export function createServer(): McpServer {
       }
       const full = { ...processed, __chartType: "map" };
       const mapKey = (processed.chart as any)?.map || "custom/world";
-      return {
-        content: [{ type: "text", text: `Rendered map chart (${mapKey}) with ${((processed.series as any[]) || []).length} series` }],
-        structuredContent: full as any,
-      };
+      return chartResult(`Rendered map chart (${mapKey}) with ${((processed.series as any[]) || []).length} series`, full);
     },
   );
 
@@ -442,10 +438,7 @@ export function createServer(): McpServer {
       }
       const full = { ...processed, __chartType: "gantt" };
       const tasks = (processed.series as any[]).reduce((n, s) => n + (Array.isArray(s.data) ? s.data.length : 0), 0);
-      return {
-        content: [{ type: "text", text: `Rendered Gantt chart with ${tasks} tasks` }],
-        structuredContent: full as any,
-      };
+      return chartResult(`Rendered Gantt chart with ${tasks} tasks`, full);
     },
   );
 
@@ -533,10 +526,7 @@ export function createServer(): McpServer {
         delete a.rows;
       }
 
-      return {
-        content: [{ type: "text", text: `Rendered data grid` }],
-        structuredContent: { ...a, __chartType: "grid" } as any,
-      };
+      return chartResult(`Rendered data grid`, { ...a, __chartType: "grid" });
     },
   );
 
