@@ -13,7 +13,7 @@ Just ask your AI to make a chart. It does the rest.
 ## Features
 
 - **6 specialized tools** — charts, stock, dashboards, maps, gantt, and data grids
-- **65+ chart types** — line, bar, column, pie, scatter, heatmap, sankey, gauge, treemap, wordcloud, network graph, timeline, and [many more](https://www.highcharts.com/demo)
+- **64 chart types** — line, bar, column, pie, scatter, heatmap, sankey, gauge, treemap, wordcloud, network graph, timeline, and [many more](https://www.highcharts.com/demo)
 - **Full Highcharts API** — every option from [api.highcharts.com](https://api.highcharts.com/highcharts/) is supported
 - **Lazy module loading** — only loads the Highcharts modules needed for your chart type
 - **Auto-generated schema** — chart types, module map, and options schema regenerated from Highcharts on every build
@@ -65,7 +65,7 @@ Add to `claude_desktop_config.json`:
 
 Render any interactive Highcharts chart. Input is a [Highcharts Options](https://api.highcharts.com/highcharts/) object.
 
-Supports all 65+ chart types: line, bar, column, pie, scatter, spline, area, heatmap, treemap, sankey, gauge, funnel, waterfall, boxplot, wordcloud, networkgraph, sunburst, timeline, and more.
+Supports all 64 chart types: line, bar, column, pie, scatter, spline, area, heatmap, treemap, sankey, gauge, funnel, waterfall, boxplot, wordcloud, networkgraph, sunburst, timeline, and more.
 
 ```
 Show me a bar chart of Q1-Q4 revenue: 100, 200, 300, 400
