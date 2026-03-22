@@ -14,6 +14,8 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { inputSchema, inputSchemaBasic, inputSchemaMinimal } from "./src/input-schema.js";
 import { readDataSource, isJsonContent } from "./src/data-source.js";
+import { validateOptions, formatWarnings } from "./src/validate.js";
+
 const DIST_DIR = import.meta.filename.endsWith(".ts")
   ? path.join(import.meta.dirname, "dist")
   : import.meta.dirname;
@@ -37,8 +39,10 @@ export function createServer(options?: ServerOptions): McpServer {
       : inputSchemaBasic;
   /** Build a successful tool result with text summary and structured chart config */
   function chartResult(summary: string, config: Record<string, unknown>): CallToolResult {
+    const warnings = validateOptions(config);
+    const warningText = formatWarnings(warnings);
     return {
-      content: [{ type: "text", text: summary }],
+      content: [{ type: "text", text: summary + warningText }],
       structuredContent: config as any,
     };
   }

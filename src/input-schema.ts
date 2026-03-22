@@ -111,7 +111,7 @@ export const inputSchema = {
   ),
 
   // Override with LLM-friendly versions
-  chart: chartSchema,
+  chart: chartSchema.optional(),
   title: titleSchema,
   subtitle: subtitleSchema,
   series: seriesSchema.optional(),

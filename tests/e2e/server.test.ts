@@ -400,4 +400,59 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
     });
     expect(result.isError).toBe(true);
   });
+
+  // ── Validation warnings ──
+
+  // Note: typo detection (e.g., "tooltipp") doesn't work in MCP pipeline because
+  // the SDK's z.object() strips unknown keys before our handler receives them.
+  // The validateOptions() function catches typos when called directly, but in the
+  // MCP flow, unknown keys are silently dropped. This is a known SDK limitation.
+
+  it("warns on empty series data without data module", async () => {
+    const result = await client.callTool({
+      name: "render_chart",
+      arguments: {
+        series: [{ name: "Empty", data: [] }],
+      },
+    });
+    const text = (result.content as any[])?.[0]?.text ?? "";
+    expect(text).toContain("Empty data array");
+  });
+
+  it("warns on string values in data", async () => {
+    const result = await client.callTool({
+      name: "render_chart",
+      arguments: {
+        series: [{ data: ["foo", "bar"] }],
+      },
+    });
+    const text = (result.content as any[])?.[0]?.text ?? "";
+    expect(text).toContain("string value");
+  });
+
+  it("warns on enablePolling without data URL", async () => {
+    const result = await client.callTool({
+      name: "render_chart",
+      arguments: {
+        series: [{ data: [1, 2, 3] }],
+        data: { enablePolling: true },
+      },
+    });
+    const text = (result.content as any[])?.[0]?.text ?? "";
+    expect(text).toContain("enablePolling");
+    expect(text).toContain("no data URL");
+  });
+
+  it("no warnings for valid options", async () => {
+    const result = await client.callTool({
+      name: "render_chart",
+      arguments: {
+        chart: { type: "line" },
+        title: "Test",
+        series: [{ data: [1, 2, 3] }],
+      },
+    });
+    const text = (result.content as any[])?.[0]?.text ?? "";
+    expect(text).not.toContain("⚠️");
+  });
 });

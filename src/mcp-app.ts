@@ -18,6 +18,17 @@ import { loadModulesForOptions } from "./module-loader";
 // Official ESM plugin connection (per Highcharts docs)
 Dashboards.HighchartsPlugin.custom.connectHighcharts(Highcharts);
 Dashboards.PluginHandler.addPlugin(Dashboards.HighchartsPlugin);
+
+// ── Highcharts error interception ──
+// Collect errors during rendering and feed them back to the LLM
+const renderErrors: Array<{ code: number; message: string }> = [];
+
+Highcharts.addEvent(Highcharts, "displayError", (e: any) => {
+  const code = e?.code ?? e?.message ?? "unknown";
+  const msg = typeof e === "object" && e.message ? e.message : `Highcharts error #${code}`;
+  renderErrors.push({ code: Number(code), message: msg });
+  console.warn(`[Highcharts error #${code}]`, msg);
+});
 Dashboards.GridPlugin.custom.connectGrid(GridLite);
 Dashboards.PluginHandler.addPlugin(Dashboards.GridPlugin);
 
@@ -585,8 +596,19 @@ let streamDebounce: ReturnType<typeof setTimeout>;
 let _canUpdateContext = false;
 function sendChartContext(description: string) {
   if (!_canUpdateContext || !appInstance) return;
+
+  // Include any Highcharts errors collected during rendering
+  let text = description;
+  if (renderErrors.length > 0) {
+    const errText = renderErrors
+      .map(e => `⚠️ Highcharts error #${e.code}: ${e.message}`)
+      .join("\n");
+    text += "\n\nErrors during rendering:\n" + errText;
+    renderErrors.length = 0; // Clear for next render
+  }
+
   appInstance.updateModelContext({
-    content: [{ type: "text", text: description }],
+    content: [{ type: "text", text }],
   }).catch(() => {});
 }
 
