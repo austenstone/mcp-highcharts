@@ -14,7 +14,6 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { inputSchema, inputSchemaBasic, inputSchemaMinimal } from "./src/input-schema.js";
 import { readDataSource, isJsonContent } from "./src/data-source.js";
-import { validateOptions, formatWarnings } from "./src/validate.js";
 
 const DIST_DIR = import.meta.filename.endsWith(".ts")
   ? path.join(import.meta.dirname, "dist")
@@ -39,10 +38,8 @@ export function createServer(options?: ServerOptions): McpServer {
       : inputSchemaBasic;
   /** Build a successful tool result with text summary and structured chart config */
   function chartResult(summary: string, config: Record<string, unknown>): CallToolResult {
-    const warnings = validateOptions(config);
-    const warningText = formatWarnings(warnings);
     return {
-      content: [{ type: "text", text: summary + warningText }],
+      content: [{ type: "text", text: summary }],
       structuredContent: config as any,
     };
   }
@@ -589,7 +586,6 @@ export function createServer(options?: ServerOptions): McpServer {
         // JSON file path
         try {
           const content = await fs.readFile(path.resolve(rawOptions), "utf-8");
-          JSON.parse(content); // validate
           optionsJson = content;
         } catch (e) {
           console.error("Failed to load HIGHCHARTS_OPTIONS file:", e);
@@ -607,7 +603,6 @@ export function createServer(options?: ServerOptions): McpServer {
             const script = `import(${JSON.stringify(pathToFileURL(absPath).href)}).then(m=>console.log(JSON.stringify(m.default??m)))`;
             const cmd = process.platform === "win32" ? "npx.cmd" : "npx";
             const out = execFileSync(cmd, ["tsx", "-e", script], { encoding: "utf-8" }).trim();
-            JSON.parse(out); // validate
             optionsJson = out;
           } catch (e) {
             console.error("Failed to load HIGHCHARTS_OPTIONS module:", e);
