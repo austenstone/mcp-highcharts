@@ -12,14 +12,29 @@ import * as z from "zod";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { inputSchema } from "./src/input-schema.js";
+import { inputSchema, inputSchemaBasic, inputSchemaMinimal } from "./src/input-schema.js";
 import { readDataSource, isJsonContent } from "./src/data-source.js";
-
 const DIST_DIR = import.meta.filename.endsWith(".ts")
   ? path.join(import.meta.dirname, "dist")
   : import.meta.dirname;
 
-export function createServer(): McpServer {
+export interface ServerOptions {
+  /** Controls how much schema detail is sent to the LLM.
+   *  - "minimal": no schema — accepts any Highcharts options, zero context overhead
+   *  - "basic" (default): LLM-friendly fields with chart type enum, series docs, examples
+   *  - "full": all generated Highcharts types + LLM-friendly overrides */
+  schemaDetail?: "minimal" | "basic" | "full";
+}
+
+export function createServer(options?: ServerOptions): McpServer {
+  const schemaDetail = options?.schemaDetail
+    ?? (process.env.SCHEMA_DETAIL as ServerOptions["schemaDetail"])
+    ?? "basic";
+  const chartInputSchema = schemaDetail === "full"
+    ? inputSchema
+    : schemaDetail === "minimal"
+      ? inputSchemaMinimal
+      : inputSchemaBasic;
   /** Build a successful tool result with text summary and structured chart config */
   function chartResult(summary: string, config: Record<string, unknown>): CallToolResult {
     return {
@@ -136,11 +151,11 @@ export function createServer(): McpServer {
         'series: [{ name: "2026", data: [100, 200, 150] }] }\n\n' +
         "Example — pie chart:\n" +
         '{ title: "Market Share", series: [{ type: "pie", data: [{ name: "A", y: 60 }, { name: "B", y: 40 }] }] }',
-      inputSchema,
+      inputSchema: chartInputSchema,
       _meta: { ui: { resourceUri } },
     },
-    async (args): Promise<CallToolResult> => {
-      const processed = await resolveDataSource(args as Record<string, unknown>);
+    async (args: Record<string, unknown>): Promise<CallToolResult> => {
+      const processed = await resolveDataSource(args);
       if (!processed.series && !processed.data) {
         return {
           isError: true,
@@ -169,7 +184,7 @@ export function createServer(): McpServer {
         'yAxis: [{ height: "70%" }, { top: "75%", height: "25%", offset: 0 }], ' +
         'rangeSelector: { selected: 1 } }',
       inputSchema: {
-        ...inputSchema,
+        ...chartInputSchema,
         navigator: z.object({
           enabled: z.boolean().optional().describe("Enable/disable the navigator pane"),
           series: z.any().optional().describe("Navigator series config (can reference main series by index)"),
@@ -196,8 +211,8 @@ export function createServer(): McpServer {
       },
       _meta: { ui: { resourceUri } },
     },
-    async (args): Promise<CallToolResult> => {
-      const processed = await resolveDataSource(args as Record<string, unknown>);
+    async (args: Record<string, unknown>): Promise<CallToolResult> => {
+      const processed = await resolveDataSource(args);
       if (!processed.series && !processed.data) {
         return {
           isError: true,
@@ -239,7 +254,7 @@ export function createServer(): McpServer {
             .describe("Component type"),
           renderTo: z.string().optional()
             .describe("Cell id to render this component into"),
-          chartOptions: z.any().optional()
+          chartOptions: z.object(chartInputSchema).passthrough().optional()
             .describe("Highcharts options (for type: 'Highcharts')"),
           title: z.string().optional()
             .describe("Component title (KPI, HTML)"),

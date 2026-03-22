@@ -153,3 +153,101 @@ export const inputSchema = {
   dataSource: dataSourceSchema,
   colorMode: colorModeSchema,
 };
+
+// ── Basic schema (default) ──
+// Uses the generated Zod schemas flattened to 1 level of depth.
+// Top-level fields get their generated types (chart, tooltip, legend, etc.),
+// but nested sub-schemas are replaced with z.any() to keep context lightweight.
+// LLM-friendly overrides (title shorthand, series docs, examples) applied on top.
+
+function flattenSchema(schema: z.ZodTypeAny): z.ZodTypeAny {
+  // If it's an object schema, replace any nested object schema values with z.any()
+  const def = (schema as any)?._zod?.def;
+  if (!def?.shape) return schema;
+  const shape = typeof def.shape === 'function' ? def.shape() : def.shape;
+  const flattened: Record<string, z.ZodTypeAny> = {};
+  for (const [key, value] of Object.entries(shape)) {
+    const innerDef = (value as any)?._zod?.def;
+    const innerType = innerDef?.type;
+    // Keep primitives (string, number, boolean, enum, literal, union of primitives)
+    // Replace object/lazy schemas with z.any()
+    if (innerType === 'object' || innerType === 'lazy') {
+      flattened[key] = z.any().optional();
+    } else if (innerType === 'optional') {
+      const wrapped = innerDef?.innerType;
+      const wrappedType = wrapped?._zod?.def?.type;
+      if (wrappedType === 'object' || wrappedType === 'lazy') {
+        flattened[key] = z.any().optional();
+      } else {
+        flattened[key] = value as z.ZodTypeAny;
+      }
+    } else {
+      flattened[key] = value as z.ZodTypeAny;
+    }
+  }
+  return z.object(flattened).passthrough();
+}
+
+// Build the basic schema: generated top-level schemas (flattened) + LLM overrides
+const generatedShapeBasic = (generatedOptionsSchema as any)?._zod?.def?.getter?.()?.shape ?? {};
+
+export const inputSchemaBasic: Record<string, z.ZodTypeAny> = {
+  // Spread generated fields, flattening nested schemas to z.any()
+  ...Object.fromEntries(
+    Object.entries(generatedShapeBasic).map(([key, schema]) => {
+      const s = schema as z.ZodTypeAny;
+      const inner = (s as any)?._zod?.def?.innerType ?? s;
+      const innerType = (inner as any)?._zod?.def?.type;
+      if (innerType === 'object') {
+        return [key, flattenSchema(inner).optional()];
+      }
+      return [key, s.optional()];
+    })
+  ),
+
+  // Override with LLM-friendly versions
+  chart: flattenSchema(chartOptionsSchema as z.ZodObject<any>).pipe(
+    z.object({ type: z.enum(CHART_TYPES).optional() }).passthrough()
+  ).optional()
+    .describe("General chart configuration")
+    .meta({ examples: [{ type: "line" }, { type: "column", height: 400 }, { type: "pie" }] }),
+  title: titleSchema,
+  subtitle: subtitleSchema,
+  series: seriesSchema.optional(),
+  tooltip: flattenSchema(genTooltipSchema as z.ZodObject<any>).optional()
+    .describe("Tooltip configuration")
+    .meta({ examples: [{ shared: true, valueSuffix: " units" }] }),
+  legend: flattenSchema(genLegendSchema as z.ZodObject<any>).optional()
+    .describe("Legend configuration")
+    .meta({ examples: [{ align: "right", verticalAlign: "middle", layout: "vertical" }] }),
+  plotOptions: z.record(z.string(), z.any()).optional()
+    .describe("Per-series-type default options (e.g., plotOptions.series, plotOptions.column)")
+    .meta({ examples: [{ series: { stacking: "normal" } }, { column: { borderRadius: 5 } }] }),
+  drilldown: z.object({
+    series: z.array(z.object({
+      id: z.string().describe("Matches drilldown property in parent series data"),
+      name: z.string().optional(),
+      data: z.any(),
+    }).passthrough()).optional(),
+  }).passthrough().optional()
+    .describe("Drilldown configuration for click-to-explore charts")
+    .meta({ examples: [{ series: [{ id: "detail", name: "Breakdown", data: [["A", 50], ["B", 30]] }] }] }),
+  colors: z.array(z.string()).optional()
+    .describe("Default color palette for the chart series")
+    .meta({ examples: [["#006edb", "#30a147", "#eb670f", "#ce2c85", "#b88700"]] }),
+  dataSource: dataSourceSchema,
+  colorMode: colorModeSchema,
+};
+
+// ── Minimal schema ──
+// Declares all property keys as z.any() so the MCP client passes them through,
+// but provides zero type detail — minimal context overhead.
+
+export const inputSchemaMinimal: Record<string, z.ZodTypeAny> = {
+  ...Object.fromEntries(
+    Object.keys(generatedShape).map(key => [key, z.any().optional()])
+  ),
+  series: z.any().optional(),
+  dataSource: z.any().optional(),
+  colorMode: z.any().optional(),
+};

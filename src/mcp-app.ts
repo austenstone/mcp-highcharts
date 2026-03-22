@@ -317,6 +317,57 @@ async function renderGrid(opts: Record<string, unknown>) {
   }
 }
 
+// ── Highcharts error interception ──
+// Import the debugger module to get rich, human-readable error messages
+// for every Highcharts error code. The module also renders errors visually on charts.
+import "highcharts/modules/debugger";
+
+const _pendingErrors: string[] = [];
+
+// Access the error messages dictionary from the debugger module
+const errorMessages = (Highcharts as any).errorMessages as Record<number, { text: string; enduser?: string }> | undefined;
+
+/** Strip HTML tags from Highcharts error messages for plain-text LLM context */
+function stripHtml(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/?(h1|p|ul|li|ol|code|a|b|strong|em|span)[^>]*>/gi, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+Highcharts.addEvent(Highcharts, 'displayError', function (e: {
+  code: number | string;
+  message: string;
+  params?: Record<string, unknown>;
+  chart?: unknown;
+}) {
+  const code = e.code;
+  const parts: string[] = [];
+
+  // Get the rich error description from the debugger module
+  const errInfo = typeof code === 'number' && errorMessages?.[code];
+  if (errInfo) {
+    parts.push(`Highcharts error #${code}: ${stripHtml(errInfo.text)}`);
+  } else {
+    parts.push(`Highcharts error #${code}: https://www.highcharts.com/errors/${code}/`);
+  }
+
+  // Include the specific params that caused the error
+  if (e.params) {
+    parts.push('Error context:');
+    for (const [key, value] of Object.entries(e.params)) {
+      parts.push(`  ${key}: ${value}`);
+    }
+  }
+  _pendingErrors.push(parts.join('\n'));
+});
+
+/** Drain collected Highcharts errors and return them (empty array if none). */
+function drainHighchartsErrors(): string[] {
+  return _pendingErrors.splice(0);
+}
+
 function showError(container: HTMLElement, e: unknown) {
   const msg = e instanceof Error ? e.message : String(e);
   destroyExistingCharts(container);
@@ -333,6 +384,14 @@ function showError(container: HTMLElement, e: unknown) {
   div.appendChild(code);
   container.appendChild(div);
   console.error("Chart rendering failed:", e);
+
+  // Report the error + any Highcharts errors to the LLM
+  const hcErrors = drainHighchartsErrors();
+  const parts = [`Chart rendering failed: ${msg}`];
+  if (hcErrors.length > 0) {
+    parts.push(`\nHighcharts errors:\n${hcErrors.join('\n---\n')}`);
+  }
+  sendChartContext(parts.join('\n'));
 }
 
 async function renderStockChart(opts: Record<string, unknown>) {
@@ -466,24 +525,28 @@ function countDataPoints(series: Array<Record<string, unknown>>): number {
 
 /** Route options to the appropriate renderer and send context */
 async function renderByType(opts: Record<string, unknown>): Promise<void> {
+  // Clear any stale errors from previous renders
+  _pendingErrors.length = 0;
+
   const series = getSeries(opts);
+  let summary = "";
 
   switch (opts.__chartType) {
     case "stock": {
       await renderStockChart(opts);
       const types = [...new Set(series.map(s => (s.type as string) || "line"))].join(", ");
-      sendChartContext(`Rendered stock chart "${getTitle(opts)}" with ${series.length} series (${types}).`);
+      summary = `Rendered stock chart "${getTitle(opts)}" with ${series.length} series (${types}).`;
       break;
     }
     case "map": {
       const mapKey = typeof (opts.chart as any)?.map === "string" ? (opts.chart as any).map : "custom/world";
       await renderMapChart(opts);
-      sendChartContext(`Rendered map chart (map: ${mapKey}) with ${countDataPoints(series)} data points across ${series.length} series.`);
+      summary = `Rendered map chart (map: ${mapKey}) with ${countDataPoints(series)} data points across ${series.length} series.`;
       break;
     }
     case "gantt": {
       await renderGanttChart(opts);
-      sendChartContext(`Rendered Gantt chart with ${countDataPoints(series)} tasks across ${series.length} series.`);
+      summary = `Rendered Gantt chart with ${countDataPoints(series)} tasks across ${series.length} series.`;
       break;
     }
     case "grid": {
@@ -491,21 +554,28 @@ async function renderByType(opts: Record<string, unknown>): Promise<void> {
       const cols = Array.isArray((opts as any).columns) ? (opts as any).columns.length : 0;
       const dataObj = (opts as any).data?.columns as Record<string, unknown[]> | undefined;
       const rows = dataObj ? Math.max(0, ...Object.values(dataObj).map(a => Array.isArray(a) ? a.length : 0)) : 0;
-      sendChartContext(`Rendered data grid with ${rows} rows and ${cols} columns.`);
+      summary = `Rendered data grid with ${rows} rows and ${cols} columns.`;
       break;
     }
     default: {
       if (opts.components && Array.isArray(opts.components)) {
         await renderDashboard(opts);
         const types = [...new Set(opts.components.map((c: any) => (c.type as string) || "unknown"))].join(", ");
-        sendChartContext(`Rendered dashboard with ${opts.components.length} components (${types}).`);
+        summary = `Rendered dashboard with ${opts.components.length} components (${types}).`;
       } else {
         await renderSingleChart(opts as Options & Record<string, unknown>);
         const chartType = (opts.chart as any)?.type || series[0]?.type || "line";
-        sendChartContext(`Rendered ${chartType} chart "${getTitle(opts)}" with ${series.length} series.`);
+        summary = `Rendered ${chartType} chart "${getTitle(opts)}" with ${series.length} series.`;
       }
     }
   }
+
+  // Combine summary + any Highcharts errors into a single context update
+  const errors = drainHighchartsErrors();
+  if (errors.length > 0) {
+    summary += `\n\n⚠ Highcharts reported ${errors.length} error(s):\n\n${errors.join('\n\n---\n\n')}`;
+  }
+  sendChartContext(summary);
 }
 
 let appInstance: InstanceType<typeof App> | null = null;
