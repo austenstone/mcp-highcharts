@@ -45,6 +45,7 @@ const themeReady = (userOverrides
   Highcharts.setOptions({
     credits: { enabled: false },
     exporting: { enabled: false },
+    chart: { displayErrors: false },
   });
   if (userOverrides) {
     Highcharts.setOptions(userOverrides);
@@ -361,6 +362,9 @@ Highcharts.addEvent(Highcharts, 'displayError', function (e: {
     }
   }
   _pendingErrors.push(parts.join('\n'));
+
+  // Suppress the debugger module's visual error overlay on the chart
+  return false;
 });
 
 /** Drain collected Highcharts errors and return them (empty array if none). */
