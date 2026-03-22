@@ -227,15 +227,23 @@ export const inputSchema = {
   dataSource: dataSourceSchema,
   data: z.object({
     csv: z.string().optional().describe("Raw CSV string. Highcharts auto-parses columns into series. First row = headers, first column = xAxis categories."),
-    csvURL: z.string().optional().describe("URL to a CSV file. Highcharts fetches and parses it."),
+    csvURL: z.string().optional().describe("URL to a CSV file. Highcharts fetches and parses it. Combine with enablePolling for live data."),
     rows: z.array(z.array(z.any())).optional().describe("2D array of data rows (first row = column names)."),
     columns: z.array(z.array(z.any())).optional().describe("2D array of data columns (first element = column name)."),
+    columnsURL: z.string().optional().describe("URL to a JSON file with column-oriented data. Combine with enablePolling for live data."),
+    rowsURL: z.string().optional().describe("URL to a JSON file with row-oriented data. Combine with enablePolling for live data."),
+    enablePolling: z.boolean().optional().describe("Poll the data URL periodically for live-updating charts. Default: false."),
+    dataRefreshRate: z.number().optional().describe("Polling interval in seconds when enablePolling is true. Default: 1."),
+    googleSpreadsheetKey: z.string().optional().describe("Google Sheets spreadsheet key for live data from Google Sheets."),
+    googleSpreadsheetRange: z.string().optional().describe("Cell range in A1 notation (e.g. 'A1:D20')."),
     itemDelimiter: z.string().optional().describe("CSV column delimiter. Auto-detected if omitted."),
     decimalPoint: z.string().optional().describe("Decimal point character. Default: '.'"),
     switchRowsAndColumns: z.boolean().optional().describe("Swap rows and columns interpretation."),
   }).passthrough().optional().describe(
     "Highcharts data module config — parse CSV, HTML tables, or Google Sheets directly. " +
     "Use data.csv for inline CSV strings, data.csvURL for remote CSV files. " +
+    "For LIVE DATA: set data.csvURL + data.enablePolling: true + data.dataRefreshRate: 2. " +
+    "Highcharts handles polling, animation, and point shifting automatically. " +
     "See https://api.highcharts.com/highcharts/data"
   ),
   chart: chartSchema,
