@@ -68,7 +68,13 @@ function resolveType(doclet?: Doclet, hasChildren?: boolean): string {
 
 function stripHtml(html?: string): string {
   if (!html) return "";
-  return html.replace(/<[^>]+>/g, "").trim();
+  let current = html;
+  let previous: string;
+  do {
+    previous = current;
+    current = current.replace(/<[^>]+>/g, "");
+  } while (current !== previous);
+  return current.trim();
 }
 
 function parseTree(tree: Record<string, TreeNode>): TopLevelField[] {
