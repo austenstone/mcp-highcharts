@@ -175,6 +175,8 @@ export function createServer(): McpServer {
           .describe("Scrollbar configuration"),
         stockTools: z.object({}).passthrough().optional()
           .describe("Stock tools toolbar configuration for technical analysis"),
+        dataSource: z.string().optional()
+          .describe("Path to a data file (CSV, JSON, TSV) relative to the workspace, or an HTTPS URL"),
       },
       _meta: { ui: { resourceUri } },
     },
@@ -348,12 +350,14 @@ export function createServer(): McpServer {
           .describe("Per-series-type default options"),
         colors: z.array(z.string()).optional()
           .describe("Color palette"),
+        dataSource: z.string().optional()
+          .describe("Path to a data file (CSV, JSON, TSV) relative to the workspace, or an HTTPS URL"),
       },
       _meta: { ui: { resourceUri } },
     },
     async (args): Promise<CallToolResult> => {
       const processed = await resolveDataSource(args as Record<string, unknown>);
-      if (!processed.series || !Array.isArray(processed.series)) {
+      if (!processed.series && !processed.data) {
         return {
           isError: true,
           content: [{ type: "text", text: "series or dataSource is required" }],
@@ -423,12 +427,14 @@ export function createServer(): McpServer {
           .describe("Per-series-type default options"),
         connectors: z.object({}).passthrough().optional()
           .describe("Dependency connector styling"),
+        dataSource: z.string().optional()
+          .describe("Path to a data file (CSV, JSON, TSV) relative to the workspace, or an HTTPS URL"),
       },
       _meta: { ui: { resourceUri } },
     },
     async (args): Promise<CallToolResult> => {
       const processed = await resolveDataSource(args as Record<string, unknown>);
-      if (!processed.series || !Array.isArray(processed.series)) {
+      if (!processed.series && !processed.data) {
         return {
           isError: true,
           content: [{ type: "text", text: "series or dataSource is required" }],
