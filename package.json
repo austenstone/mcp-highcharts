@@ -2,7 +2,7 @@
   "name": "mcp-highcharts",
   "version": "2.0.0",
   "type": "module",
-  "description": "Highcharts MCP App \u2014 interactive charts rendered inline in AI chat",
+  "description": "Highcharts MCP App — interactive charts rendered inline in AI chat",
   "author": "Austen Stone",
   "license": "MIT",
   "repository": {
@@ -58,7 +58,6 @@
   "dependencies": {
     "@highcharts/dashboards": "^4.1.0",
     "@highcharts/grid-lite": "^2.3.0",
-    "@highcharts/map-collection": "^2.3.2",
     "@modelcontextprotocol/ext-apps": "^1.2.2",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "cors": "^2.8.6",
@@ -73,9 +72,9 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "25.5.0",
-    "@vitest/browser": "^4.1.0",
-    "@vitest/browser-playwright": "^4.1.0",
-    "@vitest/ui": "^4.1.0",
+    "@vitest/browser": "^4.0.18",
+    "@vitest/browser-playwright": "^4.0.18",
+    "@vitest/ui": "^4.0.18",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "eslint": "^9.39.4",
@@ -84,6 +83,6 @@
     "typescript-eslint": "^8.57.1",
     "vite": "^8.0.1",
     "vite-plugin-singlefile": "^2.3.2",
-    "vitest": "^4.1.0"
+    "vitest": "^4.0.18"
   }
 }
