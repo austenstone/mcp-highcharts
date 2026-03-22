@@ -15,10 +15,11 @@ Just ask your AI to make a chart. It does the rest.
 - **Lazy module loading** — only loads the Highcharts modules needed for your chart type
 - **Auto-generated schema** — chart types, module map, and options schema regenerated from Highcharts on every build
 - **Adaptive theming** — respects host dark/light mode via CSS variables
-- **Custom themes** — 15 built-in themes or bring your own via JSON
+- **Custom themes** — 15 built-in themes or bring your own via JSON/JS
+- **Color modes** — monochrome palettes from any base color via `colorMode`
+- **Data sources** — read CSV/JSON/TSV files with `dataSource` (Highcharts `data.csv` module)
 - **MCP Prompts** — 5 reusable slash commands for common charting tasks
 - **Accessibility** — built-in screen reader support
-- **Export** — PNG, SVG, PDF download (client-side, no server needed)
 - **Zero config** — `npx mcp-highcharts@latest --stdio` just works
 
 ## Quick Start
@@ -180,6 +181,8 @@ Charts automatically adapt to your host's light/dark mode via the `adaptive` the
 }
 ```
 
+Supports `.json`, `.js`, `.mjs`, and `.ts` files (TypeScript requires `tsx` installed).
+
 **Inline JSON:**
 ```
 HIGHCHARTS_OPTIONS='{"chart":{"backgroundColor":"#0d1117"},"colors":["#006edb","#30a147"]}'
@@ -191,6 +194,31 @@ HIGHCHARTS_THEME=dark-unica
 ```
 
 Available: `adaptive` (default), `avocado`, `brand-dark`, `brand-light`, `dark-blue`, `dark-green`, `dark-unica`, `gray`, `grid`, `grid-light`, `high-contrast-dark`, `high-contrast-light`, `sand-signika`, `skies`, `sunset`
+
+### Color modes
+
+Generate monochrome palettes from a single color:
+
+```json
+{ "colorMode": "monochrome-blue", "series": [{ "data": [1, 2, 3] }] }
+```
+
+Presets: `monochrome`, `monochrome-blue`, `monochrome-green`, `monochrome-purple`, `monochrome-red`, `monochrome-orange`, `monochrome-teal`
+
+Or any CSS color: `"colorMode": "#7b68ee"`
+
+## Data Sources
+
+Read data from files instead of inlining it:
+
+```json
+{ "dataSource": "sales.csv", "chart": { "type": "line" } }
+```
+
+- **CSV/TSV** → injected as `data.csv` for Highcharts' built-in data module
+- **JSON** → parsed and merged as series data
+- **URLs** → HTTPS only (fetched server-side)
+- Paths are sandboxed to the workspace directory
 
 ## HTTP Mode
 
@@ -220,9 +248,10 @@ npm run dev      # watch mode
 |------|---------|
 | `server.ts` | MCP server — 6 tools, 5 prompts, 1 app resource |
 | `main.ts` | Entry point — stdio + Streamable HTTP transports |
-| `src/mcp-app.ts` | Client-side app — receives tool results, renders charts |
+| `src/mcp-app.ts` | Client-side app — theming, rendering, streaming preview |
 | `src/module-loader.ts` | Dynamic module loading via `import.meta.glob` + type→module map |
 | `src/input-schema.ts` | Rich Zod 4 schema with typed fields, examples, passthrough |
+| `src/data-source.ts` | Sandboxed file reader for `dataSource` parameter |
 | `scripts/generate-module-map.mjs` | Generates chart type → module mappings from Highcharts |
 | `scripts/generate-schema.ts` | Generates chart types and options fields from Highcharts types |
 | `scripts/generate-schema-from-tree.ts` | Downloads Highcharts API tree.json for schema enrichment |
