@@ -103,14 +103,14 @@ export function createServer(): McpServer {
       instructions: "This server renders interactive Highcharts charts inline in AI chat. " +
         "Tools available: render_chart (single chart), render_stock_chart (financial/time-series with navigator, range selector, indicators), " +
         "render_dashboard (multiple components with layout), render_map (geographic/choropleth maps), " +
-        "render_gantt (project timelines), render_grid (standalone data table/grid), and fetch_live_data (server-proxied data fetching). " +
+        "render_gantt (project timelines), render_grid (standalone data table/grid), and update_chart (push live updates to rendered charts). " +
         "Input is any valid Highcharts Options object (https://api.highcharts.com/highcharts/). " +
         "All 64 chart types supported with automatic module loading. " +
         "title and subtitle accept string shorthand. " +
         "Combine chart types via per-series type for overlays (e.g., column + spline). " +
         "Use render_dashboard for multi-chart layouts, KPIs, and data grids via @highcharts/dashboards. " +
-        "For live-updating charts, add liveData: { url, intervalMs, mode } to any chart tool — " +
-        "the app polls fetch_live_data or connects via WebSocket (wsUrl) for real-time streaming.",
+        "For live-updating charts, add liveData: { url, intervalMs, mode } to poll external APIs, " +
+        "or use update_chart to push incremental updates from the LLM (progress, new points, title changes).",
     },
   );
 
@@ -539,6 +539,66 @@ export function createServer(): McpServer {
       }
 
       return chartResult(`Rendered data grid`, { ...a, __chartType: "grid" });
+    },
+  );
+
+  // ── update_chart: LLM pushes live updates to an already-rendered chart ──
+  registerAppTool(
+    server,
+    "update_chart",
+    {
+      title: "Update Chart",
+      annotations: { readOnlyHint: true },
+      description:
+        "Push live updates to an already-rendered chart without re-rendering from scratch. " +
+        "Use this to add data points, update series, change titles, or modify progress — " +
+        "perfect for showing real-time work status (e.g., Gantt task progress, streaming metrics). " +
+        "The existing chart instance is updated in-place with smooth animations.\n\n" +
+        "Example — update Gantt task progress:\n" +
+        '{ action: "updatePoint", seriesIndex: 0, pointIndex: 2, data: { completed: { amount: 0.75 } } }\n\n' +
+        "Example — append a data point:\n" +
+        '{ action: "addPoint", seriesIndex: 0, data: [Date.now(), 42], shift: true }\n\n' +
+        "Example — replace all series data:\n" +
+        '{ action: "setData", seriesIndex: 0, data: [[1, 10], [2, 20], [3, 30]] }\n\n' +
+        "Example — update chart title:\n" +
+        '{ action: "setTitle", title: "Processing: 3/5 complete" }\n\n' +
+        "Example — add a new series:\n" +
+        '{ action: "addSeries", series: { name: "New Task", type: "line", data: [1, 2, 3] } }\n\n' +
+        "Example — remove a series:\n" +
+        '{ action: "removeSeries", seriesIndex: 1 }',
+      inputSchema: {
+        action: z.enum([
+          "addPoint", "setData", "updatePoint",
+          "setTitle", "addSeries", "removeSeries", "update",
+        ]).describe(
+          "Update action: addPoint (append), setData (replace series data), " +
+          "updatePoint (modify existing point), setTitle (change title/subtitle), " +
+          "addSeries (add new series), removeSeries (remove a series), " +
+          "update (merge arbitrary Highcharts options)"
+        ),
+        seriesIndex: z.number().optional().describe("Target series index (0-based). Default: 0"),
+        pointIndex: z.number().optional().describe("Target point index for updatePoint"),
+        data: z.any().optional().describe(
+          "Data for the action. For addPoint: a single point value. " +
+          "For setData: full data array. For updatePoint: partial point options to merge."
+        ),
+        shift: z.boolean().optional().describe("For addPoint: remove the first point when adding (keeps chart width constant). Default: false"),
+        title: z.string().optional().describe("New chart title text (for setTitle action)"),
+        subtitle: z.string().optional().describe("New chart subtitle text (for setTitle action)"),
+        series: z.any().optional().describe("Series config for addSeries action"),
+        options: z.any().optional().describe("Arbitrary Highcharts options to merge (for update action)"),
+      },
+      _meta: { ui: { resourceUri } },
+    },
+    async (args): Promise<CallToolResult> => {
+      const a = args as Record<string, unknown>;
+      const action = a.action as string;
+
+      // Pass through to the app via structuredContent — the app handles the update
+      return {
+        content: [{ type: "text", text: `Chart updated: ${action}` }],
+        structuredContent: { __updateAction: true, ...a } as any,
+      };
     },
   );
 

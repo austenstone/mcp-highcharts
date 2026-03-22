@@ -531,7 +531,7 @@ interface LiveDataConfig {
 
 /** Apply fresh data to the active chart */
 function applyLiveData(data: unknown, config: LiveDataConfig) {
-  const chart = Highcharts.charts.find(c => c && !c.renderer?.forExport);
+  const chart = getActiveChart();
   if (!chart) return;
 
   if (config.mode === "append") {
@@ -696,6 +696,85 @@ function startLiveData(config: LiveDataConfig | undefined) {
   }
 }
 
+// ── Chart Update Actions (LLM-pushed updates) ──
+
+/** Get the active Highcharts chart instance */
+function getActiveChart(): Highcharts.Chart | undefined {
+  return Highcharts.charts.find(c => c && !(c as any).renderer?.forExport) ?? undefined;
+}
+
+/**
+ * Apply an incremental update to the active chart.
+ * Called when the LLM uses the update_chart tool.
+ */
+function applyChartUpdate(opts: Record<string, unknown>) {
+  const chart = getActiveChart();
+  if (!chart) {
+    console.warn("[update_chart] No active chart to update");
+    return;
+  }
+
+  const action = opts.action as string;
+  const seriesIdx = (opts.seriesIndex as number) ?? 0;
+  const series = chart.series[seriesIdx];
+
+  switch (action) {
+    case "addPoint": {
+      if (!series) break;
+      const shift = (opts.shift as boolean) ?? false;
+      series.addPoint(opts.data as any, true, shift, { duration: 300 });
+      break;
+    }
+
+    case "setData": {
+      if (!series || !Array.isArray(opts.data)) break;
+      series.setData(opts.data as any[], true, { duration: 300 });
+      break;
+    }
+
+    case "updatePoint": {
+      if (!series) break;
+      const pointIdx = opts.pointIndex as number;
+      const point = series.data[pointIdx];
+      if (point) {
+        point.update(opts.data as any, true, { duration: 300 });
+      }
+      break;
+    }
+
+    case "setTitle": {
+      const titleOpts = opts.title != null ? { text: opts.title as string } : undefined;
+      const subtitleOpts = opts.subtitle != null ? { text: opts.subtitle as string } : undefined;
+      chart.setTitle(titleOpts, subtitleOpts, true);
+      break;
+    }
+
+    case "addSeries": {
+      if (opts.series) {
+        chart.addSeries(opts.series as any, true, { duration: 300 });
+      }
+      break;
+    }
+
+    case "removeSeries": {
+      if (series) {
+        series.remove(true, { duration: 300 });
+      }
+      break;
+    }
+
+    case "update": {
+      if (opts.options && typeof opts.options === "object") {
+        chart.update(opts.options as any, true, true);
+      }
+      break;
+    }
+
+    default:
+      console.warn(`[update_chart] Unknown action: ${action}`);
+  }
+}
+
 /** Send chart context back to the LLM — gated on host capability */
 let _canUpdateContext = false;
 function sendChartContext(description: string) {
@@ -720,6 +799,16 @@ async function init() {
 
     const opts = extractOptions(result);
     if (!opts) return;
+
+    // Handle live update actions (from update_chart tool)
+    if (opts.__updateAction) {
+      try {
+        applyChartUpdate(opts);
+      } catch (e) {
+        console.warn("[update_chart] Failed:", e);
+      }
+      return;
+    }
 
     try {
       await renderByType(opts);

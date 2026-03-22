@@ -418,4 +418,40 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
     });
     expect(result.isError).toBe(true);
   });
+
+  // ── update_chart ──
+
+  it("update_chart returns structuredContent with action", async () => {
+    const result = await client.callTool({
+      name: "update_chart",
+      arguments: { action: "setTitle", title: "Updated Title" },
+    });
+    expect(result.isError).toBeFalsy();
+    const sc = (result as any).structuredContent;
+    expect(sc.__updateAction).toBe(true);
+    expect(sc.action).toBe("setTitle");
+    expect(sc.title).toBe("Updated Title");
+  });
+
+  it("update_chart addPoint action", async () => {
+    const result = await client.callTool({
+      name: "update_chart",
+      arguments: { action: "addPoint", seriesIndex: 0, data: [Date.now(), 42], shift: true },
+    });
+    expect(result.isError).toBeFalsy();
+    const sc = (result as any).structuredContent;
+    expect(sc.action).toBe("addPoint");
+    expect(sc.shift).toBe(true);
+  });
+
+  it("update_chart updatePoint action for Gantt progress", async () => {
+    const result = await client.callTool({
+      name: "update_chart",
+      arguments: { action: "updatePoint", seriesIndex: 0, pointIndex: 2, data: { completed: { amount: 0.75 } } },
+    });
+    expect(result.isError).toBeFalsy();
+    const sc = (result as any).structuredContent;
+    expect(sc.action).toBe("updatePoint");
+    expect(sc.data.completed.amount).toBe(0.75);
+  });
 });
