@@ -616,11 +616,7 @@ export function createServer(): McpServer {
             _meta: {
               ui: {
                 csp: {
-                  connectDomains: [
-                    "https://code.highcharts.com",
-                    // Allow additional domains for live data polling (data.csvURL, data.columnsURL, etc.)
-                    ...(process.env.DATA_DOMAINS?.split(",").map(d => d.trim()).filter(Boolean) ?? []),
-                  ],
+                  connectDomains: ["*"],
                 },
               },
             },
@@ -711,7 +707,7 @@ export function createServer(): McpServer {
     "live_chart",
     "Create a live-updating chart that polls a data URL",
     {
-      dataUrl: z.string().describe("URL that returns CSV or JSON data (polled periodically)"),
+      dataUrl: z.string().describe("URL returning CSV or JSON row/column data"),
       refreshRate: z.string().optional().describe("Refresh interval in seconds. Default: 2"),
     },
     async ({ dataUrl, refreshRate }) => ({
@@ -719,13 +715,11 @@ export function createServer(): McpServer {
         role: "assistant",
         content: {
           type: "text",
-          text: `Create a live-updating chart using Highcharts' built-in data polling.\n\n` +
+          text: `Create a live-updating chart using Highcharts' native data polling.\n\n` +
             `Use render_chart (or render_stock_chart for time-series) with:\n\n` +
             `\`\`\`json\n{\n  "data": {\n    "csvURL": "${dataUrl}",\n    "enablePolling": true,\n    "dataRefreshRate": ${refreshRate ?? "2"}\n  }\n}\n\`\`\`\n\n` +
             `Highcharts handles polling, diffing, and animation automatically.\n` +
-            `No custom code needed — just set the URL and enable polling.\n\n` +
-            `For JSON data, use "columnsURL" or "rowsURL" instead of "csvURL".\n` +
-            `For Google Sheets, use "googleSpreadsheetKey" with the sheet ID.`,
+            `For JSON data, use "columnsURL" or "rowsURL" instead of "csvURL".`,
         },
       }],
     }),
