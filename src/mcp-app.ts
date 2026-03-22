@@ -117,12 +117,10 @@ function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
   }
 
   // Font family sync
-  const opts: Highcharts.Options = {};
   const fontFamily = vars["--font-sans"];
   if (fontFamily) {
-    opts.chart = { style: { fontFamily } };
+    Highcharts.setOptions({ chart: { style: { fontFamily } } });
   }
-  if (Object.keys(opts).length) Highcharts.setOptions(opts);
 }
 
 function applyThemeAndRedraw(ctx: McpUiHostContext | null | undefined) {
@@ -284,19 +282,23 @@ function destroyExistingCharts(container: HTMLElement) {
   }
 }
 
-async function renderMapChart(opts: Record<string, unknown>) {
-  const container = document.getElementById("root")!;
+/** Reset a container for a fresh render */
+function prepareContainer(container: HTMLElement) {
   destroyExistingCharts(container);
   container.innerHTML = "";
   container.style.display = "";
+}
 
-  ensureMinHeight(opts, 500);
-  const processed = processOptions(opts);
+async function renderMapChart(opts: Record<string, unknown>) {
+  const container = document.getElementById("root")!;
+  prepareContainer(container);
+  const { __chartType: _, ...rest } = opts;
+  ensureMinHeight(rest, 500);
+  const processed = processOptions(rest);
 
   try {
-    await loadModulesForOptions(processed as Record<string, unknown>);
+    await loadModulesForOptions({ ...processed as Record<string, unknown>, __chartType: "map" });
     await resolveMapData(processed as Record<string, unknown>);
-    delete (processed as any).__chartType;
     Highcharts.mapChart(container, processed as Options);
   } catch (e) {
     showError(container, e);
@@ -305,10 +307,7 @@ async function renderMapChart(opts: Record<string, unknown>) {
 
 async function renderGrid(opts: Record<string, unknown>) {
   const container = document.getElementById("root")!;
-  destroyExistingCharts(container);
-  container.innerHTML = "";
-  container.style.display = "";
-
+  prepareContainer(container);
   const { __chartType: _, ...gridOpts } = opts;
 
   try {
@@ -371,8 +370,7 @@ function drainHighchartsErrors(): string[] {
 
 function showError(container: HTMLElement, e: unknown) {
   const msg = e instanceof Error ? e.message : String(e);
-  destroyExistingCharts(container);
-  container.innerHTML = "";
+  prepareContainer(container);
   const div = document.createElement("div");
   div.style.cssText = "padding:24px;color:#f85149;font-family:system-ui;font-size:14px;";
   const strong = document.createElement("strong");
@@ -396,33 +394,29 @@ function showError(container: HTMLElement, e: unknown) {
 }
 
 async function renderStockChart(opts: Record<string, unknown>) {
-  const root = document.getElementById("root")!;
-  destroyExistingCharts(root);
-  root.innerHTML = "";
-  root.style.display = "";
-
-  const { __chartType: _ct, ...rest } = opts;
+  const container = document.getElementById("root")!;
+  prepareContainer(container);
+  const { __chartType: _, ...rest } = opts;
   ensureMinHeight(rest, 600);
   const processed = processOptions(rest);
 
   try {
     await loadModulesForOptions({ ...processed as Record<string, unknown>, __chartType: "stock" });
-    Highcharts.stockChart(root, processed as Options);
+    Highcharts.stockChart(container, processed as Options);
   } catch (e) {
-    showError(root, e);
+    showError(container, e);
   }
 }
 
 async function renderGanttChart(opts: Record<string, unknown>) {
   const container = document.getElementById("root")!;
-  destroyExistingCharts(container);
-  container.innerHTML = "";
-  container.style.display = "";
-  ensureMinHeight(opts, 500);
+  prepareContainer(container);
+  const { __chartType: _, ...rest } = opts;
+  ensureMinHeight(rest, 500);
+  const processed = processOptions(rest);
+
   try {
-    await loadModulesForOptions(opts); // load modules before stripping __chartType
-    const processed = processOptions({ ...opts });
-    delete processed.__chartType;
+    await loadModulesForOptions({ ...processed as Record<string, unknown>, __chartType: "gantt" });
     Highcharts.ganttChart(container, processed as Options);
   } catch (e) {
     showError(container, e);
@@ -431,9 +425,7 @@ async function renderGanttChart(opts: Record<string, unknown>) {
 
 async function renderSingleChart(opts: Options & Record<string, unknown>) {
   const container = document.getElementById("root")!;
-  destroyExistingCharts(container);
-  container.innerHTML = "";
-  container.style.display = "";
+  prepareContainer(container);
   const processed = processOptions(opts as Record<string, unknown>);
   try {
     await loadModulesForOptions(processed as Record<string, unknown>);
@@ -445,14 +437,7 @@ async function renderSingleChart(opts: Options & Record<string, unknown>) {
 
 async function renderDashboard(config: Record<string, unknown>) {
   const root = document.getElementById("root")!;
-  destroyExistingCharts(root);
-  root.innerHTML = "";
-  root.style.display = "";
-  root.style.flexDirection = "";
-  root.style.gap = "";
-  root.style.padding = "";
-  root.style.overflow = "";
-  root.style.gridTemplateColumns = "";
+  prepareContainer(root);
   // Dashboards needs the container to have dimensions
   root.style.width = "100%";
   root.style.minHeight = "400px";
@@ -487,19 +472,12 @@ async function renderDashboard(config: Record<string, unknown>) {
   }
 }
 
-/** Extract chart options from a tool result (structuredContent or text fallback) */
+/** Extract chart options from a tool result */
 function extractOptions(result: any): Record<string, unknown> | undefined {
   if (result.structuredContent && typeof result.structuredContent === "object") {
     return result.structuredContent as Record<string, unknown>;
   }
-  const textContent = result.content?.find((c: any) => c.type === "text") as { text: string } | undefined;
-  if (!textContent?.text) return undefined;
-  try {
-    return JSON.parse(textContent.text) as Record<string, unknown>;
-  } catch {
-    showError(document.getElementById("root")!, new Error("Failed to parse chart data"));
-    return undefined;
-  }
+  return undefined;
 }
 
 /** Get series array from options, safely */
