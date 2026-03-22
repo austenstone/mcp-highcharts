@@ -4,3 +4,4 @@ dist/
 *.swo
 *.log
 src/generated/tree*.json
+src/generated/highcharts-preprocessed.d.ts
