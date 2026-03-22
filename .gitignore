@@ -4,4 +4,3 @@ dist/
 *.swo
 *.log
 src/generated/tree*.json
-.vscode/github-theme.*

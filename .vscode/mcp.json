@@ -7,7 +7,7 @@
         "watch": "dist/**"
       },
 			"env": {
-    		// "HIGHCHARTS_OPTIONS": ".vscode/github-theme.ts"
+    		// "HIGHCHARTS_OPTIONS": "examples/github-theme.ts"
 			}
     }
   }
