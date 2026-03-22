@@ -108,7 +108,8 @@ export function createServer(): McpServer {
         "All 64 chart types supported with automatic module loading. " +
         "title and subtitle accept string shorthand. " +
         "Combine chart types via per-series type for overlays (e.g., column + spline). " +
-        "Use render_dashboard for multi-chart layouts, KPIs, and data grids via @highcharts/dashboards.",
+        "Use render_dashboard for multi-chart layouts, KPIs, and data grids via @highcharts/dashboards. " +
+        "For live-updating charts, use data.csvURL with data.enablePolling: true (Highcharts handles polling natively).",
     },
   );
 
@@ -615,7 +616,11 @@ export function createServer(): McpServer {
             _meta: {
               ui: {
                 csp: {
-                  connectDomains: ["https://code.highcharts.com"],
+                  connectDomains: [
+                    "https://code.highcharts.com",
+                    // Allow additional domains for live data polling (data.csvURL, data.columnsURL, etc.)
+                    ...(process.env.DATA_DOMAINS?.split(",").map(d => d.trim()).filter(Boolean) ?? []),
+                  ],
                 },
               },
             },
@@ -697,6 +702,30 @@ export function createServer(): McpServer {
         content: {
           type: "text",
           text: `Create a Gantt chart for: "${project}" using render_gantt.\n\nStructure the project with:\n\n1. **Phases** (parent tasks): Group related tasks under phase headers\n   - e.g., Planning, Design, Development, Testing, Launch\n\n2. **Tasks** with realistic durations:\n   - Each task: { name, start (timestamp ms), end (timestamp ms), id, parent (phase id) }\n   - Use Date.UTC(year, month-1, day) for timestamps\n\n3. **Dependencies:** Link tasks with dependency field\n   - e.g., dependency: "task-1" (finish-to-start)\n\n4. **Milestones:** Key decision points\n   - milestone: true, start === end\n\n5. **Progress:** completed: { amount: 0.0-1.0 } for in-progress tasks\n\nGantt options:\n- title: descriptive project name\n- xAxis: datetime with proper date labels\n- yAxis: categories auto-generated from task names\n- navigator: enabled for long timelines\n- tooltip: show task name, dates, duration, progress\n\nGenerate 12-20 realistic tasks across 3-5 phases for "${project}", with logical dependencies and a timeline spanning weeks or months.`,
+        },
+      }],
+    }),
+  );
+
+  server.prompt(
+    "live_chart",
+    "Create a live-updating chart that polls a data URL",
+    {
+      dataUrl: z.string().describe("URL that returns CSV or JSON data (polled periodically)"),
+      refreshRate: z.string().optional().describe("Refresh interval in seconds. Default: 2"),
+    },
+    async ({ dataUrl, refreshRate }) => ({
+      messages: [{
+        role: "assistant",
+        content: {
+          type: "text",
+          text: `Create a live-updating chart using Highcharts' built-in data polling.\n\n` +
+            `Use render_chart (or render_stock_chart for time-series) with:\n\n` +
+            `\`\`\`json\n{\n  "data": {\n    "csvURL": "${dataUrl}",\n    "enablePolling": true,\n    "dataRefreshRate": ${refreshRate ?? "2"}\n  }\n}\n\`\`\`\n\n` +
+            `Highcharts handles polling, diffing, and animation automatically.\n` +
+            `No custom code needed — just set the URL and enable polling.\n\n` +
+            `For JSON data, use "columnsURL" or "rowsURL" instead of "csvURL".\n` +
+            `For Google Sheets, use "googleSpreadsheetKey" with the sheet ID.`,
         },
       }],
     }),
