@@ -19,16 +19,6 @@ import { loadModulesForOptions } from "./module-loader";
 Dashboards.HighchartsPlugin.custom.connectHighcharts(Highcharts);
 Dashboards.PluginHandler.addPlugin(Dashboards.HighchartsPlugin);
 
-// ── Highcharts error interception ──
-// Collect errors during rendering and feed them back to the LLM
-const renderErrors: Array<{ code: number; message: string }> = [];
-
-Highcharts.addEvent(Highcharts, "displayError", (e: any) => {
-  const code = e?.code ?? e?.message ?? "unknown";
-  const msg = typeof e === "object" && e.message ? e.message : `Highcharts error #${code}`;
-  renderErrors.push({ code: Number(code), message: msg });
-  console.warn(`[Highcharts error #${code}]`, msg);
-});
 Dashboards.GridPlugin.custom.connectGrid(GridLite);
 Dashboards.PluginHandler.addPlugin(Dashboards.GridPlugin);
 
@@ -440,21 +430,14 @@ async function renderGanttChart(opts: Record<string, unknown>) {
 }
 
 async function renderSingleChart(opts: Options & Record<string, unknown>) {
-  const processed = processOptions(opts as Record<string, unknown>);
   const container = document.getElementById("root")!;
+  destroyExistingCharts(container);
+  container.innerHTML = "";
+  container.style.display = "";
+  const processed = processOptions(opts as Record<string, unknown>);
   try {
     await loadModulesForOptions(processed as Record<string, unknown>);
-
-    // Update existing chart if possible — smoother than destroy + recreate
-    const existingChart = Highcharts.charts.find(c => (c as any)?.renderTo === container);
-    if (existingChart) {
-      existingChart.update(processed, true, true);
-    } else {
-      destroyExistingCharts(container);
-      container.innerHTML = "";
-      container.style.display = "";
-      Highcharts.chart(container, processed);
-    }
+    Highcharts.chart(container, processed);
   } catch (e) {
     showError(container, e);
   }
@@ -590,25 +573,14 @@ async function renderByType(opts: Record<string, unknown>): Promise<void> {
 }
 
 let appInstance: InstanceType<typeof App> | null = null;
-let streamDebounce: ReturnType<typeof setTimeout>;
 
 /** Send chart context back to the LLM — gated on host capability */
 let _canUpdateContext = false;
 function sendChartContext(description: string) {
   if (!_canUpdateContext || !appInstance) return;
 
-  // Include any Highcharts errors collected during rendering
-  let text = description;
-  if (renderErrors.length > 0) {
-    const errText = renderErrors
-      .map(e => `⚠️ Highcharts error #${e.code}: ${e.message}`)
-      .join("\n");
-    text += "\n\nErrors during rendering:\n" + errText;
-    renderErrors.length = 0; // Clear for next render
-  }
-
   appInstance.updateModelContext({
-    content: [{ type: "text", text }],
+    content: [{ type: "text", text: description }],
   }).catch(() => {});
 }
 
@@ -622,9 +594,6 @@ async function init() {
   appInstance = app;
 
   app.ontoolresult = async (result) => {
-    // Cancel any pending streaming preview to avoid overwriting the final render
-    clearTimeout(streamDebounce);
-
     const opts = extractOptions(result);
     if (!opts) return;
 
@@ -663,27 +632,6 @@ async function init() {
       }
     });
   }
-
-  // ── ontoolinputpartial: streaming preview ──
-  app.ontoolinputpartial = (partialArgs) => {
-    try {
-      const partial = partialArgs.arguments;
-      if (!partial) return;
-
-      // Only attempt streaming render for single charts (render_chart)
-      const opts = partial as Record<string, unknown>;
-      if (opts.__chartType || opts.components) return; // skip stock/map/gantt/dashboard/grid
-
-      if (opts.series && Array.isArray(opts.series)) {
-        clearTimeout(streamDebounce);
-        streamDebounce = setTimeout(() => {
-          renderSingleChart(opts as any).catch(() => {});
-        }, 300);
-      }
-    } catch {
-      // Partial args may be incomplete — expected, just wait
-    }
-  };
 
   // Apply initial host theme
   applyThemeAndRedraw(app.getHostContext());
