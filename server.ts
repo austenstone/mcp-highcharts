@@ -366,7 +366,7 @@ export function createServer(): McpServer {
       const full = { ...processed, __chartType: "map" };
       const mapKey = (processed.chart as any)?.map || "custom/world";
       return {
-        content: [{ type: "text", text: `Rendered map chart (${mapKey}) with ${(processed.series as any[]).length} series` }],
+        content: [{ type: "text", text: `Rendered map chart (${mapKey}) with ${((processed.series as any[]) || []).length} series` }],
         structuredContent: full as any,
       };
     },
@@ -648,7 +648,7 @@ export function createServer(): McpServer {
         role: "assistant",
         content: {
           type: "text",
-          text: `Create a Highcharts Dashboard for: "${topic}"\n\nUse render_dashboard with this structure:\n\n1. **Layout (gui):** Define rows and cells. Typical pattern:\n   - Row 1: 3-4 KPI cells across the top\n   - Row 2: 1 large chart (full width or 2/3) + 1 smaller chart or grid\n   - Row 3: Data grid with details\n\n2. **KPI components:** Use type:'KPI' with value, subtitle, and threshold colors\n\n3. **Chart components:** Use type:'Highcharts' with chartOptions containing full Highcharts config\n\n4. **Data Grid:** Use type:'DataGrid' for tabular drill-down\n\n5. **DataPool:** Define shared connectors so components sync (filtering one updates others)\n\nExample component structure:\n\`\`\`json\n{\n  "components": [\n    { "type": "KPI", "cell": "kpi-1", "value": 1234, "title": "Total", "subtitle": "This month" },\n    { "type": "Highcharts", "cell": "chart-1", "chartOptions": { "series": [...] } },\n    { "type": "DataGrid", "cell": "grid-1", "dataGridOptions": { "columns": [...] } }\n  ]\n}\n\`\`\`\n\nGenerate realistic sample data relevant to "${topic}" and call render_dashboard.`,
+          text: `Create a Highcharts Dashboard for: "${topic}"\n\nUse render_dashboard with this structure:\n\n1. **Layout (gui):** Define rows and cells. Typical pattern:\n   - Row 1: 3-4 KPI cells across the top\n   - Row 2: 1 large chart (full width or 2/3) + 1 smaller chart or grid\n   - Row 3: Data grid with details\n\n2. **KPI components:** Use type:'KPI' with value, subtitle, and threshold colors\n\n3. **Chart components:** Use type:'Highcharts' with chartOptions containing full Highcharts config\n\n4. **Data Grid:** Use type:'DataGrid' for tabular drill-down\n\n5. **DataPool:** Define shared connectors so components sync (filtering one updates others)\n\nExample component structure:\n\`\`\`json\n{\n  "components": [\n    { "type": "KPI", "renderTo": "kpi-1", "value": 1234, "title": "Total", "subtitle": "This month" },\n    { "type": "Highcharts", "renderTo": "chart-1", "chartOptions": { "series": [...] } },\n    { "type": "DataGrid", "renderTo": "grid-1", "dataGridOptions": { "columns": [...] } }\n  ]\n}\n\`\`\`\n\nGenerate realistic sample data relevant to "${topic}" and call render_dashboard.`,
         },
       }],
     }),

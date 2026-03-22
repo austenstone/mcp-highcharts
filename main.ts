@@ -11,6 +11,9 @@ async function startStreamableHTTPServer(
   factory: () => McpServer,
 ): Promise<void> {
   const port = parseInt(process.env.PORT ?? "3001", 10);
+  if (isNaN(port) || port < 1 || port > 65535) {
+    throw new Error(`Invalid PORT: ${process.env.PORT}`);
+  }
 
   // Lazy-load Express and dependencies only for HTTP mode
   const [{ createMcpExpressApp }, { StreamableHTTPServerTransport }, { default: cors }] = await Promise.all([

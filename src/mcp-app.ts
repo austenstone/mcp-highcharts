@@ -218,6 +218,7 @@ function processOptions(opts: Record<string, unknown>): Options & Record<string,
  * Map keys follow the pattern: "custom/world", "countries/us/us-all", "countries/gb/gb-all", etc.
  * @see https://code.highcharts.com/mapdata/
  */
+const MAP_CACHE_MAX = 20;
 const mapCache = new Map<string, unknown>();
 async function fetchMapData(mapKey: string): Promise<unknown> {
   if (mapCache.has(mapKey)) return mapCache.get(mapKey)!;
@@ -225,6 +226,11 @@ async function fetchMapData(mapKey: string): Promise<unknown> {
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`Failed to fetch map "${mapKey}" from CDN (${resp.status})`);
   const data = await resp.json();
+  // Evict oldest entry if cache is full
+  if (mapCache.size >= MAP_CACHE_MAX) {
+    const oldest = mapCache.keys().next().value!;
+    mapCache.delete(oldest);
+  }
   mapCache.set(mapKey, data);
   return data;
 }
