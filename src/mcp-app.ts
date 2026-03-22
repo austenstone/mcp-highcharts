@@ -467,6 +467,8 @@ function countDataPoints(series: Array<Record<string, unknown>>): number {
 /** Route options to the appropriate renderer and send context */
 async function renderByType(opts: Record<string, unknown>): Promise<void> {
   const series = getSeries(opts);
+  const liveConfig = opts.liveData as LiveDataConfig | undefined;
+  delete opts.liveData; // Don't pass to Highcharts
 
   switch (opts.__chartType) {
     case "stock": {
@@ -506,10 +508,186 @@ async function renderByType(opts: Record<string, unknown>): Promise<void> {
       }
     }
   }
+
+  // Start live data if configured (after chart is rendered)
+  startLiveData(liveConfig);
 }
 
 let appInstance: InstanceType<typeof App> | null = null;
 let streamDebounce: ReturnType<typeof setTimeout>;
+
+// ── Live Data Streaming ──
+
+/** Active live data subscription — only one at a time */
+let liveDataCleanup: (() => void) | null = null;
+
+interface LiveDataConfig {
+  url?: string;
+  intervalMs?: number;
+  mode?: "replace" | "append";
+  maxPoints?: number;
+  wsUrl?: string;
+}
+
+/** Apply fresh data to the active chart */
+function applyLiveData(data: unknown, config: LiveDataConfig) {
+  const chart = Highcharts.charts.find(c => c && !c.renderer?.forExport);
+  if (!chart) return;
+
+  if (config.mode === "append") {
+    // Append mode: add points to existing series
+    const maxPoints = config.maxPoints ?? 100;
+    const seriesData = Array.isArray(data) ? data : [data];
+
+    chart.series.forEach((s, i) => {
+      const newPoints = Array.isArray(seriesData[i]) ? seriesData[i] : seriesData[i] != null ? [seriesData[i]] : [];
+      for (const pt of newPoints as any[]) {
+        const shift = s.data.length >= maxPoints;
+        s.addPoint(pt, false, shift, { duration: 300 });
+      }
+    });
+    chart.redraw({ duration: 300 });
+  } else {
+    // Replace mode: swap all series data
+    const seriesData = Array.isArray(data) ? data : [];
+    if (seriesData.length > 0 && Array.isArray(seriesData[0]?.data ?? seriesData[0])) {
+      // Array of series objects or array of data arrays
+      chart.series.forEach((s, i) => {
+        if (i < seriesData.length) {
+          const newData = seriesData[i]?.data ?? seriesData[i];
+          if (Array.isArray(newData)) {
+            s.setData(newData, false, { duration: 300 });
+          }
+        }
+      });
+      chart.redraw({ duration: 300 });
+    } else if (seriesData.length > 0) {
+      // Flat array — apply to first series
+      chart.series[0]?.setData(seriesData as any[], true, { duration: 300 });
+    }
+  }
+}
+
+/** Parse response text as JSON or CSV data */
+function parseLiveResponse(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    // Try CSV: split lines, split by comma, parse numbers
+    const lines = text.trim().split("\n");
+    if (lines.length < 2) return [];
+    const hasHeader = isNaN(Number(lines[0].split(",")[0]));
+    const dataLines = hasHeader ? lines.slice(1) : lines;
+    return dataLines.map(line =>
+      line.split(",").map(cell => {
+        const n = Number(cell.trim());
+        return isNaN(n) ? cell.trim() : n;
+      })
+    );
+  }
+}
+
+/** Start polling via callServerTool */
+function startPolling(config: LiveDataConfig) {
+  const interval = Math.max(config.intervalMs ?? 5000, 1000);
+  let stopped = false;
+
+  const poll = async () => {
+    if (stopped || !appInstance) return;
+    try {
+      const caps = appInstance.getHostCapabilities?.() ?? {};
+      if (!caps.serverTools) {
+        console.warn("[live-data] Host does not support callServerTool — falling back to direct fetch");
+        if (config.url) {
+          const resp = await fetch(config.url, { signal: AbortSignal.timeout(10000) });
+          const text = await resp.text();
+          applyLiveData(parseLiveResponse(text), config);
+        }
+      } else {
+        const result = await appInstance.callServerTool({
+          name: "fetch_live_data",
+          arguments: { url: config.url },
+        });
+        const text = result.content?.find((c: any) => c.type === "text") as { text: string } | undefined;
+        if (text?.text && !result.isError) {
+          applyLiveData(parseLiveResponse(text.text), config);
+        }
+      }
+    } catch (e) {
+      console.warn("[live-data] Poll error:", e);
+    }
+    if (!stopped) setTimeout(poll, interval);
+  };
+
+  // First poll after a short delay to let chart render
+  setTimeout(poll, 1000);
+
+  return () => { stopped = true; };
+}
+
+/** Start WebSocket streaming */
+function startWebSocket(config: LiveDataConfig) {
+  const wsUrl = config.wsUrl!;
+  let ws: WebSocket | null = null;
+  let stopped = false;
+  let reconnectDelay = 1000;
+
+  const connect = () => {
+    if (stopped) return;
+    ws = new WebSocket(wsUrl);
+
+    ws.onmessage = (event) => {
+      try {
+        const data = parseLiveResponse(event.data as string);
+        applyLiveData(data, config);
+      } catch (e) {
+        console.warn("[live-data] WS parse error:", e);
+      }
+    };
+
+    ws.onopen = () => {
+      reconnectDelay = 1000; // Reset on successful connection
+      console.debug("[live-data] WebSocket connected to", wsUrl);
+    };
+
+    ws.onclose = () => {
+      if (!stopped) {
+        console.debug(`[live-data] WebSocket closed, reconnecting in ${reconnectDelay}ms`);
+        setTimeout(connect, reconnectDelay);
+        reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+      }
+    };
+
+    ws.onerror = (e) => {
+      console.warn("[live-data] WebSocket error:", e);
+      ws?.close();
+    };
+  };
+
+  connect();
+
+  return () => {
+    stopped = true;
+    ws?.close();
+  };
+}
+
+/** Start live data if config is present. Cleans up any previous subscription. */
+function startLiveData(config: LiveDataConfig | undefined) {
+  // Clean up previous
+  if (liveDataCleanup) {
+    liveDataCleanup();
+    liveDataCleanup = null;
+  }
+
+  if (!config) return;
+
+  if (config.wsUrl) {
+    liveDataCleanup = startWebSocket(config);
+  } else if (config.url) {
+    liveDataCleanup = startPolling(config);
+  }
+}
 
 /** Send chart context back to the LLM — gated on host capability */
 let _canUpdateContext = false;
@@ -524,7 +702,7 @@ async function init() {
   await themeReady;
 
   const app = new App(
-    { name: "Highcharts MCP App", version: "2.0.0" },
+    { name: "Highcharts MCP App", version: "2.1.0" },
     {},
   );
   appInstance = app;

@@ -400,4 +400,22 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
     });
     expect(result.isError).toBe(true);
   });
+
+  // ── fetch_live_data ──
+
+  it("fetch_live_data rejects non-HTTP URLs", async () => {
+    const result = await client.callTool({
+      name: "fetch_live_data",
+      arguments: { url: "file:///etc/passwd" },
+    });
+    expect(result.isError).toBe(true);
+  });
+
+  it("fetch_live_data handles invalid URLs", async () => {
+    const result = await client.callTool({
+      name: "fetch_live_data",
+      arguments: { url: "https://localhost:99999/nonexistent" },
+    });
+    expect(result.isError).toBe(true);
+  });
 });

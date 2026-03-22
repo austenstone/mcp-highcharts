@@ -97,18 +97,20 @@ export function createServer(): McpServer {
   const server = new McpServer(
     {
       name: "Highcharts MCP App Server",
-      version: "2.0.0",
+      version: "2.1.0",
     },
     {
       instructions: "This server renders interactive Highcharts charts inline in AI chat. " +
         "Tools available: render_chart (single chart), render_stock_chart (financial/time-series with navigator, range selector, indicators), " +
         "render_dashboard (multiple components with layout), render_map (geographic/choropleth maps), " +
-        "render_gantt (project timelines), and render_grid (standalone data table/grid). " +
+        "render_gantt (project timelines), render_grid (standalone data table/grid), and fetch_live_data (server-proxied data fetching). " +
         "Input is any valid Highcharts Options object (https://api.highcharts.com/highcharts/). " +
         "All 64 chart types supported with automatic module loading. " +
         "title and subtitle accept string shorthand. " +
         "Combine chart types via per-series type for overlays (e.g., column + spline). " +
-        "Use render_dashboard for multi-chart layouts, KPIs, and data grids via @highcharts/dashboards.",
+        "Use render_dashboard for multi-chart layouts, KPIs, and data grids via @highcharts/dashboards. " +
+        "For live-updating charts, add liveData: { url, intervalMs, mode } to any chart tool — " +
+        "the app polls fetch_live_data or connects via WebSocket (wsUrl) for real-time streaming.",
     },
   );
 
@@ -540,6 +542,49 @@ export function createServer(): McpServer {
     },
   );
 
+  // ── fetch_live_data: server-proxied data fetching for live charts ──
+  server.tool(
+    "fetch_live_data",
+    "Fetch fresh data from a URL for live-updating charts. " +
+      "Called by the MCP App via callServerTool() on an interval. " +
+      "Returns JSON data that the app applies to the active chart. " +
+      "Supports JSON and CSV responses.",
+    {
+      url: z.string().describe("URL to fetch data from (JSON or CSV)"),
+      format: z.enum(["json", "csv"]).optional().describe("Response format. Auto-detected from Content-Type if omitted."),
+    },
+    async (args: { url: string; format?: string }): Promise<CallToolResult> => {
+      try {
+        const parsed = new URL(args.url);
+        if (!["http:", "https:"].includes(parsed.protocol)) {
+          return { isError: true, content: [{ type: "text", text: "Only HTTP(S) URLs are supported" }] };
+        }
+
+        const resp = await fetch(args.url, {
+          headers: { "Accept": "application/json, text/csv, */*" },
+          signal: AbortSignal.timeout(10000),
+        });
+        if (!resp.ok) {
+          return { isError: true, content: [{ type: "text", text: `Fetch failed: ${resp.status} ${resp.statusText}` }] };
+        }
+
+        const contentType = resp.headers.get("content-type") ?? "";
+        const format = args.format ?? (contentType.includes("json") ? "json" : "csv");
+        const body = await resp.text();
+
+        if (format === "json") {
+          const data = JSON.parse(body);
+          return { content: [{ type: "text", text: JSON.stringify(data) }] };
+        } else {
+          return { content: [{ type: "text", text: body }] };
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return { isError: true, content: [{ type: "text", text: `fetch_live_data error: ${msg}` }] };
+      }
+    },
+  );
+
   registerAppResource(
     server,
     resourceUri,
@@ -615,7 +660,11 @@ export function createServer(): McpServer {
             _meta: {
               ui: {
                 csp: {
-                  connectDomains: ["https://code.highcharts.com"],
+                  connectDomains: [
+                    "https://code.highcharts.com",
+                    // Allow additional domains for live data (direct fetch/WebSocket)
+                    ...(process.env.LIVE_DATA_DOMAINS?.split(",").map(d => d.trim()).filter(Boolean) ?? []),
+                  ],
                 },
               },
             },
@@ -697,6 +746,36 @@ export function createServer(): McpServer {
         content: {
           type: "text",
           text: `Create a Gantt chart for: "${project}" using render_gantt.\n\nStructure the project with:\n\n1. **Phases** (parent tasks): Group related tasks under phase headers\n   - e.g., Planning, Design, Development, Testing, Launch\n\n2. **Tasks** with realistic durations:\n   - Each task: { name, start (timestamp ms), end (timestamp ms), id, parent (phase id) }\n   - Use Date.UTC(year, month-1, day) for timestamps\n\n3. **Dependencies:** Link tasks with dependency field\n   - e.g., dependency: "task-1" (finish-to-start)\n\n4. **Milestones:** Key decision points\n   - milestone: true, start === end\n\n5. **Progress:** completed: { amount: 0.0-1.0 } for in-progress tasks\n\nGantt options:\n- title: descriptive project name\n- xAxis: datetime with proper date labels\n- yAxis: categories auto-generated from task names\n- navigator: enabled for long timelines\n- tooltip: show task name, dates, duration, progress\n\nGenerate 12-20 realistic tasks across 3-5 phases for "${project}", with logical dependencies and a timeline spanning weeks or months.`,
+        },
+      }],
+    }),
+  );
+
+  server.prompt(
+    "live_chart",
+    "Create a live-updating chart with real-time data streaming",
+    {
+      dataUrl: z.string().describe("URL that returns JSON or CSV data (e.g. API endpoint, WebSocket URL)"),
+      chartType: z.string().optional().describe("Chart type (e.g. 'line', 'stock', 'area'). Default: 'line'"),
+    },
+    async ({ dataUrl, chartType }) => ({
+      messages: [{
+        role: "assistant",
+        content: {
+          type: "text",
+          text: `Create a live-updating ${chartType ?? "line"} chart that streams data from: ${dataUrl}\n\n` +
+            `Use the liveData configuration:\n\n` +
+            `**Polling mode** (for REST APIs):\n` +
+            `\`\`\`json\n{\n  "liveData": {\n    "url": "${dataUrl}",\n    "intervalMs": 5000,\n    "mode": "append",\n    "maxPoints": 50\n  }\n}\n\`\`\`\n\n` +
+            `**WebSocket mode** (for push-based streaming):\n` +
+            `\`\`\`json\n{\n  "liveData": {\n    "wsUrl": "${dataUrl}",\n    "mode": "append",\n    "maxPoints": 100\n  }\n}\n\`\`\`\n\n` +
+            `**Modes:**\n` +
+            `- \`"append"\` — adds new points, shifts oldest off (great for real-time feeds)\n` +
+            `- \`"replace"\` — swaps all series data (great for dashboards that refresh)\n\n` +
+            `Start with initial seed data in series[].data, then liveData takes over.\n` +
+            `The chart uses smooth animations (300ms) for point additions.\n\n` +
+            `For server-proxied fetching (when direct fetch is blocked by CSP), the app automatically ` +
+            `uses callServerTool("fetch_live_data") which proxies through the MCP server.`,
         },
       }],
     }),

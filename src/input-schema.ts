@@ -252,5 +252,28 @@ export const inputSchema = {
   drilldown: drilldownSchema,
   colors: colorsSchema,
   colorMode: colorModeSchema,
+  liveData: z.object({
+    url: z.string().optional().describe(
+      "URL to poll for fresh data (JSON or CSV). Must be declared in connectDomains CSP."
+    ),
+    intervalMs: z.number().optional().describe(
+      "Polling interval in milliseconds. Default: 5000. Min: 1000."
+    ),
+    mode: z.enum(["replace", "append"]).optional().describe(
+      "How to apply new data. 'replace' swaps all series data (default). " +
+      "'append' adds new points (useful for real-time streaming, shifts oldest point off if maxPoints reached)."
+    ),
+    maxPoints: z.number().optional().describe(
+      "Max points per series in append mode. Oldest points are shifted off. Default: 100."
+    ),
+    wsUrl: z.string().optional().describe(
+      "WebSocket URL for push-based streaming. Must be declared in connectDomains CSP. " +
+      "Messages should be JSON with series data."
+    ),
+  }).passthrough().optional().describe(
+    "Live data configuration for auto-refreshing charts. " +
+    "Use url + intervalMs for polling, or wsUrl for push-based WebSocket streaming. " +
+    "Combine with callServerTool (tool name 'fetch_live_data') for server-proxied data fetching."
+  ),
   ...buildRemainingFields(),
 };
