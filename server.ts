@@ -47,9 +47,19 @@ export function createServer(): McpServer {
       } catch {
         throw new Error(`Invalid JSON in dataSource "${dataSource}"`);
       }
-      if (Array.isArray(jsonData) && !args.series) {
-        args.data = { ...(args.data as object || {}), columns: jsonData };
-      } else if (!args.series) {
+      if (Array.isArray(jsonData)) {
+        // Detect shape: array of series objects (have name/data/type) vs raw data
+        const looksLikeSeries = jsonData.length > 0 &&
+          typeof jsonData[0] === "object" && jsonData[0] !== null &&
+          ("data" in jsonData[0] || "name" in jsonData[0] || "type" in jsonData[0]);
+        if (looksLikeSeries && !args.series) {
+          args.series = jsonData;
+        } else if (!args.series) {
+          // Treat as raw data array
+          args.data = { ...(args.data as object || {}), columns: jsonData };
+        }
+      } else if (typeof jsonData === "object" && jsonData !== null && !args.series) {
+        // Single object — could be full chart config or series config
         args.series = jsonData;
       }
     } else {
@@ -586,10 +596,13 @@ export function createServer(): McpServer {
       }
 
       if (optionsJson) {
-        const injection = `<script>window.__HIGHCHARTS_OPTIONS__=${optionsJson};</script>`;
+        // Escape < to prevent </script> breakout in embedded JSON
+        const safeJson = optionsJson.replace(/</g, "\\u003c");
+        const injection = `<script>window.__HIGHCHARTS_OPTIONS__=${safeJson};</script>`;
         html = html.replace("<head>", `<head>${injection}`);
       } else if (themeName) {
-        const injection = `<script>window.__HIGHCHARTS_THEME_NAME__="${themeName}";</script>`;
+        const safeThemeName = JSON.stringify(themeName);
+        const injection = `<script>window.__HIGHCHARTS_THEME_NAME__=${safeThemeName};</script>`;
         html = html.replace("<head>", `<head>${injection}`);
       }
 

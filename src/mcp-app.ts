@@ -273,8 +273,19 @@ async function resolveMapData(opts: Record<string, unknown>): Promise<void> {
   }
 }
 
+/** Destroy any Highcharts chart instances rendered in the given container */
+function destroyExistingCharts(container: HTMLElement) {
+  for (let i = Highcharts.charts.length - 1; i >= 0; i--) {
+    const chart = Highcharts.charts[i];
+    if (chart && ((chart as any).renderTo === container || container.contains((chart as any).renderTo))) {
+      chart.destroy();
+    }
+  }
+}
+
 async function renderMapChart(opts: Record<string, unknown>) {
   const container = document.getElementById("root")!;
+  destroyExistingCharts(container);
   container.innerHTML = "";
   container.style.display = "";
 
@@ -293,6 +304,7 @@ async function renderMapChart(opts: Record<string, unknown>) {
 
 async function renderGrid(opts: Record<string, unknown>) {
   const container = document.getElementById("root")!;
+  destroyExistingCharts(container);
   container.innerHTML = "";
   container.style.display = "";
 
@@ -307,6 +319,7 @@ async function renderGrid(opts: Record<string, unknown>) {
 
 function showError(container: HTMLElement, e: unknown) {
   const msg = e instanceof Error ? e.message : String(e);
+  destroyExistingCharts(container);
   container.innerHTML = "";
   const div = document.createElement("div");
   div.style.cssText = "padding:24px;color:#f85149;font-family:system-ui;font-size:14px;";
@@ -324,15 +337,16 @@ function showError(container: HTMLElement, e: unknown) {
 
 async function renderStockChart(opts: Record<string, unknown>) {
   const root = document.getElementById("root")!;
+  destroyExistingCharts(root);
   root.innerHTML = "";
   root.style.display = "";
 
   const { __chartType: _ct, ...rest } = opts;
   ensureMinHeight(rest, 600);
   const processed = processOptions(rest);
-  await loadModulesForOptions({ ...processed as Record<string, unknown>, __chartType: "stock" });
 
   try {
+    await loadModulesForOptions({ ...processed as Record<string, unknown>, __chartType: "stock" });
     Highcharts.stockChart(root, processed as Options);
   } catch (e) {
     showError(root, e);
@@ -341,6 +355,7 @@ async function renderStockChart(opts: Record<string, unknown>) {
 
 async function renderGanttChart(opts: Record<string, unknown>) {
   const container = document.getElementById("root")!;
+  destroyExistingCharts(container);
   container.innerHTML = "";
   container.style.display = "";
   ensureMinHeight(opts, 500);
@@ -365,6 +380,7 @@ async function renderSingleChart(opts: Options & Record<string, unknown>) {
     if (existingChart) {
       existingChart.update(processed, true, true);
     } else {
+      destroyExistingCharts(container);
       container.innerHTML = "";
       container.style.display = "";
       Highcharts.chart(container, processed);
@@ -376,6 +392,7 @@ async function renderSingleChart(opts: Options & Record<string, unknown>) {
 
 async function renderDashboard(config: Record<string, unknown>) {
   const root = document.getElementById("root")!;
+  destroyExistingCharts(root);
   root.innerHTML = "";
   root.style.display = "";
   root.style.flexDirection = "";

@@ -52,7 +52,7 @@ const seriesSchema = z.array(z.object({
     .describe("Series type (overrides chart.type for mixed charts)"),
   name: z.string().optional()
     .describe("Series name shown in legend and tooltip"),
-  data: z.any()
+  data: z.any().optional()
     .describe(
       "Data array. Common formats:\n" +
       "• number[] — simple values (line, bar, column)\n" +
@@ -241,7 +241,7 @@ export const inputSchema = {
   chart: chartSchema,
   title: titleSchema,
   subtitle: subtitleSchema,
-  series: seriesSchema,
+  series: seriesSchema.optional(),
   xAxis: xAxisSchema,
   yAxis: yAxisSchema,
   tooltip: tooltipSchema,
