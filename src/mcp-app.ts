@@ -141,11 +141,6 @@ function ensureMinHeight(opts: Record<string, unknown>, minHeight: number) {
   }
 }
 
-function processOptions(opts: Record<string, unknown>): Options & Record<string, unknown> {
-  const processed = opts as Options & Record<string, unknown>;
-  return processed;
-}
-
 /**
  * Fetch map TopoJSON from Highcharts CDN by map key.
  * Map keys follow the pattern: "custom/world", "countries/us/us-all", "countries/gb/gb-all", etc.
@@ -206,19 +201,12 @@ async function resolveMapData(opts: Record<string, unknown>): Promise<void> {
   }
 }
 
-/** Destroy any Highcharts chart instances rendered in the given container */
-function destroyExistingCharts(container: HTMLElement) {
-  for (let i = Highcharts.charts.length - 1; i >= 0; i--) {
-    const chart = Highcharts.charts[i];
-    if (chart && ((chart as any).renderTo === container || container.contains((chart as any).renderTo))) {
-      chart.destroy();
-    }
-  }
-}
-
-/** Reset a container for a fresh render */
+/** Reset the root container for a fresh render */
 function prepareContainer(container: HTMLElement) {
-  destroyExistingCharts(container);
+  // Destroy all existing chart instances — we only ever have one at a time
+  for (let i = Highcharts.charts.length - 1; i >= 0; i--) {
+    Highcharts.charts[i]?.destroy();
+  }
   container.innerHTML = "";
   container.style.display = "";
 }
@@ -228,7 +216,7 @@ async function renderMapChart(opts: Record<string, unknown>) {
   prepareContainer(container);
   const { __chartType: _, ...rest } = opts;
   ensureMinHeight(rest, 500);
-  const processed = processOptions(rest);
+  const processed = rest as Options & Record<string, unknown>;
 
   try {
     await loadModulesForOptions({ ...processed as Record<string, unknown>, __chartType: "map" });
@@ -335,7 +323,7 @@ async function renderStockChart(opts: Record<string, unknown>) {
   prepareContainer(container);
   const { __chartType: _, ...rest } = opts;
   ensureMinHeight(rest, 600);
-  const processed = processOptions(rest);
+  const processed = rest as Options & Record<string, unknown>;
 
   try {
     await loadModulesForOptions({ ...processed as Record<string, unknown>, __chartType: "stock" });
@@ -350,7 +338,7 @@ async function renderGanttChart(opts: Record<string, unknown>) {
   prepareContainer(container);
   const { __chartType: _, ...rest } = opts;
   ensureMinHeight(rest, 500);
-  const processed = processOptions(rest);
+  const processed = rest as Options & Record<string, unknown>;
 
   try {
     await loadModulesForOptions({ ...processed as Record<string, unknown>, __chartType: "gantt" });
@@ -363,10 +351,9 @@ async function renderGanttChart(opts: Record<string, unknown>) {
 async function renderSingleChart(opts: Options & Record<string, unknown>) {
   const container = document.getElementById("root")!;
   prepareContainer(container);
-  const processed = processOptions(opts as Record<string, unknown>);
   try {
-    await loadModulesForOptions(processed as Record<string, unknown>);
-    Highcharts.chart(container, processed);
+    await loadModulesForOptions(opts as Record<string, unknown>);
+    Highcharts.chart(container, opts);
   } catch (e) {
     showError(container, e);
   }
@@ -422,9 +409,9 @@ function getSeries(opts: Record<string, unknown>): Array<Record<string, unknown>
   return (opts.series as Array<Record<string, unknown>>) || [];
 }
 
-/** Get title text from options (handles string shorthand and object) */
+/** Get title text from options */
 function getTitle(opts: Record<string, unknown>): string {
-  return typeof opts.title === "string" ? opts.title : (opts.title as any)?.text || "";
+  return (opts.title as any)?.text || "";
 }
 
 /** Count data points across all series */
@@ -503,7 +490,7 @@ async function init() {
   await themeReady;
 
   const app = new App(
-    { name: "Highcharts MCP App", version: "2.0.0" },
+    { name: "Highcharts MCP App", version: "2.2.0" },
     {},
   );
   appInstance = app;

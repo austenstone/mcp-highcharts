@@ -47,7 +47,8 @@
     "test:e2e": "vitest run --config vitest.config.ts tests/e2e",
     "test:visual": "vitest --config vitest.browser.config.ts --ui",
     "prepublishOnly": "npm run build",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "lint:unused": "knip"
   },
   "dependencies": {
     "@highcharts/dashboards": "^4.1.0",
@@ -71,8 +72,9 @@
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "eslint": "^9.39.4",
+    "eslint-plugin-n": "^17.24.0",
     "eslint-plugin-zod": "^3.5.0",
-    "ts-to-zod": "^5.1.0",
+    "knip": "^6.0.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.57.1",

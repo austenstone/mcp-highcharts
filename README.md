@@ -73,6 +73,7 @@ All tools accept the full [Highcharts Options API](https://api.highcharts.com/hi
 | `stock_analysis` | Candlestick + volume + indicators |
 | `comparison_chart` | Side-by-side comparison patterns |
 | `project_timeline` | Gantt with dependencies |
+| `live_chart` | Live-updating chart from a data URL |
 
 ## Configuration
 
@@ -108,13 +109,9 @@ Controls how much type information is sent to the LLM:
 | `2` | One level of typed children |
 | `3` | Two levels deep — complete recursive Highcharts type tree |
 
-### Color modes
-
-Generate monochrome palettes: `"colorMode": "monochrome-blue"` or any CSS color like `"#7b68ee"`.
-
 ### Data sources
 
-Read files instead of inlining data: `"dataSource": "sales.csv"`. Supports CSV, JSON, TSV, and HTTPS URLs. Paths are sandboxed to the workspace.
+For live-updating charts, use the Highcharts data module with `data.csvURL` and `data.enablePolling: true`.
 
 ## Development
 
@@ -136,11 +133,10 @@ src/
   module-loader.ts       Dynamic Highcharts module loading
   generated/             Auto-generated from Highcharts API (do not edit)
     highcharts-depth-{0,1,2}.gen.ts   Zod schemas at each depth
-    chart-types.json                  64 chart type enum values
     module-map.json                   Chart type → Highcharts module mapping
 scripts/
   generate-from-tree.mjs   Generate Zod schemas from Highcharts tree.json
-  generate-module-map.mjs  Generate chart-types.json and module-map.json
+  generate-module-map.mjs  Generate module-map.json from Highcharts
   example-providers.mjs    Example extraction for schema generation
   measure-schema.ts        Measure tool context size at each depth
 ```

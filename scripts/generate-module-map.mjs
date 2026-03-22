@@ -143,9 +143,4 @@ fs.writeFileSync(
   JSON.stringify(moduleMap, null, 2) + "\n"
 );
 
-fs.writeFileSync(
-  path.join(GENERATED_DIR, "chart-types.json"),
-  JSON.stringify(chartTypes, null, 2) + "\n"
-);
-
 console.log(`\n✅ module-map.json: ${Object.keys(typeToModule).length} type mappings, ${chartTypes.length} chart types, ${availableModules.length} modules, ${availableThemes.length} themes`);

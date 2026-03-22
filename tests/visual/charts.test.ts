@@ -1140,14 +1140,14 @@ describe("GitHub Theme", () => {
   }
 
   it("applies theme from JSON file", async () => {
-    const theme = await import("../../.vscode/github-theme.json");
+    const theme = await import("../../examples/github-theme.json");
     Highcharts.setOptions(theme as unknown as Options);
     const el = await renderChart({ ...chartConfig });
     assertThemeDOM(el);
   });
 
   it("applies theme from TypeScript file", async () => {
-    const { default: theme } = await import("../../.vscode/github-theme.ts");
+    const { default: theme } = await import("../../examples/github-theme.ts");
     Highcharts.setOptions(theme);
     const el = await renderChart({ ...chartConfig });
     assertThemeDOM(el);
