@@ -70,9 +70,9 @@ const minimalSchema: Record<string, z.ZodTypeAny> = {
 
 const schemasByDepth: Record<number, Record<string, z.ZodTypeAny>> = {
   0: minimalSchema,
-  1: buildInputSchema(depth0Schema, depth0Chart as any),
-  2: buildInputSchema(depth1Schema, depth1Chart as z.ZodObject<any>, depth1Data as z.ZodObject<any>, depth1Tooltip as z.ZodObject<any>, depth1Legend as z.ZodObject<any>),
-  3: buildInputSchema(depth2Schema, depth2Chart as z.ZodObject<any>, depth2Data as z.ZodObject<any>, depth2Tooltip as z.ZodObject<any>, depth2Legend as z.ZodObject<any>),
+  1: buildInputSchema(depth0Schema),
+  2: buildInputSchema(depth1Schema, depth1Data as z.ZodObject<any>, depth1Tooltip as z.ZodObject<any>, depth1Legend as z.ZodObject<any>),
+  3: buildInputSchema(depth2Schema, depth2Data as z.ZodObject<any>, depth2Tooltip as z.ZodObject<any>, depth2Legend as z.ZodObject<any>),
 };
 
 /** Get the input schema for a given depth (0-3). Defaults to 1. */
