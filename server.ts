@@ -505,6 +505,7 @@ export function createServer(options?: ServerOptions): McpServer {
               ui: {
                 csp: {
                   connectDomains: ["*"],
+                  resourceDomains: ["*"],
                 },
               },
             },
