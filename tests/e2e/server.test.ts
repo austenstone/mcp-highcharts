@@ -55,8 +55,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
     });
 
     expect(result.content).toHaveLength(1);
-    const text = (result.content as { type: string; text: string }[])[0].text;
-    const parsed = JSON.parse(text);
+    const parsed = (result as any).structuredContent;
     expect(parsed.chart.type).toBe("bar");
     expect(parsed.title).toBe("Revenue by Quarter");
     expect(parsed.series).toHaveLength(1);
@@ -80,9 +79,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
       },
     });
 
-    const parsed = JSON.parse(
-      (result.content as { type: string; text: string }[])[0].text,
-    );
+    const parsed = (result as any).structuredContent;
     expect(parsed.chart.type).toBe("pie");
     expect(parsed.series[0].data).toHaveLength(3);
   });
@@ -100,9 +97,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
       },
     });
 
-    const parsed = JSON.parse(
-      (result.content as { type: string; text: string }[])[0].text,
-    );
+    const parsed = (result as any).structuredContent;
     expect(parsed.plotOptions.series.stacking).toBe("normal");
     expect(parsed.tooltip.valueSuffix).toBe(" units");
     expect(parsed.yAxis.title.text).toBe("Units Sold");
@@ -119,9 +114,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
       },
     });
 
-    const parsed = JSON.parse(
-      (result.content as { type: string; text: string }[])[0].text,
-    );
+    const parsed = (result as any).structuredContent;
     expect(parsed.plotOptions.line.dashStyle).toBe("Dash");
   });
 
@@ -138,9 +131,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
       },
     });
 
-    const parsed = JSON.parse(
-      (result.content as { type: string; text: string }[])[0].text,
-    );
+    const parsed = (result as any).structuredContent;
     expect(parsed.series[0].type).toBe("column");
     expect(parsed.series[1].type).toBe("spline");
   });
@@ -187,9 +178,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
     });
 
     expect(result.isError).toBeFalsy();
-    const parsed = JSON.parse(
-      (result.content as { type: string; text: string }[])[0].text,
-    );
+    const parsed = (result as any).structuredContent;
     expect(parsed.__chartType).toBe("stock");
     expect(parsed.series[0].type).toBe("candlestick");
     expect(parsed.rangeSelector.selected).toBe(1);
@@ -245,9 +234,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
       },
     });
 
-    const parsed = JSON.parse(
-      (result.content as { type: string; text: string }[])[0].text,
-    );
+    const parsed = (result as any).structuredContent;
     expect(parsed.components).toHaveLength(2);
     expect(parsed.gui.layouts).toHaveLength(1);
   });
@@ -286,9 +273,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
       },
     });
     expect(result.isError).toBeFalsy();
-    const parsed = JSON.parse(
-      (result.content as { type: string; text: string }[])[0].text,
-    );
+    const parsed = (result as any).structuredContent;
     expect(parsed.__chartType).toBe("map");
     expect(parsed.series).toHaveLength(1);
   });
@@ -331,9 +316,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
     });
 
     expect(result.content).toHaveLength(1);
-    const parsed = JSON.parse(
-      (result.content as { type: string; text: string }[])[0].text,
-    );
+    const parsed = (result as any).structuredContent;
     expect(parsed.__chartType).toBe("gantt");
     expect(parsed.series).toHaveLength(1);
     expect(parsed.series[0].data).toHaveLength(2);
@@ -373,9 +356,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
       },
     });
     expect(result.isError).toBeFalsy();
-    const parsed = JSON.parse(
-      (result.content as { type: string; text: string }[])[0].text,
-    );
+    const parsed = (result as any).structuredContent;
     expect(parsed.__chartType).toBe("grid");
     expect(parsed.data.columns.name).toHaveLength(3);
   });
@@ -391,9 +372,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
       },
     });
     expect(result.isError).toBeFalsy();
-    const parsed = JSON.parse(
-      (result.content as { type: string; text: string }[])[0].text,
-    );
+    const parsed = (result as any).structuredContent;
     expect(parsed.__chartType).toBe("grid");
     // rows should be converted to data.columns
     expect(parsed.data.columns.name).toEqual(["Alpha", "Beta"]);
