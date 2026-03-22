@@ -284,7 +284,7 @@ async function renderGrid(opts: Record<string, unknown>) {
   container.innerHTML = "";
   container.style.display = "";
 
-  const { __chartType, ...gridOpts } = opts;
+  const { __chartType: _, ...gridOpts } = opts;
 
   try {
     GridLite.grid(container, gridOpts as any);
@@ -315,7 +315,7 @@ async function renderStockChart(opts: Record<string, unknown>) {
   root.innerHTML = "";
   root.style.display = "";
 
-  const { __chartType, ...rest } = opts;
+  const { __chartType: _ct, ...rest } = opts;
   ensureMinHeight(rest, 600);
   const processed = processOptions(rest);
   await loadModulesForOptions({ ...processed as Record<string, unknown>, __chartType: "stock" });

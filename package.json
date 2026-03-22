@@ -2,7 +2,7 @@
   "name": "mcp-highcharts",
   "version": "2.0.0",
   "type": "module",
-  "description": "Highcharts MCP App — interactive charts rendered inline in AI chat",
+  "description": "Highcharts MCP App \u2014 interactive charts rendered inline in AI chat",
   "author": "Austen Stone",
   "license": "MIT",
   "repository": {
@@ -39,7 +39,7 @@
   },
   "scripts": {
     "prebuild": "node scripts/generate-module-map.mjs && tsx scripts/generate-schema.ts",
-    "build": "tsc --noEmit && cross-env INPUT=mcp-app.html vite build && tsc -p tsconfig.server.json",
+    "build": "eslint . && tsc --noEmit && cross-env INPUT=mcp-app.html vite build && tsc -p tsconfig.server.json",
     "watch": "cross-env INPUT=mcp-app.html vite build --watch",
     "serve": "tsx watch main.ts",
     "serve:stdio": "tsx main.ts --stdio",
@@ -51,7 +51,9 @@
     "test:visual": "vitest --config vitest.browser.config.ts --ui",
     "generate:schema": "tsx scripts/generate-schema.ts",
     "generate:tree": "tsx scripts/generate-schema-from-tree.ts",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@highcharts/dashboards": "^4.1.0",
@@ -65,6 +67,8 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@highcharts/eslint-plugin-highcharts": "github:highcharts/eslint-plugin-highcharts",
     "@playwright/test": "^1.58.2",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
@@ -74,8 +78,10 @@
     "@vitest/ui": "^4.1.0",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
+    "eslint": "^9.39.4",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.57.1",
     "vite": "^8.0.1",
     "vite-plugin-singlefile": "^2.3.2",
     "vitest": "^4.1.0"
