@@ -234,17 +234,15 @@ export const inputSchema = {
     rowsURL: z.string().optional().describe("URL to a JSON file with row-oriented data. Combine with enablePolling for live data."),
     enablePolling: z.boolean().optional().describe("Poll the data URL periodically for live-updating charts. Default: false."),
     dataRefreshRate: z.number().optional().describe("Polling interval in seconds when enablePolling is true. Default: 1."),
-    googleSpreadsheetKey: z.string().optional().describe("Google Sheets spreadsheet key for live data from Google Sheets."),
+    googleSpreadsheetKey: z.string().optional().describe("Google Sheets spreadsheet key for live data."),
     googleSpreadsheetRange: z.string().optional().describe("Cell range in A1 notation (e.g. 'A1:D20')."),
     itemDelimiter: z.string().optional().describe("CSV column delimiter. Auto-detected if omitted."),
     decimalPoint: z.string().optional().describe("Decimal point character. Default: '.'"),
     switchRowsAndColumns: z.boolean().optional().describe("Swap rows and columns interpretation."),
   }).passthrough().optional().describe(
-    "Highcharts data module config — parse CSV, HTML tables, or Google Sheets directly. " +
-    "Use data.csv for inline CSV strings, data.csvURL for remote CSV files. " +
-    "For LIVE DATA: set data.csvURL + data.enablePolling: true + data.dataRefreshRate: 2. " +
-    "Highcharts handles polling, animation, and point shifting automatically. " +
-    "See https://api.highcharts.com/highcharts/data"
+    "Highcharts data module config. For LIVE DATA: set csvURL (or rowsURL/columnsURL) + enablePolling: true + dataRefreshRate: N. " +
+    "Highcharts handles polling, animation, and point shifting natively. " +
+    "See https://www.highcharts.com/docs/working-with-data/live-data"
   ),
   chart: chartSchema,
   title: titleSchema,
