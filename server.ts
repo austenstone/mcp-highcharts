@@ -255,6 +255,13 @@ export function createServer(): McpServer {
       if (!args.components || !Array.isArray(args.components)) {
         return { isError: true, content: [{ type: "text", text: "components is required and must be an array" }] };
       }
+      // Normalize gui.rows shorthand → gui.layouts[].rows[] (LLMs often use shorthand)
+      const gui = (args as Record<string, unknown>).gui as Record<string, unknown> | undefined;
+      if (gui?.rows && !gui.layouts) {
+        gui.layouts = [{ rows: gui.rows }];
+        delete gui.rows;
+        gui.enabled = true;
+      }
       const components = args.components as Array<Record<string, unknown>>;
       const types = [...new Set(components.map(c => (c.type as string) || "unknown"))].join(", ");
       return {

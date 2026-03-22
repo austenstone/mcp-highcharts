@@ -151,10 +151,8 @@ function ensureMinHeight(opts: Record<string, unknown>, minHeight: number) {
  */
 function applyColorPalette(colors: string[]) {
   const el = document.documentElement;
-  for (let i = 0; i < 10; i++) {
-    if (i < colors.length) {
-      el.style.setProperty(`--highcharts-color-${i}`, colors[i]);
-    }
+  for (let i = 0; i < colors.length; i++) {
+    el.style.setProperty(`--highcharts-color-${i}`, colors[i]);
   }
 }
 
@@ -334,10 +332,10 @@ async function renderGanttChart(opts: Record<string, unknown>) {
   container.innerHTML = "";
   container.style.display = "";
   ensureMinHeight(opts, 500);
-  const processed = processOptions(opts as Record<string, unknown>);
-  delete processed.__chartType;
   try {
-    await loadModulesForOptions({ ...opts }); // pass original with __chartType for module detection
+    await loadModulesForOptions(opts); // load modules before stripping __chartType
+    const processed = processOptions({ ...opts });
+    delete processed.__chartType;
     Highcharts.ganttChart(container, processed as Options);
   } catch (e) {
     showError(container, e);

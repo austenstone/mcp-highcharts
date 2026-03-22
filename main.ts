@@ -20,7 +20,7 @@ async function startStreamableHTTPServer(
   ]);
 
   const app = createMcpExpressApp({ host: "0.0.0.0" });
-  app.use(cors());
+  app.use(cors({ origin: /^https?:\/\/localhost(:\d+)?$/ }));
 
   app.all("/mcp", async (req: any, res: any) => {
     const server = factory();
