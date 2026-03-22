@@ -12,8 +12,7 @@ import * as z from "zod";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { inputSchema, inputSchemaBasic, inputSchemaMinimal } from "./src/input-schema.js";
-import { readDataSource, isJsonContent } from "./src/data-source.js";
+import { getInputSchema } from "./src/input-schema.js";
 
 const DIST_DIR = import.meta.filename.endsWith(".ts")
   ? path.join(import.meta.dirname, "dist")
@@ -21,21 +20,28 @@ const DIST_DIR = import.meta.filename.endsWith(".ts")
 
 export interface ServerOptions {
   /** Controls how much schema detail is sent to the LLM.
-   *  - "minimal": no schema — accepts any Highcharts options, zero context overhead
-   *  - "basic" (default): LLM-friendly fields with chart type enum, series docs, examples
-   *  - "full": all generated Highcharts types + LLM-friendly overrides */
-  schemaDetail?: "minimal" | "basic" | "full";
+   *  Set as a depth number (0-3) controlling how deep into the
+   *  Highcharts options tree the schema expands.
+   *  - 0: truly minimal — just keys, no descriptions or examples
+   *  - 1 (default): top-level keys with descriptions and examples (~21K tokens)
+   *  - 2: one level of typed children (~193K tokens)
+   *  - 3: two levels deep (~390K tokens)
+   *
+   *  Legacy string values "minimal", "basic", "full" are still supported. */
+  schemaDepth?: number | "minimal" | "basic" | "full";
 }
 
 export function createServer(options?: ServerOptions): McpServer {
-  const schemaDetail = options?.schemaDetail
-    ?? (process.env.SCHEMA_DETAIL as ServerOptions["schemaDetail"])
-    ?? "basic";
-  const chartInputSchema = schemaDetail === "full"
-    ? inputSchema
-    : schemaDetail === "minimal"
-      ? inputSchemaMinimal
-      : inputSchemaBasic;
+  const rawDepth = options?.schemaDepth
+    ?? process.env.SCHEMA_DEPTH
+    ?? process.env.SCHEMA_DETAIL
+    ?? "1";
+  // Map legacy string values to depth numbers
+  const depthMap: Record<string, number> = { minimal: 0, basic: 1, full: 3 };
+  const schemaDepth = typeof rawDepth === "number"
+    ? rawDepth
+    : depthMap[rawDepth] ?? (Number.isNaN(parseInt(rawDepth, 10)) ? 1 : parseInt(rawDepth, 10));
+  const chartInputSchema = getInputSchema(schemaDepth);
   /** Default responsive rules: simplify charts in narrow panels */
   const defaultResponsiveRules = [
     {
@@ -73,88 +79,24 @@ export function createServer(options?: ServerOptions): McpServer {
     };
   }
 
-  /**
-   * Process dataSource: read file, auto-generate series if needed, merge into args.
-   * Returns the processed args (mutated in place).
-   */
-  async function resolveDataSource(args: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const dataSource = args.dataSource as string | undefined;
-    if (!dataSource) return args;
-    delete args.dataSource;
-
-    const content = await readDataSource(dataSource);
-
-    if (isJsonContent(dataSource, content)) {
-      // JSON → parse and merge as series data
-      let jsonData: unknown;
-      try {
-        jsonData = JSON.parse(content);
-      } catch {
-        throw new Error(`Invalid JSON in dataSource "${dataSource}"`);
-      }
-      if (Array.isArray(jsonData)) {
-        // Detect shape: array of series objects (have name/data/type) vs raw data
-        const looksLikeSeries = jsonData.length > 0 &&
-          typeof jsonData[0] === "object" && jsonData[0] !== null &&
-          ("data" in jsonData[0] || "name" in jsonData[0] || "type" in jsonData[0]);
-        if (looksLikeSeries && !args.series) {
-          args.series = jsonData;
-        } else if (!args.series) {
-          // Treat as raw data array
-          args.data = { ...(args.data as object || {}), columns: jsonData };
-        }
-      } else if (typeof jsonData === "object" && jsonData !== null && !args.series) {
-        // Single object — could be full chart config or series config
-        args.series = jsonData;
-      }
-    } else {
-      // CSV/TSV → inject as data.csv for Highcharts' built-in data module
-      args.data = { ...(args.data as object || {}), csv: content };
-
-      // Strip empty data arrays from series — LLMs often send data:[] placeholders
-      // which would override the CSV data module
-      const series = args.series as any[] | undefined;
-      if (Array.isArray(series)) {
-        for (const s of series) {
-          if (Array.isArray(s.data) && s.data.length === 0) {
-            delete s.data;
-          }
-        }
-      }
-    }
-
-    return args;
-  }
-
   /** Build a text summary for the content field */
   function chartSummary(args: Record<string, unknown>, chartType?: string): string {
     const series = args.series as any[] | undefined;
-    const data = args.data as Record<string, unknown> | undefined;
     const seriesCount = Array.isArray(series) ? series.length : 0;
-    const hasDataModule = !!data?.csv;
     const type = chartType || (args.chart as any)?.type || series?.[0]?.type || "line";
-    const title = typeof args.title === "string" ? args.title : (args.title as any)?.text || "";
+    const title = (args.title as any)?.text || "";
     const titleStr = title ? ` "${title}"` : "";
-    const dataInfo = hasDataModule ? " from CSV data" : ` with ${seriesCount} series`;
-    return `Rendered ${type} chart${titleStr}${dataInfo}`;
+    return `Rendered ${type} chart${titleStr} with ${seriesCount} series`;
   }
 
   const server = new McpServer(
     {
       name: "Highcharts MCP App Server",
-      version: "2.0.0",
+      version: "2.2.0",
     },
     {
       instructions: "This server renders interactive Highcharts charts inline in AI chat. " +
-        "Tools available: render_chart (single chart), render_stock_chart (financial/time-series with navigator, range selector, indicators), " +
-        "render_dashboard (multiple components with layout), render_map (geographic/choropleth maps), " +
-        "render_gantt (project timelines), and render_grid (standalone data table/grid). " +
-        "Input is any valid Highcharts Options object (https://api.highcharts.com/highcharts/). " +
-        "All 64 chart types supported with automatic module loading. " +
-        "title and subtitle accept string shorthand. " +
-        "Combine chart types via per-series type for overlays (e.g., column + spline). " +
-        "Use render_dashboard for multi-chart layouts, KPIs, and data grids via @highcharts/dashboards. " +
-        "For live-updating charts, use data.csvURL with data.enablePolling: true (Highcharts handles polling natively).",
+        "Input is any valid Highcharts Options object (https://api.highcharts.com/highcharts/).",
     },
   );
 
@@ -169,33 +111,19 @@ export function createServer(options?: ServerOptions): McpServer {
         readOnlyHint: true,
       },
       description:
-        "Render an interactive Highcharts chart inline. Input is a Highcharts Options object " +
-        "(https://api.highcharts.com/highcharts/) — pass any valid config directly. " +
-        "Key properties: chart (type, height), title, subtitle, series (array of {type, name, data}), " +
-        "xAxis, yAxis, tooltip, plotOptions, legend, colors, colorAxis, pane, drilldown. " +
-        "Series types: line, bar, column, area, pie, spline, scatter, heatmap, gauge, " +
-        "treemap, sankey, funnel, networkgraph, waterfall, boxplot, timeline, wordcloud, and more. " +
-        "title/subtitle accept string shorthand.\n\n" +
-        "Example — line chart:\n" +
-        '{ title: "Monthly Revenue", xAxis: { categories: ["Jan","Feb","Mar"] }, ' +
-        'series: [{ name: "2026", data: [100, 200, 150] }] }\n\n' +
-        "Example — pie chart:\n" +
-        '{ title: "Market Share", series: [{ type: "pie", data: [{ name: "A", y: 60 }, { name: "B", y: 40 }] }] }\n\n' +
-        "Token-saving tip for time-series: use pointStart + pointInterval instead of explicit timestamps. " +
-        "e.g. { series: [{ data: [1,2,3], pointStart: Date.UTC(2026,0,1), pointInterval: 86400000 }] } " +
-        "instead of [[1735689600000,1],[1735776000000,2],...]. For irregular intervals, add relativeXValue: true.",
+        "Render an interactive Highcharts chart inline. " +
+        "Input is a Highcharts Options object (https://api.highcharts.com/highcharts/).",
       inputSchema: chartInputSchema,
       _meta: { ui: { resourceUri } },
     },
     async (args: Record<string, unknown>): Promise<CallToolResult> => {
-      const processed = await resolveDataSource(args);
-      if (!processed.series && !processed.data) {
+      if (!args.series && !args.data) {
         return {
           isError: true,
-          content: [{ type: "text", text: "series or dataSource is required" }],
+          content: [{ type: "text", text: "series or data is required" }],
         };
       }
-      return chartResult(chartSummary(processed), processed);
+      return chartResult(chartSummary(args), args);
     },
   );
 
@@ -207,16 +135,7 @@ export function createServer(options?: ServerOptions): McpServer {
       annotations: { readOnlyHint: true },
       description:
         "Render a Highcharts Stock chart for financial/time-series data. " +
-        "Uses Highcharts.stockChart() which provides navigator, range selector, scrollbar, crosshair, " +
-        "compare mode, and 40+ technical indicators. " +
-        "Supports OHLC, candlestick, HLC, flags, and all standard series types. " +
-        "Input is a Highcharts Stock Options object (https://api.highcharts.com/highstock/).\n\n" +
-        "Example — OHLC with volume:\n" +
-        '{ series: [{ type: "candlestick", name: "AAPL", data: [[ts,o,h,l,c], ...] }, ' +
-        '{ type: "column", name: "Volume", data: [[ts,vol], ...], yAxis: 1 }], ' +
-        'yAxis: [{ height: "70%" }, { top: "75%", height: "25%", offset: 0 }], ' +
-        'rangeSelector: { selected: 1 } }\n\n' +
-        "Token-saving tip: use pointStart + pointInterval for regular time-series instead of explicit timestamps per point.",
+        "Input is a Highcharts Stock Options object (https://api.highcharts.com/highstock/).",
       inputSchema: {
         ...chartInputSchema,
         navigator: z.object({
@@ -244,15 +163,14 @@ export function createServer(options?: ServerOptions): McpServer {
       _meta: { ui: { resourceUri } },
     },
     async (args: Record<string, unknown>): Promise<CallToolResult> => {
-      const processed = await resolveDataSource(args);
-      if (!processed.series && !processed.data) {
+      if (!args.series && !args.data) {
         return {
           isError: true,
-          content: [{ type: "text", text: "series or dataSource is required" }],
+          content: [{ type: "text", text: "series or data is required" }],
         };
       }
-      const full = { ...processed, __chartType: "stock" };
-      return chartResult(chartSummary(processed, "stock"), full);
+      const full = { ...args, __chartType: "stock" };
+      return chartResult(chartSummary(args, "stock"), full);
     },
   );
 
@@ -264,15 +182,7 @@ export function createServer(options?: ServerOptions): McpServer {
       annotations: { readOnlyHint: true },
       description:
         "Render a Highcharts Dashboard with multiple components (charts, KPIs, data grids) in a synced layout. " +
-        "Uses @highcharts/dashboards. Pass the full Dashboards.board() config.\n\n" +
-        "Example — two charts side by side:\n" +
-        '{ gui: { layouts: [{ rows: [{ cells: [{ id: "left" }, { id: "right" }] }] }] }, ' +
-        'components: [{ renderTo: "left", type: "Highcharts", chartOptions: { series: [{ data: [1,2,3] }] } }, ' +
-        '{ renderTo: "right", type: "KPI", title: "Total", value: 42 }] }\n\n' +
-        "Google Sheets integration: use dataPool with a GoogleSheets connector for live data. " +
-        'dataPool: { connectors: [{ id: "gsheet", type: "GoogleSheets", options: { ' +
-        'googleSpreadsheetKey: "SPREADSHEET_ID", worksheet: "Sheet1" } }] }. ' +
-        "Components reference it via connector: { id: \"gsheet\" }.",
+        "Uses @highcharts/dashboards.",
       inputSchema: {
         gui: z.object({
           layouts: z.array(z.object({
@@ -342,31 +252,7 @@ export function createServer(options?: ServerOptions): McpServer {
       annotations: { readOnlyHint: true },
       description:
         "Render an interactive Highcharts Map for geographic data visualization. " +
-        "Uses Highcharts.mapChart(). Supports choropleth maps, map bubbles, map lines, and map points.\n\n" +
-        "MAP DATA: Pass a map key string (preferred) via chart.map or series[].mapData — auto-fetched from the Highcharts CDN. Inline GeoJSON/TopoJSON objects are also accepted. " +
-        "Map data is auto-fetched from the Highcharts CDN. If no map is specified, defaults to 'custom/world'.\n\n" +
-        "Common map keys:\n" +
-        "  - 'custom/world' — world map\n" +
-        "  - 'custom/europe' — Europe\n" +
-        "  - 'custom/north-america' — North America\n" +
-        "  - 'custom/asia' — Asia\n" +
-        "  - 'countries/us/us-all' — US states\n" +
-        "  - 'countries/gb/gb-all' — UK regions\n" +
-        "  - 'countries/de/de-all' — Germany states\n" +
-        "  - 'countries/fr/fr-all' — France regions\n" +
-        "  - 'countries/cn/cn-all' — China provinces\n" +
-        "  - 'countries/in/in-all' — India states\n" +
-        "Full list: https://code.highcharts.com/mapdata/\n\n" +
-        "Data: use hc-key values to join data to map regions. " +
-        "hc-key is typically the 2-letter code (us-ca, gb-eng, de-by, etc.).\n\n" +
-        "Example — world choropleth:\n" +
-        '{ chart: { map: "custom/world" }, title: "Population", colorAxis: { min: 0 }, ' +
-        'series: [{ type: "map", data: [{ "hc-key": "us", value: 331 }, { "hc-key": "cn", value: 1412 }], ' +
-        'joinBy: "hc-key", name: "Population (M)" }] }\n\n' +
-        "Example — US state map:\n" +
-        '{ chart: { map: "countries/us/us-all" }, title: "US Sales", colorAxis: { min: 0 }, ' +
-        'series: [{ type: "map", data: [{ "hc-key": "us-ca", value: 500 }, { "hc-key": "us-tx", value: 300 }], ' +
-        'joinBy: "hc-key", name: "Sales ($K)" }] }',
+        "Uses Highcharts.mapChart(). Input is a Highcharts Maps Options object (https://api.highcharts.com/highmaps/).",
       inputSchema: {
         ...chartInputSchema,
         // Override chart to highlight map field
@@ -405,16 +291,15 @@ export function createServer(options?: ServerOptions): McpServer {
       _meta: { ui: { resourceUri } },
     },
     async (args: Record<string, unknown>): Promise<CallToolResult> => {
-      const processed = await resolveDataSource(args);
-      if (!processed.series && !processed.data) {
+      if (!args.series && !args.data) {
         return {
           isError: true,
-          content: [{ type: "text", text: "series or dataSource is required" }],
+          content: [{ type: "text", text: "series or data is required" }],
         };
       }
-      const full = { ...processed, __chartType: "map" };
-      const mapKey = (processed.chart as any)?.map || "custom/world";
-      return chartResult(`Rendered map chart (${mapKey}) with ${((processed.series as any[]) || []).length} series`, full);
+      const full = { ...args, __chartType: "map" };
+      const mapKey = (args.chart as any)?.map || "custom/world";
+      return chartResult(`Rendered map chart (${mapKey}) with ${((args.series as any[]) || []).length} series`, full);
     },
   );
 
@@ -425,14 +310,8 @@ export function createServer(options?: ServerOptions): McpServer {
       title: "Render Gantt Chart",
       annotations: { readOnlyHint: true },
       description:
-        "Render a Highcharts Gantt chart for project timelines, task scheduling, and resource allocation. " +
-        "Supports milestones, dependencies, percent-complete, and drag-and-drop. " +
-        "Uses Highcharts.ganttChart() — pass any valid Gantt options.\n\n" +
-        "Example:\n" +
-        '{ title: "Project Plan", series: [{ name: "Tasks", data: [' +
-        '{ name: "Design", start: 1711929600000, end: 1712534400000 }, ' +
-        '{ name: "Develop", start: 1712534400000, end: 1713744000000, dependency: "Design" }, ' +
-        '{ name: "Launch", start: 1713744000000, milestone: true }] }] }',
+        "Render a Highcharts Gantt chart for project timelines and task scheduling. " +
+        "Uses Highcharts.ganttChart() (https://api.highcharts.com/gantt/).",
       inputSchema: {
         ...chartInputSchema,
         // Override series with gantt-specific guidance
@@ -459,15 +338,15 @@ export function createServer(options?: ServerOptions): McpServer {
       _meta: { ui: { resourceUri } },
     },
     async (args: Record<string, unknown>): Promise<CallToolResult> => {
-      const processed = await resolveDataSource(args);
-      if (!processed.series && !processed.data) {
+      if (!args.series && !args.data) {
         return {
           isError: true,
-          content: [{ type: "text", text: "series or dataSource is required" }],
+          content: [{ type: "text", text: "series or data is required" }],
         };
       }
-      const full = { ...processed, __chartType: "gantt" };
-      const tasks = (processed.series as any[]).reduce((n, s) => n + (Array.isArray(s.data) ? s.data.length : 0), 0);
+      const full = { ...args, __chartType: "gantt" };
+      const series = args.series as any[] | undefined;
+      const tasks = series ? series.reduce((n, s) => n + (Array.isArray(s.data) ? s.data.length : 0), 0) : 0;
       return chartResult(`Rendered Gantt chart with ${tasks} tasks`, full);
     },
   );
@@ -480,15 +359,7 @@ export function createServer(options?: ServerOptions): McpServer {
       annotations: { readOnlyHint: true },
       description:
         "Render a Highcharts Grid Lite data table for tabular data display. " +
-        "Standalone component — no chart required. Supports column definitions, sorting, filtering, " +
-        "pagination, custom formatters, and large datasets. " +
-        "Pass data as columns (Record<string, array>) or rows (array of objects).\n\n" +
-        "Example — simple table:\n" +
-        '{ columns: [{ id: "name", header: { text: "Name" } }, ' +
-        '{ id: "value", header: { text: "Value" }, cells: { format: "{value:.2f}" } }], ' +
-        'data: { columns: { name: ["A","B","C"], value: [1.5, 2.7, 3.1] } } }\n\n' +
-        "Example — row-oriented (convenience):\n" +
-        '{ rows: [{ name: "A", value: 1.5 }, { name: "B", value: 2.7 }] }',
+        "Standalone component — no chart required.",
       inputSchema: {
         columns: z.array(z.object({
           id: z.string().optional().describe("Column ID matching data key"),

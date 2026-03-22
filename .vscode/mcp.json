@@ -7,7 +7,7 @@
         "watch": "dist/**"
       },
 			"env": {
-        "SCHEMA_DETAIL": "minimal"
+        "SCHEMA_DEPTH": "1"
     		// "HIGHCHARTS_OPTIONS": "examples/github-theme.ts"
 			}
     }

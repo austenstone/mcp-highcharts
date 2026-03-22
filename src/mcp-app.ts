@@ -108,9 +108,6 @@ function applyHostTheme(ctx: McpUiHostContext | null | undefined) {
 
   // Series palette: leave to the adaptive theme by default.
   // The adaptive theme's 10 colors are designed for contrast.
-  // Host semantic tokens (ring, info, success) tend to be too similar
-  // (e.g. ring-primary and text-info are both blue in most VS Code themes).
-  // Users can override via colorMode or explicit colors[] in chart options.
 
   for (const [hcVar, value] of structuralMappings) {
     if (value) el.style.setProperty(hcVar, value);
@@ -144,72 +141,8 @@ function ensureMinHeight(opts: Record<string, unknown>, minHeight: number) {
   }
 }
 
-/**
- * Apply a color palette by setting Highcharts CSS variables (--highcharts-color-0 through -9).
- * This is the correct way to theme Highcharts — CSS variables are picked up everywhere
- * (chart, legend, data labels, tooltips, styled mode, etc.)
- */
-function applyColorPalette(colors: string[]) {
-  const el = document.documentElement;
-  // Apply provided colors and clear any stale vars beyond the palette length
-  const maxSlots = Math.max(colors.length, 10);
-  for (let i = 0; i < maxSlots; i++) {
-    if (i < colors.length) {
-      el.style.setProperty(`--highcharts-color-${i}`, colors[i]);
-    } else {
-      el.style.removeProperty(`--highcharts-color-${i}`);
-    }
-  }
-}
-
-/**
- * Generate a monochrome color palette from a base color using Highcharts color utilities.
- * Produces evenly-spaced brightness variants of a single hue.
- */
-function generateMonochromePalette(baseColor: string, count = 10): string[] {
-  const colors: string[] = [];
-  const range = 0.6;
-  const start = -(range / 2);
-  for (let i = 0; i < count; i++) {
-    const offset = start + (range * i) / (count - 1);
-    colors.push(Highcharts.color(baseColor).brighten(offset).get() as string);
-  }
-  return colors;
-}
-
-const MONOCHROME_PRESETS: Record<string, string> = {
-  monochrome: "#7cb5ec",
-  "monochrome-blue": "#4572A7",
-  "monochrome-green": "#2b8c5a",
-  "monochrome-purple": "#7b68ee",
-  "monochrome-red": "#c0392b",
-  "monochrome-orange": "#e67e22",
-  "monochrome-teal": "#1abc9c",
-};
-
 function processOptions(opts: Record<string, unknown>): Options & Record<string, unknown> {
   const processed = opts as Options & Record<string, unknown>;
-  if (typeof processed.title === "string") processed.title = { text: processed.title };
-  if (typeof processed.subtitle === "string") processed.subtitle = { text: processed.subtitle };
-
-  // Color mode: generate palette via CSS variables using Highcharts color utilities
-  const colorMode = processed.colorMode as string | undefined;
-  if (colorMode) {
-    delete processed.colorMode;
-    const preset = MONOCHROME_PRESETS[colorMode];
-    if (preset) {
-      applyColorPalette(generateMonochromePalette(preset));
-    } else if (colorMode.startsWith("#") || colorMode.startsWith("rgb")) {
-      applyColorPalette(generateMonochromePalette(colorMode));
-    }
-  }
-
-  // If explicit colors array provided, also apply via CSS variables
-  if (Array.isArray(processed.colors) && processed.colors.length > 0) {
-    applyColorPalette(processed.colors as string[]);
-    delete processed.colors; // Don't double-set via options AND CSS vars
-  }
-
   return processed;
 }
 

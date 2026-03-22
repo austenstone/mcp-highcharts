@@ -62,7 +62,7 @@ PORT=8080 npx mcp-highcharts@latest --http  # custom port
 | `render_gantt` | Project timelines with tasks, dependencies, and milestones |
 | `render_grid` | Standalone data tables with sorting, pagination, and formatting |
 
-All tools accept the full [Highcharts Options API](https://api.highcharts.com/highcharts/). Title and subtitle accept string shorthand.
+All tools accept the full [Highcharts Options API](https://api.highcharts.com/highcharts/).
 
 ## Prompts
 
@@ -93,19 +93,20 @@ Charts auto-adapt to host light/dark mode. Override with environment variables:
 
 **Built-in themes:** `adaptive` (default), `avocado`, `brand-dark`, `brand-light`, `dark-blue`, `dark-green`, `dark-unica`, `gray`, `grid`, `grid-light`, `high-contrast-dark`, `high-contrast-light`, `sand-signika`, `skies`, `sunset`
 
-### Schema detail
+### Schema depth
 
 Controls how much type information is sent to the LLM:
 
 ```json
-{ "env": { "SCHEMA_DETAIL": "basic" } }
+{ "env": { "SCHEMA_DEPTH": "1" } }
 ```
 
-| Level | Description |
+| Depth | Description |
 |-------|-------------|
-| `minimal` | Property names only — zero context overhead |
-| `basic` (default) | Top-level types + descriptions + examples |
-| `full` | Complete recursive Highcharts type tree |
+| `0` | Property names only — zero context overhead |
+| `1` (default) | Top-level types + descriptions + examples |
+| `2` | One level of typed children |
+| `3` | Two levels deep — complete recursive Highcharts type tree |
 
 ### Color modes
 
@@ -118,10 +119,33 @@ Read files instead of inlining data: `"dataSource": "sales.csv"`. Supports CSV, 
 ## Development
 
 ```bash
-npm install && npm run build && npm test
+npm install
+node scripts/generate-from-tree.mjs --multi   # generate Zod schemas at depths 0, 1, 2
+npm run build
+npm test
 ```
 
-Chart types, module mappings, and schemas are auto-generated from the installed Highcharts version — just `npm update highcharts` and rebuild.
+### Project structure
+
+```
+main.ts                  Entry point (stdio + HTTP transports)
+server.ts                MCP server — tool registrations and handlers
+src/
+  input-schema.ts        Depth-based schema selection + LLM-friendly overrides
+  mcp-app.ts             Client-side Highcharts rendering
+  module-loader.ts       Dynamic Highcharts module loading
+  generated/             Auto-generated from Highcharts API (do not edit)
+    highcharts-depth-{0,1,2}.gen.ts   Zod schemas at each depth
+    chart-types.json                  64 chart type enum values
+    module-map.json                   Chart type → Highcharts module mapping
+scripts/
+  generate-from-tree.mjs   Generate Zod schemas from Highcharts tree.json
+  generate-module-map.mjs  Generate chart-types.json and module-map.json
+  example-providers.mjs    Example extraction for schema generation
+  measure-schema.ts        Measure tool context size at each depth
+```
+
+Chart types, module mappings, and schemas are auto-generated from the installed Highcharts version — just `npm update highcharts` and regenerate.
 
 ## License
 

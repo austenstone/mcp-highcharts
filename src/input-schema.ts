@@ -1,253 +1,81 @@
 import * as z from "zod";
-import chartTypes from "./generated/chart-types.json" with { type: "json" };
+
 import {
-  optionsSchema as generatedOptionsSchema,
-  chartOptionsSchema,
-  dataOptionsSchema,
-  tooltipOptionsSchema as genTooltipSchema,
-  legendOptionsSchema as genLegendSchema,
-  titleOptionsSchema as genTitleSchema,
-  subtitleOptionsSchema as genSubtitleSchema,
-} from "./generated/highcharts-options.gen.js";
+  optionsSchema as depth0Schema,
+} from "./generated/highcharts-depth-0.gen.js";
 
-const CHART_TYPES = chartTypes as [string, ...string[]];
+import {
+  optionsSchema as depth1Schema,
+  dataOptionsSchema as depth1Data,
+  tooltipOptionsSchema as depth1Tooltip,
+  legendOptionsSchema as depth1Legend,
+} from "./generated/highcharts-depth-1.gen.js";
 
-// ── LLM-friendly overrides ──
-// The generated schemas have full Highcharts types. These overrides add
-// curated descriptions, examples, and string shorthands that help LLMs
-// produce better chart configs on the first try.
+import {
+  optionsSchema as depth2Schema,
+  dataOptionsSchema as depth2Data,
+  tooltipOptionsSchema as depth2Tooltip,
+  legendOptionsSchema as depth2Legend,
+} from "./generated/highcharts-depth-2.gen.js";
 
-const chartSchema = (chartOptionsSchema as z.ZodObject<any>).extend({
-  type: z.enum(CHART_TYPES).optional()
-    .describe("Chart type (line, bar, column, pie, scatter, heatmap, sankey, etc.)"),
-}).passthrough()
-  .describe("General chart configuration")
-  .meta({
-    examples: [
-      { type: "line" },
-      { type: "column", height: 400 },
-      { type: "pie" },
-    ],
-  });
-
-// String shorthand for title/subtitle — LLMs love this
-const titleSchema = z.union([
-  z.string(),
-  (genTitleSchema as z.ZodObject<any>).passthrough(),
-]).optional()
-  .describe("Chart title — string shorthand or {text, align, style}")
-  .meta({ examples: ["Revenue by Quarter", { text: "Monthly Active Users", align: "left" }] });
-
-const subtitleSchema = z.union([
-  z.string(),
-  (genSubtitleSchema as z.ZodObject<any>).passthrough(),
-]).optional()
-  .describe("Chart subtitle — string shorthand or {text, align, style}")
-  .meta({ examples: ["Q1-Q4 2026"] });
-
-// Series with rich data format documentation
-const seriesSchema = z.array(z.object({
-  type: z.enum(CHART_TYPES).optional()
-    .describe("Series type (overrides chart.type for mixed charts)"),
-  name: z.string().optional()
-    .describe("Series name shown in legend and tooltip"),
-  data: z.any().optional()
-    .describe(
-      "Data array. Common formats:\n" +
-      "• number[] — simple values (line, bar, column)\n" +
-      "• [x, y][] — scatter/line with explicit x\n" +
-      "• [x, y, z][] — bubble, heatmap (row, col, value)\n" +
-      "• {name, y}[] — pie, labeled points\n" +
-      "• [from, to, weight][] — sankey, dependency wheel\n" +
-      "• {x, x2, y}[] — xrange, gantt\n" +
-      "• [timestamp, open, high, low, close][] — OHLC, candlestick\n" +
-      "• {name, value}[] — treemap, sunburst\n" +
-      "• {from, to}[] — networkgraph"
-    ),
-  id: z.string().optional()
-    .describe("Series ID for drilldown, linkedTo, or baseSeries references"),
-}).passthrough())
-  .describe("Array of data series — the core of every chart")
-  .meta({
-    examples: [
-      [{ name: "Revenue", data: [100, 200, 300, 400] }],
-      [
-        { type: "column", name: "Sales", data: [800, 400, 350] },
-        { type: "spline", name: "Trend", data: [700, 500, 350] },
-      ],
-      [{ type: "pie", name: "Share", data: [{ name: "Chrome", y: 65 }, { name: "Firefox", y: 20 }] }],
-    ],
-  });
-
-// ── Custom fields (not in Highcharts) ──
-
-const dataSourceSchema = z.string().optional().describe(
-  "Path to a data file (CSV, JSON, TSV) relative to the workspace, or a URL. " +
-  "The server reads the file and injects it via Highcharts' data module (data.csv). " +
-  "If series[].data is also provided inline, inline data takes precedence."
-);
-
-const colorModeSchema = z.string().optional()
-  .describe(
-    "Generate a monochrome color palette. Use a preset name " +
-    "(monochrome, monochrome-blue, monochrome-green, monochrome-purple, " +
-    "monochrome-red, monochrome-orange, monochrome-teal) or any CSS color " +
-    '(e.g. "#ff6600") to generate shades. Overrides colors array.'
-  )
-  .meta({ examples: ["monochrome", "monochrome-blue", "#7b68ee"] });
-
-// ── Assemble the input schema ──
-// Start with ALL generated Highcharts fields, then override key fields
-// with our LLM-friendly versions that have better descriptions and examples.
-// Everything passes through — LLMs can use the full Highcharts API.
-
-// Extract the inner object shape from the lazy schema
-const generatedShape = (generatedOptionsSchema as any)._zod?.def?.getter?.()?.shape ?? {};
-
-export const inputSchema = {
-  // Spread all generated Highcharts fields as the base
-  ...Object.fromEntries(
-    Object.entries(generatedShape).map(([key, schema]) => [key, (schema as z.ZodTypeAny).optional()])
-  ),
-
-  // Override with LLM-friendly versions
-  chart: chartSchema.optional(),
-  title: titleSchema,
-  subtitle: subtitleSchema,
-  series: seriesSchema.optional(),
-  tooltip: (genTooltipSchema as z.ZodObject<any>).passthrough().optional()
-    .describe("Tooltip configuration")
-    .meta({ examples: [{ shared: true, valueSuffix: " units" }] }),
-  legend: (genLegendSchema as z.ZodObject<any>).passthrough().optional()
-    .describe("Legend configuration")
-    .meta({ examples: [{ align: "right", verticalAlign: "middle", layout: "vertical" }] }),
-  plotOptions: z.record(z.string(), z.any()).optional()
-    .describe("Per-series-type default options (e.g., plotOptions.series, plotOptions.column)")
-    .meta({ examples: [{ series: { stacking: "normal" } }, { column: { borderRadius: 5 } }] }),
-  colorAxis: z.any().optional()
-    .describe("Color axis for heatmaps, choropleth maps, etc.")
-    .meta({ examples: [{ min: 0, minColor: "#FFFFFF", maxColor: "#006edb" }] }),
-  pane: z.any().optional()
-    .describe("Pane configuration for polar/gauge charts"),
-  drilldown: z.object({
-    series: z.array(z.object({
-      id: z.string().describe("Matches drilldown property in parent series data"),
-      name: z.string().optional(),
-      data: z.any(),
-    }).passthrough()).optional(),
-  }).passthrough().optional()
-    .describe("Drilldown configuration for click-to-explore charts"),
-  colors: z.array(z.string()).optional()
-    .describe("Default color palette for the chart series")
-    .meta({ examples: [["#006edb", "#30a147", "#eb670f", "#ce2c85", "#b88700"]] }),
-  data: (dataOptionsSchema as z.ZodObject<any>).extend({
-    enablePolling: z.boolean().optional().describe("Poll the data URL periodically for live-updating charts."),
-    dataRefreshRate: z.number().optional().describe("Polling interval in seconds when enablePolling is true. Default: 1."),
-  }).passthrough().optional()
-    .describe(
-      "Highcharts data module config. For LIVE DATA: set csvURL + enablePolling: true + dataRefreshRate: N. " +
-      "See https://www.highcharts.com/docs/working-with-data/live-data"
-    ),
-
-  // Custom fields (not in Highcharts)
-  dataSource: dataSourceSchema,
-  colorMode: colorModeSchema,
-};
-
-// ── Basic schema (default) ──
-// Uses the generated Zod schemas flattened to 1 level of depth.
-// Top-level fields get their generated types (chart, tooltip, legend, etc.),
-// but nested sub-schemas are replaced with z.any() to keep context lightweight.
-// LLM-friendly overrides (title shorthand, series docs, examples) applied on top.
-
-function flattenSchema(schema: z.ZodTypeAny): z.ZodTypeAny {
-  // If it's an object schema, replace any nested object schema values with z.any()
-  const def = (schema as any)?._zod?.def;
-  if (!def?.shape) return schema;
-  const shape = typeof def.shape === 'function' ? def.shape() : def.shape;
-  const flattened: Record<string, z.ZodTypeAny> = {};
-  for (const [key, value] of Object.entries(shape)) {
-    const innerDef = (value as any)?._zod?.def;
-    const innerType = innerDef?.type;
-    // Keep primitives (string, number, boolean, enum, literal, union of primitives)
-    // Replace object/lazy schemas with z.any()
-    if (innerType === 'object' || innerType === 'lazy') {
-      flattened[key] = z.any().optional();
-    } else if (innerType === 'optional') {
-      const wrapped = innerDef?.innerType;
-      const wrappedType = wrapped?._zod?.def?.type;
-      if (wrappedType === 'object' || wrappedType === 'lazy') {
-        flattened[key] = z.any().optional();
-      } else {
-        flattened[key] = value as z.ZodTypeAny;
-      }
-    } else {
-      flattened[key] = value as z.ZodTypeAny;
-    }
-  }
-  return z.object(flattened).passthrough();
+// ── Extract shape from a lazy schema ──
+function getShape(schema: any): Record<string, z.ZodTypeAny> {
+  return schema?._zod?.def?.getter?.()?.shape ?? {};
 }
 
-// Build the basic schema: generated top-level schemas (flattened) + LLM overrides
-const generatedShapeBasic = (generatedOptionsSchema as any)?._zod?.def?.getter?.()?.shape ?? {};
+// ── Build input schema for a given depth ──
+function buildInputSchema(
+  genSchema: any,
+  genData?: z.ZodObject<any>,
+  genTooltip?: z.ZodObject<any>,
+  genLegend?: z.ZodObject<any>,
+): Record<string, z.ZodTypeAny> {
+  const shape = getShape(genSchema);
 
-export const inputSchemaBasic: Record<string, z.ZodTypeAny> = {
-  // Spread generated fields, flattening nested schemas to z.any()
+  const base: Record<string, z.ZodTypeAny> = Object.fromEntries(
+    Object.entries(shape).map(([key, schema]) => [key, (schema as z.ZodTypeAny).optional()])
+  );
+
+  if (genTooltip && typeof (genTooltip as any).passthrough === "function") {
+    base.tooltip = (genTooltip as z.ZodObject<any>).passthrough().optional()
+      .describe("Tooltip configuration");
+  }
+  if (genLegend && typeof (genLegend as any).passthrough === "function") {
+    base.legend = (genLegend as z.ZodObject<any>).passthrough().optional()
+      .describe("Legend configuration");
+  }
+  if (genData && typeof (genData as any).extend === "function") {
+    base.data = (genData as z.ZodObject<any>).extend({
+      enablePolling: z.boolean().optional().describe("Poll the data URL periodically for live updates"),
+      dataRefreshRate: z.number().optional().describe("Polling interval in seconds (default: 1)"),
+    }).passthrough().optional()
+      .describe("Highcharts data module config. For live data: set csvURL + enablePolling: true + dataRefreshRate");
+  }
+
+  return base;
+}
+
+// ── Pre-built schemas for each depth ──
+// 0: truly minimal — just keys as z.any(), no descriptions, no examples
+// 1: top-level with descriptions + examples, children are z.any() (default)
+// 2: one level of typed children
+// 3: two levels deep
+
+const minimalSchema: Record<string, z.ZodTypeAny> = {
   ...Object.fromEntries(
-    Object.entries(generatedShapeBasic).map(([key, schema]) => {
-      const s = schema as z.ZodTypeAny;
-      const inner = (s as any)?._zod?.def?.innerType ?? s;
-      const innerType = (inner as any)?._zod?.def?.type;
-      if (innerType === 'object') {
-        return [key, flattenSchema(inner).optional()];
-      }
-      return [key, s.optional()];
-    })
-  ),
-
-  // Override with LLM-friendly versions
-  chart: flattenSchema(chartOptionsSchema as z.ZodObject<any>).pipe(
-    z.object({ type: z.enum(CHART_TYPES).optional() }).passthrough()
-  ).optional()
-    .describe("General chart configuration")
-    .meta({ examples: [{ type: "line" }, { type: "column", height: 400 }, { type: "pie" }] }),
-  title: titleSchema,
-  subtitle: subtitleSchema,
-  series: seriesSchema.optional(),
-  tooltip: flattenSchema(genTooltipSchema as z.ZodObject<any>).optional()
-    .describe("Tooltip configuration")
-    .meta({ examples: [{ shared: true, valueSuffix: " units" }] }),
-  legend: flattenSchema(genLegendSchema as z.ZodObject<any>).optional()
-    .describe("Legend configuration")
-    .meta({ examples: [{ align: "right", verticalAlign: "middle", layout: "vertical" }] }),
-  plotOptions: z.record(z.string(), z.any()).optional()
-    .describe("Per-series-type default options (e.g., plotOptions.series, plotOptions.column)")
-    .meta({ examples: [{ series: { stacking: "normal" } }, { column: { borderRadius: 5 } }] }),
-  drilldown: z.object({
-    series: z.array(z.object({
-      id: z.string().describe("Matches drilldown property in parent series data"),
-      name: z.string().optional(),
-      data: z.any(),
-    }).passthrough()).optional(),
-  }).passthrough().optional()
-    .describe("Drilldown configuration for click-to-explore charts")
-    .meta({ examples: [{ series: [{ id: "detail", name: "Breakdown", data: [["A", 50], ["B", 30]] }] }] }),
-  colors: z.array(z.string()).optional()
-    .describe("Default color palette for the chart series")
-    .meta({ examples: [["#006edb", "#30a147", "#eb670f", "#ce2c85", "#b88700"]] }),
-  dataSource: dataSourceSchema,
-  colorMode: colorModeSchema,
-};
-
-// ── Minimal schema ──
-// Declares all property keys as z.any() so the MCP client passes them through,
-// but provides zero type detail — minimal context overhead.
-
-export const inputSchemaMinimal: Record<string, z.ZodTypeAny> = {
-  ...Object.fromEntries(
-    Object.keys(generatedShape).map(key => [key, z.any().optional()])
+    Object.keys(getShape(depth0Schema)).map(key => [key, z.any().optional()])
   ),
   series: z.any().optional(),
-  dataSource: z.any().optional(),
-  colorMode: z.any().optional(),
 };
+
+const schemasByDepth: Record<number, Record<string, z.ZodTypeAny>> = {
+  0: minimalSchema,
+  1: buildInputSchema(depth0Schema, depth0Chart as any),
+  2: buildInputSchema(depth1Schema, depth1Chart as z.ZodObject<any>, depth1Data as z.ZodObject<any>, depth1Tooltip as z.ZodObject<any>, depth1Legend as z.ZodObject<any>),
+  3: buildInputSchema(depth2Schema, depth2Chart as z.ZodObject<any>, depth2Data as z.ZodObject<any>, depth2Tooltip as z.ZodObject<any>, depth2Legend as z.ZodObject<any>),
+};
+
+/** Get the input schema for a given depth (0-3). Defaults to 1. */
+export function getInputSchema(depth: number): Record<string, z.ZodTypeAny> {
+  return schemasByDepth[depth] ?? schemasByDepth[1];
+}

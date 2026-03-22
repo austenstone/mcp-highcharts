@@ -1,6 +1,6 @@
 {
   "name": "mcp-highcharts",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "type": "module",
   "description": "Highcharts MCP App — interactive charts rendered inline in AI chat",
   "author": "Austen Stone",
@@ -72,6 +72,7 @@
     "cross-env": "^10.1.0",
     "eslint": "^9.39.4",
     "eslint-plugin-zod": "^3.5.0",
+    "ts-to-zod": "^5.1.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.57.1",

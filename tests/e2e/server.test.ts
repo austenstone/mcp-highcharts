@@ -48,7 +48,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
       name: TOOL_NAME,
       arguments: {
         chart: { type: "bar" },
-        title: "Revenue by Quarter",
+        title: { text: "Revenue by Quarter" },
         series: [{ name: "Revenue", data: [100, 200, 300, 400] }],
         xAxis: { categories: ["Q1", "Q2", "Q3", "Q4"] },
       },
@@ -57,7 +57,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
     expect(result.content).toHaveLength(1);
     const parsed = (result as any).structuredContent;
     expect(parsed.chart.type).toBe("bar");
-    expect(parsed.title).toBe("Revenue by Quarter");
+    expect(parsed.title.text).toBe("Revenue by Quarter");
     expect(parsed.series).toHaveLength(1);
     expect(parsed.series[0].data).toEqual([100, 200, 300, 400]);
   });
@@ -67,7 +67,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
       name: TOOL_NAME,
       arguments: {
         chart: { type: "pie" },
-        title: "Market Share",
+        title: { text: "Market Share" },
         series: [{
           name: "Share",
           data: [
@@ -89,7 +89,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
       name: TOOL_NAME,
       arguments: {
         chart: { type: "column" },
-        title: "Sales",
+        title: { text: "Sales" },
         series: [{ name: "Units", data: [10, 20, 30] }],
         plotOptions: { series: { stacking: "normal" } },
         tooltip: { valueSuffix: " units", valuePrefix: "~" },
@@ -108,7 +108,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
       name: TOOL_NAME,
       arguments: {
         chart: { type: "line" },
-        title: "Custom",
+        title: { text: "Custom" },
         series: [{ name: "A", data: [1, 2, 3] }],
         plotOptions: { line: { dashStyle: "Dash" } },
       },
@@ -123,7 +123,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
       name: TOOL_NAME,
       arguments: {
         chart: { type: "column" },
-        title: "Mixed",
+        title: { text: "Mixed" },
         series: [
           { name: "Bars", data: [1, 2, 3], type: "column" },
           { name: "Line", data: [3, 2, 1], type: "spline" },
@@ -188,7 +188,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
     const result = await client.callTool({
       name: "render_stock_chart",
       arguments: {
-        title: "No Series Stock",
+        title: { text: "No Series Stock" },
         rangeSelector: { selected: 0 },
       },
     });
@@ -260,7 +260,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
     const result = await client.callTool({
       name: "render_map",
       arguments: {
-        title: "Simple Map",
+        title: { text: "Simple Map" },
         series: [{
           type: "map",
           data: [
@@ -281,7 +281,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
   it("rejects render_map without series", async () => {
     const result = await client.callTool({
       name: "render_map",
-      arguments: { title: "No Series" },
+      arguments: { title: { text: "No Series" } },
     });
     expect(result.isError).toBe(true);
   });
@@ -325,7 +325,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
   it("rejects render_gantt without series", async () => {
     const result = await client.callTool({
       name: "render_gantt",
-      arguments: { title: "No Series" },
+      arguments: { title: { text: "No Series" } },
     });
     expect(result.isError).toBe(true);
   });
@@ -395,7 +395,7 @@ describe("MCP Highcharts Server (stdio e2e)", () => {
       name: TOOL_NAME,
       arguments: {
         chart: { type: "line" },
-        title: "No Series",
+        title: { text: "No Series" },
       },
     });
     expect(result.isError).toBe(true);
