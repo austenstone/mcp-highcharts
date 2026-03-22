@@ -207,8 +207,6 @@ export function createServer(options?: ServerOptions): McpServer {
           .describe("Scrollbar configuration"),
         stockTools: z.object({}).passthrough().optional()
           .describe("Stock tools toolbar configuration for technical analysis"),
-        dataSource: z.string().optional()
-          .describe("Path to a data file (CSV, JSON, TSV) relative to the workspace, or an HTTPS URL"),
       },
       _meta: { ui: { resourceUri } },
     },
@@ -333,15 +331,14 @@ export function createServer(options?: ServerOptions): McpServer {
         'series: [{ type: "map", data: [{ "hc-key": "us-ca", value: 500 }, { "hc-key": "us-tx", value: 300 }], ' +
         'joinBy: "hc-key", name: "Sales ($K)" }] }',
       inputSchema: {
+        ...chartInputSchema,
+        // Override chart to highlight map field
         chart: z.object({
           map: z.union([z.string(), z.object({}).passthrough()]).optional()
             .describe("Base map — string key (e.g. 'custom/world', 'countries/us/us-all') auto-fetched from CDN, or inline GeoJSON/TopoJSON"),
         }).passthrough().optional()
           .describe("Chart configuration — use chart.map to set the base map for all series"),
-        title: z.union([z.string(), z.object({}).passthrough()]).optional()
-          .describe("Map title — string shorthand or {text, align, style}"),
-        subtitle: z.union([z.string(), z.object({}).passthrough()]).optional()
-          .describe("Map subtitle"),
+        // Override series with map-specific guidance
         series: z.array(z.object({
           type: z.string().optional().describe("Series type: map, mapline, mappoint, mapbubble"),
           mapData: z.any().optional().describe("Map key string (e.g. 'custom/world', 'countries/us/us-all') — auto-fetched from CDN. Or pass inline GeoJSON/TopoJSON."),
@@ -352,8 +349,7 @@ export function createServer(options?: ServerOptions): McpServer {
         }).passthrough())
           .describe("Map series array. Use type:'map' with mapData (GeoJSON/TopoJSON FeatureCollection). " +
             "Also supports mapline, mappoint, mapbubble series types."),
-        colorAxis: z.any().optional()
-          .describe("Color axis for choropleth maps (min, max, minColor, maxColor, stops)"),
+        // Map-specific fields
         mapNavigation: z.object({
           enabled: z.boolean().optional().describe("Enable map navigation (zoom buttons + mouse wheel)"),
         }).passthrough().optional()
@@ -368,21 +364,11 @@ export function createServer(options?: ServerOptions): McpServer {
           zoom: z.number().optional().describe("Initial zoom level"),
         }).passthrough().optional()
           .describe("Map view: projection (name, rotation), center, zoom"),
-        legend: z.object({}).passthrough().optional()
-          .describe("Legend configuration"),
-        tooltip: z.object({}).passthrough().optional()
-          .describe("Tooltip configuration"),
-        plotOptions: z.record(z.string(), z.any()).optional()
-          .describe("Per-series-type default options"),
-        colors: z.array(z.string()).optional()
-          .describe("Color palette"),
-        dataSource: z.string().optional()
-          .describe("Path to a data file (CSV, JSON, TSV) relative to the workspace, or an HTTPS URL"),
       },
       _meta: { ui: { resourceUri } },
     },
-    async (args): Promise<CallToolResult> => {
-      const processed = await resolveDataSource(args as Record<string, unknown>);
+    async (args: Record<string, unknown>): Promise<CallToolResult> => {
+      const processed = await resolveDataSource(args);
       if (!processed.series && !processed.data) {
         return {
           isError: true,
@@ -411,10 +397,8 @@ export function createServer(options?: ServerOptions): McpServer {
         '{ name: "Develop", start: 1712534400000, end: 1713744000000, dependency: "Design" }, ' +
         '{ name: "Launch", start: 1713744000000, milestone: true }] }] }',
       inputSchema: {
-        title: z.union([z.string(), z.object({}).passthrough()]).optional()
-          .describe("Chart title — string shorthand or {text, align, style}"),
-        subtitle: z.union([z.string(), z.object({}).passthrough()]).optional()
-          .describe("Chart subtitle"),
+        ...chartInputSchema,
+        // Override series with gantt-specific guidance
         series: z.array(z.object({
           name: z.string().optional().describe("Series name"),
           data: z.array(z.object({
@@ -431,32 +415,14 @@ export function createServer(options?: ServerOptions): McpServer {
           }).passthrough()).optional().describe("Task data array"),
         }).passthrough())
           .describe("Gantt series with task data"),
-        xAxis: z.any().optional()
-          .describe("X-axis (datetime) configuration"),
-        yAxis: z.union([
-          z.object({
-            categories: z.array(z.string()).optional().describe("Task/resource names for y-axis labels"),
-          }).passthrough(),
-          z.array(z.any()),
-        ]).optional()
-          .describe("Y-axis — use categories for task name labels"),
-        navigator: z.object({}).passthrough().optional()
-          .describe("Navigator for timeline overview"),
-        rangeSelector: z.object({}).passthrough().optional()
-          .describe("Range selector for time filtering"),
-        tooltip: z.object({}).passthrough().optional()
-          .describe("Tooltip configuration"),
-        plotOptions: z.record(z.string(), z.any()).optional()
-          .describe("Per-series-type default options"),
+        // Gantt-specific fields
         connectors: z.object({}).passthrough().optional()
           .describe("Dependency connector styling"),
-        dataSource: z.string().optional()
-          .describe("Path to a data file (CSV, JSON, TSV) relative to the workspace, or an HTTPS URL"),
       },
       _meta: { ui: { resourceUri } },
     },
-    async (args): Promise<CallToolResult> => {
-      const processed = await resolveDataSource(args as Record<string, unknown>);
+    async (args: Record<string, unknown>): Promise<CallToolResult> => {
+      const processed = await resolveDataSource(args);
       if (!processed.series && !processed.data) {
         return {
           isError: true,
