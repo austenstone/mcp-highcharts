@@ -63,6 +63,24 @@ export async function loadModulesForOptions(options: Record<string, unknown>): P
   // Feature-based module detection
   if (options.colorAxis) await loadModule("modules/coloraxis");
   if (options.drilldown) await loadModule("modules/drilldown");
+  if (options.annotations) await loadModule("modules/annotations-advanced");
+  if (options.sonification) await loadModule("modules/sonification");
+  if (options.boost) await loadModule("modules/boost");
+  if ((chart as any)?.options3d) await loadModule("highcharts-3d");
+
+  // Pattern fill — detect pattern usage in colors or series color values
+  const colorsStr = JSON.stringify(options.colors ?? options.series ?? "");
+  if (colorsStr.includes('"pattern"') || colorsStr.includes('"patternOptions"')) {
+    await loadModule("modules/pattern-fill");
+  }
+
+  // Boost heuristic — auto-enable for large datasets
+  if (!options.boost && Array.isArray(series)) {
+    const maxPoints = Math.max(0, ...series.map(s =>
+      Array.isArray(s.data) ? s.data.length : 0
+    ));
+    if (maxPoints > 10000) await loadModule("modules/boost");
+  }
 
   // Stock chart detection
   if (options.__chartType === "stock" || options.navigator || options.rangeSelector || options.stockTools) {
