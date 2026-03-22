@@ -587,7 +587,7 @@ function parseLiveResponse(text: string): unknown {
   }
 }
 
-/** Start polling via callServerTool */
+/** Start polling via callServerTool (the SDK-recommended pattern) */
 function startPolling(config: LiveDataConfig) {
   const interval = Math.max(config.intervalMs ?? 5000, 1000);
   let stopped = false;
@@ -595,24 +595,31 @@ function startPolling(config: LiveDataConfig) {
   const poll = async () => {
     if (stopped || !appInstance) return;
     try {
-      const caps = appInstance.getHostCapabilities?.() ?? {};
-      if (!caps.serverTools) {
-        console.warn("[live-data] Host does not support callServerTool — falling back to direct fetch");
-        if (config.url) {
-          const resp = await fetch(config.url, { signal: AbortSignal.timeout(10000) });
-          const text = await resp.text();
-          applyLiveData(parseLiveResponse(text), config);
+      const result = await appInstance.callServerTool({
+        name: "fetch_live_data",
+        arguments: { url: config.url },
+      });
+
+      if (result.isError) {
+        console.warn("[live-data] Server error:", result.content);
+        return;
+      }
+
+      // Prefer structuredContent (SDK pattern), fall back to text parsing
+      let data: unknown;
+      if (result.structuredContent) {
+        const sc = result.structuredContent as Record<string, unknown>;
+        if (sc.format === "csv" && typeof sc.csv === "string") {
+          data = parseLiveResponse(sc.csv);
+        } else {
+          data = sc;
         }
       } else {
-        const result = await appInstance.callServerTool({
-          name: "fetch_live_data",
-          arguments: { url: config.url },
-        });
-        const text = result.content?.find((c: any) => c.type === "text") as { text: string } | undefined;
-        if (text?.text && !result.isError) {
-          applyLiveData(parseLiveResponse(text.text), config);
-        }
+        const text = (result.content?.find((c: any) => c.type === "text") as { text: string } | undefined)?.text;
+        if (text) data = parseLiveResponse(text);
       }
+
+      if (data) applyLiveData(data, config);
     } catch (e) {
       console.warn("[live-data] Poll error:", e);
     }

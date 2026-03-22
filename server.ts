@@ -542,16 +542,21 @@ export function createServer(): McpServer {
     },
   );
 
-  // ── fetch_live_data: server-proxied data fetching for live charts ──
-  server.tool(
+  // ── fetch_live_data: app-only tool for live chart polling ──
+  registerAppTool(
+    server,
     "fetch_live_data",
-    "Fetch fresh data from a URL for live-updating charts. " +
-      "Called by the MCP App via callServerTool() on an interval. " +
-      "Returns JSON data that the app applies to the active chart. " +
-      "Supports JSON and CSV responses.",
     {
-      url: z.string().describe("URL to fetch data from (JSON or CSV)"),
-      format: z.enum(["json", "csv"]).optional().describe("Response format. Auto-detected from Content-Type if omitted."),
+      title: "Fetch Live Data",
+      description:
+        "Fetch fresh data from a URL for live-updating charts. " +
+        "Called by the MCP App via callServerTool() on an interval. " +
+        "Returns structured data that the app applies to the active chart.",
+      inputSchema: {
+        url: z.string().describe("URL to fetch data from (JSON or CSV)"),
+        format: z.enum(["json", "csv"]).optional().describe("Response format. Auto-detected from Content-Type if omitted."),
+      },
+      _meta: { ui: { visibility: ["app"] } },
     },
     async (args: { url: string; format?: string }): Promise<CallToolResult> => {
       try {
@@ -574,9 +579,15 @@ export function createServer(): McpServer {
 
         if (format === "json") {
           const data = JSON.parse(body);
-          return { content: [{ type: "text", text: JSON.stringify(data) }] };
+          return {
+            content: [{ type: "text", text: `Fetched ${Array.isArray(data) ? data.length + " items" : "data"} from ${parsed.hostname}` }],
+            structuredContent: data as any,
+          };
         } else {
-          return { content: [{ type: "text", text: body }] };
+          return {
+            content: [{ type: "text", text: `Fetched CSV (${body.split("\n").length} rows) from ${parsed.hostname}` }],
+            structuredContent: { csv: body, format: "csv" } as any,
+          };
         }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
