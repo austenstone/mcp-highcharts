@@ -13,6 +13,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { getInputSchema } from "./src/input-schema.js";
+import { exportChartToImage, isExportable, isImageExportEnabled } from "./src/export-image.js";
 
 const DIST_DIR = import.meta.filename.endsWith(".ts")
   ? path.join(import.meta.dirname, "dist")
@@ -29,6 +30,9 @@ export interface ServerOptions {
    *
    *  Legacy string values "minimal", "basic", "full" are still supported. */
   schemaDepth?: number | "minimal" | "basic" | "full";
+  /** Enable server-side image export for clients that don't support MCP apps.
+   *  Can also be set via IMAGE_EXPORT=true env var. */
+  imageExport?: boolean;
 }
 
 export function createServer(options?: ServerOptions): McpServer {
@@ -42,6 +46,9 @@ export function createServer(options?: ServerOptions): McpServer {
     ? rawDepth
     : depthMap[rawDepth] ?? (Number.isNaN(parseInt(rawDepth, 10)) ? 1 : parseInt(rawDepth, 10));
   const chartInputSchema = getInputSchema(schemaDepth);
+
+  const imageExportEnabled = options?.imageExport ?? isImageExportEnabled();
+
   /** Default responsive rules: simplify charts in narrow panels */
   const defaultResponsiveRules = [
     {
@@ -71,10 +78,25 @@ export function createServer(options?: ServerOptions): McpServer {
     return config;
   }
 
-  /** Build a successful tool result with text summary and structured chart config */
-  function chartResult(summary: string, config: Record<string, unknown>): CallToolResult {
+  /** Build a successful tool result with text summary and structured chart config.
+   *  When image export is enabled and the chart type is exportable, includes
+   *  a base64 PNG image in the content array as a fallback for non-app clients. */
+  async function chartResult(summary: string, config: Record<string, unknown>): Promise<CallToolResult> {
+    const content: CallToolResult["content"] = [{ type: "text", text: summary }];
+
+    if (imageExportEnabled && isExportable(config)) {
+      const chartType = config.__chartType as string | undefined;
+      const imageData = await exportChartToImage({
+        options: config,
+        chartType,
+      });
+      if (imageData) {
+        content.push({ type: "image", data: imageData, mimeType: "image/png" });
+      }
+    }
+
     return {
-      content: [{ type: "text", text: summary }],
+      content,
       structuredContent: applyDefaults(config) as any,
     };
   }
@@ -123,7 +145,7 @@ export function createServer(options?: ServerOptions): McpServer {
           content: [{ type: "text", text: "series or data is required" }],
         };
       }
-      return chartResult(chartSummary(args), args);
+      return await chartResult(chartSummary(args), args);
     },
   );
 
@@ -170,7 +192,7 @@ export function createServer(options?: ServerOptions): McpServer {
         };
       }
       const full = { ...args, __chartType: "stock" };
-      return chartResult(chartSummary(args, "stock"), full);
+      return await chartResult(chartSummary(args, "stock"), full);
     },
   );
 
@@ -240,7 +262,7 @@ export function createServer(options?: ServerOptions): McpServer {
       }
       const components = args.components as Array<Record<string, unknown>>;
       const types = [...new Set(components.map(c => (c.type as string) || "unknown"))].join(", ");
-      return chartResult(`Rendered dashboard with ${components.length} components (${types})`, args);
+      return await chartResult(`Rendered dashboard with ${components.length} components (${types})`, args);
     },
   );
 
@@ -299,7 +321,7 @@ export function createServer(options?: ServerOptions): McpServer {
       }
       const full = { ...args, __chartType: "map" };
       const mapKey = (args.chart as any)?.map || "custom/world";
-      return chartResult(`Rendered map chart (${mapKey}) with ${((args.series as any[]) || []).length} series`, full);
+      return await chartResult(`Rendered map chart (${mapKey}) with ${((args.series as any[]) || []).length} series`, full);
     },
   );
 
@@ -347,7 +369,7 @@ export function createServer(options?: ServerOptions): McpServer {
       const full = { ...args, __chartType: "gantt" };
       const series = args.series as any[] | undefined;
       const tasks = series ? series.reduce((n, s) => n + (Array.isArray(s.data) ? s.data.length : 0), 0) : 0;
-      return chartResult(`Rendered Gantt chart with ${tasks} tasks`, full);
+      return await chartResult(`Rendered Gantt chart with ${tasks} tasks`, full);
     },
   );
 
@@ -427,7 +449,7 @@ export function createServer(options?: ServerOptions): McpServer {
         delete a.rows;
       }
 
-      return chartResult(`Rendered data grid`, { ...a, __chartType: "grid" });
+      return await chartResult(`Rendered data grid`, { ...a, __chartType: "grid" });
     },
   );
 
