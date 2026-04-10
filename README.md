@@ -113,6 +113,35 @@ Controls how much type information is sent to the LLM:
 
 For live-updating charts, use the Highcharts data module with `data.csvURL` and `data.enablePolling: true`.
 
+### Image export (non-app fallback)
+
+For MCP clients that don't support [MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview), enable server-side image export to include a PNG screenshot of each chart in the tool response:
+
+```json
+{
+  "env": {
+    "IMAGE_EXPORT": "true"
+  }
+}
+```
+
+This POSTs chart config to the [Highcharts Export Server](https://www.highcharts.com/docs/export-module/setting-up-the-server) and returns the PNG as a base64 image content block. The interactive MCP app is still included for capable clients.
+
+To use a self-hosted export server (recommended for production):
+
+```json
+{
+  "env": {
+    "IMAGE_EXPORT": "true",
+    "EXPORT_SERVER_URL": "https://your-export-server.example.com/"
+  }
+}
+```
+
+You can also enable it programmatically: `createServer({ imageExport: true })`.
+
+> **Note:** Image export works for standard charts, stock charts, and Gantt charts. Dashboards, data grids, and maps with string-based map keys (e.g. `"custom/world"`) are not exportable and will return text-only results.
+
 ## Development
 
 ```bash
@@ -128,6 +157,7 @@ npm test
 main.ts                  Entry point (stdio + HTTP transports)
 server.ts                MCP server — tool registrations and handlers
 src/
+  export-image.ts        Server-side PNG export via Highcharts Export Server
   input-schema.ts        Depth-based schema selection + LLM-friendly overrides
   mcp-app.ts             Client-side Highcharts rendering
   module-loader.ts       Dynamic Highcharts module loading
