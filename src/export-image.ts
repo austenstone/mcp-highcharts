@@ -72,15 +72,14 @@ function sanitizeForExport(config: Record<string, unknown>): Record<string, unkn
 // ---------------------------------------------------------------------------
 
 let localExporter: any = null;
-let localPoolReady = false;
+let localInitialized = false;
 let localAvailable: boolean | null = null; // null = not yet checked
 
-async function ensureLocalPool(): Promise<boolean> {
+async function ensureLocalReady(): Promise<boolean> {
   if (localAvailable === false) return false;
 
   if (!localExporter) {
     try {
-      // Dynamic import — only succeeds if the package is installed
       // @ts-expect-error — optional peer dep, no types available
       const mod = await import("highcharts-export-server");
       localExporter = mod.default ?? mod;
@@ -91,12 +90,15 @@ async function ensureLocalPool(): Promise<boolean> {
     }
   }
 
-  if (!localPoolReady) {
+  if (!localInitialized) {
     try {
-      localExporter.initPool();
-      localPoolReady = true;
+      // v5 API: setOptions() builds the full config, initExport() launches Puppeteer pool
+      const bootstrapSettings = localExporter.setOptions({
+        export: { type: "png" },
+      });
+      await localExporter.initExport(bootstrapSettings);
+      localInitialized = true;
 
-      // Best-effort cleanup on exit
       const cleanup = () => {
         try { localExporter?.killPool(); } catch { /* ignore */ }
       };
@@ -114,26 +116,31 @@ async function ensureLocalPool(): Promise<boolean> {
 }
 
 async function exportLocal(config: ExportImageConfig): Promise<string | null> {
-  const ready = await ensureLocalPool();
+  const ready = await ensureLocalReady();
   if (!ready) return null;
 
   const constr = CONSTRUCTOR_MAP[config.chartType ?? ""] ?? "chart";
   const sanitized = sanitizeForExport(config.options);
 
+  // v5 API: setOptions() merges per-export overrides, startExport() renders
+  const exportSettings = localExporter.setOptions({
+    export: {
+      type: "png",
+      constr: constr.toLowerCase(),
+      width: config.width ?? DEFAULT_WIDTH,
+      options: sanitized,
+    },
+  });
+
   return new Promise((resolve) => {
-    localExporter.export(
-      {
-        type: "png",
-        constr: constr.toLowerCase(),
-        width: config.width ?? DEFAULT_WIDTH,
-        options: sanitized,
-      },
-      (err: any, res: any) => {
+    localExporter.startExport(
+      exportSettings,
+      (err: any, info: any) => {
         if (err) {
           console.error("[mcp-highcharts] Local export failed:", err);
           resolve(null);
         } else {
-          resolve(res?.data ?? null);
+          resolve(info?.result ?? null);
         }
       },
     );
