@@ -60,6 +60,14 @@
     "highcharts": "^12.5.0",
     "zod": "^4.3.6"
   },
+  "peerDependencies": {
+    "highcharts-export-server": ">=3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "highcharts-export-server": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@highcharts/eslint-plugin-highcharts": "github:highcharts/eslint-plugin-highcharts",

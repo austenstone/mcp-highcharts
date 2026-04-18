@@ -106,7 +106,11 @@ describe("exportChartToImage", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
+
+  // In test env, highcharts-export-server is not installed, so local export
+  // will silently fail and all calls fall through to the remote HTTP path.
 
   it("POSTs chart config and returns base64 PNG on success", async () => {
     const fakePng = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
@@ -248,5 +252,46 @@ describe("exportChartToImage", () => {
 
     const body = JSON.parse(fetchSpy.mock.calls[0][1].body);
     expect(body.width).toBe(1200);
+  });
+});
+
+describe("exportChartToImage (local export mock)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.resetModules();
+  });
+
+  it("uses local exporter when available and skips HTTP", async () => {
+    vi.resetModules();
+
+    const fakeBase64 = "iVBORw0KGgoAAAANSUhEUg==";
+
+    // Mock the dynamic import to simulate highcharts-export-server being installed
+    vi.doMock("highcharts-export-server", () => ({
+      default: {
+        initPool: vi.fn(),
+        killPool: vi.fn(),
+        export: vi.fn((_opts: Record<string, unknown>, cb: (err: unknown, res: { data: string }) => void) => {
+          cb(null, { data: fakeBase64 });
+        }),
+      },
+    }));
+
+    // Re-import to get a fresh module with clean state
+    const { exportChartToImage: exportFn } = await import("../../src/export-image.js");
+
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const result = await exportFn({
+      options: { chart: { type: "line" }, series: [{ data: [1, 2] }] },
+    });
+
+    expect(result).toBe(fakeBase64);
+    // HTTP fetch should NOT have been called
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+    vi.doUnmock("highcharts-export-server");
   });
 });

@@ -125,9 +125,20 @@ For MCP clients that don't support [MCP Apps](https://modelcontextprotocol.io/ex
 }
 ```
 
-This POSTs chart config to the [Highcharts Export Server](https://www.highcharts.com/docs/export-module/setting-up-the-server) and returns the PNG as a base64 image content block. The interactive MCP app is still included for capable clients.
+Charts are rendered as PNG and returned as base64 image content blocks. The interactive MCP app is still included for capable clients.
 
-To use a self-hosted export server (recommended for production):
+**Rendering strategy (automatic):**
+
+1. **Local (Puppeteer)** — if [`highcharts-export-server`](https://github.com/niclasvaneyk/highcharts-export-server) is installed, charts render locally via a headless browser. No network calls, fastest option.
+2. **Remote fallback** — if local isn't available, chart config is POSTed to the [Highcharts Export Server](https://export.highcharts.com/).
+
+To enable local rendering, install the optional peer dependency:
+
+```bash
+npm install highcharts-export-server
+```
+
+To use a custom remote export server:
 
 ```json
 {
@@ -157,7 +168,7 @@ npm test
 main.ts                  Entry point (stdio + HTTP transports)
 server.ts                MCP server — tool registrations and handlers
 src/
-  export-image.ts        Server-side PNG export via Highcharts Export Server
+  export-image.ts        Server-side PNG export (local Puppeteer + remote fallback)
   input-schema.ts        Depth-based schema selection + LLM-friendly overrides
   mcp-app.ts             Client-side Highcharts rendering
   module-loader.ts       Dynamic Highcharts module loading
