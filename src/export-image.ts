@@ -103,6 +103,7 @@ export async function exportChartToImage(
       headers: {
         "Content-Type": "application/json",
         "Accept": "image/png",
+        "User-Agent": "mcp-highcharts",
       },
       body,
       signal: controller.signal,
