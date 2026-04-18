@@ -266,13 +266,14 @@ describe("exportChartToImage (local export mock)", () => {
 
     const fakeBase64 = "iVBORw0KGgoAAAANSUhEUg==";
 
-    // Mock the dynamic import to simulate highcharts-export-server being installed
+    // Mock the v5 API: setOptions → initExport → startExport → killPool
     vi.doMock("highcharts-export-server", () => ({
       default: {
-        initPool: vi.fn(),
+        setOptions: vi.fn((opts: Record<string, unknown>) => opts),
+        initExport: vi.fn(async () => {}),
         killPool: vi.fn(),
-        export: vi.fn((_opts: Record<string, unknown>, cb: (err: unknown, res: { data: string }) => void) => {
-          cb(null, { data: fakeBase64 });
+        startExport: vi.fn((_settings: Record<string, unknown>, cb: (err: unknown, info: { result: string }) => void) => {
+          cb(null, { result: fakeBase64 });
         }),
       },
     }));
