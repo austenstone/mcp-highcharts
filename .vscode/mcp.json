@@ -7,7 +7,8 @@
         "watch": "dist/**"
       },
 			"env": {
-        "SCHEMA_DEPTH": "1"
+        "SCHEMA_DEPTH": "1",
+        "IMAGE_EXPORT": "true"
     		// "HIGHCHARTS_OPTIONS": "examples/github-theme.ts"
 			}
     }
